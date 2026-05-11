@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PA · Field</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230A0A0A'/%3E%3Ctext x='16' y='22' font-family='Arial Black' font-size='10' font-weight='900' fill='%23A8832A' text-anchor='middle' letter-spacing='0.5'%3EBD%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --gold:#A8832A;--gold-lt:#C9A84C;--gold-bg:#FDF8EF;--gold-bd:#E8D5A8;
+  --bg:#F7F6F3;--white:#FFFFFF;--s2:#F3F2EF;--bd:#E2E0DA;--bd2:#CCCAC3;
+  --t1:#1A1917;--t2:#4A4844;--t3:#8A8880;--t4:#B8B6B0;
+  --green:#1A7A4A;--green-bg:#EBF7F1;--green-bd:#A8DFC0;
+  --amber:#8A5E0A;--amber-bg:#FDF4E3;--amber-bd:#F0C878;
+  --red:#B83232;--red-bg:#FDF0F0;--red-bd:#F0AAAA;
+  --blue:#1A4F8A;--blue-bg:#EEF4FD;--blue-bd:#A8C4E8;
+  --purple:#5A3A8A;--purple-bg:#F4F0FD;--purple-bd:#C4A8E8;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:flex;flex-direction:column;}
+
+/* ── TOPBAR ── */
+.topbar{
+  height:56px;background:var(--white);border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;
+  box-shadow:0 1px 3px rgba(0,0,0,.05);
+}
+.logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--t1);letter-spacing:-0.5px;}
+.logo span{color:var(--gold);}
+.sync-btn{margin-left:auto;width:32px;height:32px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);font-size:14px;transition:all .15s;}
+.sync-btn:hover{border-color:var(--gold-lt);color:var(--gold);}
+.sync-btn.spinning{animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.user-chip{font-size:11px;font-weight:500;padding:4px 10px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);border-radius:20px;cursor:pointer;}
+.user-select{height:32px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;border-radius:20px;padding:0 28px 0 12px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23A8832A' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+
+/* ── AUCTION SELECTOR ── */
+.auction-bar{
+  padding:10px 16px;background:var(--white);border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+.auction-select{
+  flex:1;height:36px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;
+  font-family:'DM Sans',sans-serif;font-size:13px;color:var(--t1);padding:0 10px;outline:none;
+}
+.auction-select:focus{border-color:var(--gold-lt);}
+.auction-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-active{background:var(--green);}
+.dot-upcoming{background:var(--gold-lt);}
+.dot-closed{background:var(--t4);}
+
+/* ── TAB BAR ── */
+.tabbar{
+  height:56px;background:var(--white);border-top:1px solid var(--bd);
+  display:flex;align-items:stretch;flex-shrink:0;
+  padding-bottom:var(--safe-bottom);box-shadow:0 -1px 3px rgba(0,0,0,.05);
+}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--t4);transition:color .15s;font-size:9px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;border:none;background:none;}
+.tab svg{width:20px;height:20px;}
+.tab.on{color:var(--gold);}
+.tab .tab-dot{width:5px;height:5px;border-radius:50%;background:var(--red);display:none;margin-top:-10px;margin-left:14px;}
+.tab .tab-dot.show{display:block;}
+
+/* ── MAIN SCROLL ── */
+.main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+
+/* ── SECTION HEADERS ── */
+.sec-hd{padding:14px 16px 6px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:500;}
+.empty-state{text-align:center;padding:60px 24px;color:var(--t4);}
+.empty-icon{font-family:'Cormorant Garamond',serif;font-size:40px;color:var(--gold-bd);margin-bottom:10px;}
+.empty-msg{font-size:13px;color:var(--t3);}
+
+/* ── TODAY VIEW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px 4px;}
+.kpi-card{background:var(--white);border:1px solid var(--bd);border-radius:8px;padding:12px 10px;text-align:center;}
+.kpi-n{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:600;line-height:1;}
+.kpi-n.hi{color:var(--green);}
+.kpi-n.warn{color:var(--amber);}
+.kpi-n.gold{color:var(--gold);}
+.kpi-l{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-top:3px;}
+
+/* ── ACTIVITY ITEMS ── */
+.act-card{
+  background:var(--white);border-bottom:1px solid var(--bd);
+  padding:13px 16px;display:flex;gap:12px;align-items:flex-start;
+  cursor:pointer;transition:background .1s;
+}
+.act-card:active{background:var(--s2);}
+.act-card.overdue{border-left:3px solid var(--red);}
+.act-card.today{border-left:3px solid var(--amber);}
+.act-card.done{opacity:.55;}
+.act-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.icon-call{background:var(--green-bg);}
+.icon-wa{background:#dcf8c6;}
+.icon-meet{background:var(--purple-bg);}
+.icon-mail{background:var(--blue-bg);}
+.icon-other{background:var(--s2);}
+.act-info{flex:1;min-width:0;}
+.act-broker{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.act-sub{font-size:11px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.act-tag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;}
+.tag-ov{background:var(--red-bg);color:var(--red);}
+.tag-td{background:var(--amber-bg);color:var(--amber);}
+.tag-pl{background:var(--blue-bg);color:var(--blue);}
+.tag-dn{background:var(--green-bg);color:var(--green);}
+.act-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.act-date{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);}
+
+/* ── BROKER LIST ── */
+.broker-card{
+  background:var(--white);border-bottom:1px solid var(--bd);
+  padding:13px 16px;display:flex;gap:12px;align-items:center;
+  cursor:pointer;transition:background .1s;
+}
+.broker-card:active{background:var(--s2);}
+.broker-card.hot{border-left:3px solid var(--green);}
+.broker-card.warm{border-left:3px solid var(--gold-lt);}
+.broker-score{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;flex-shrink:0;}
+.sc-h{background:var(--green-bg);color:var(--green);border:1.5px solid var(--green-bd);}
+.sc-w{background:var(--gold-bg);color:var(--gold);border:1.5px solid var(--gold-bd);}
+.sc-c{background:var(--s2);color:var(--t3);border:1.5px solid var(--bd);}
+.broker-info{flex:1;min-width:0;}
+.broker-name{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.broker-agency{font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.broker-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.stg-pill{font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;}
+.s9{background:var(--green-bg);color:var(--green);}
+.s8{background:#EEF8F3;color:#1F7A50;}
+.s7{background:#EEF8F3;color:#2A6A48;}
+.s6{background:#EEF8F3;color:#2A6A48;}
+.s5{background:var(--blue-bg);color:var(--blue);}
+.s4{background:#EEF3FD;color:#2A4F8A;}
+.s3{background:var(--amber-bg);color:var(--amber);}
+.s2{background:var(--s2);color:var(--t2);}
+.s1{background:var(--s2);color:var(--t3);}
+.s0{background:var(--red-bg);color:var(--red);}
+.next-action{font-size:10px;color:var(--t3);}
+.next-action.ov{color:var(--red);font-weight:500;}
+.next-action.td{color:var(--amber);font-weight:500;}
+
+/* ── SEARCH BAR ── */
+.search-wrap{padding:10px 16px;background:var(--white);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:10;}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:0 12px;height:38px;transition:border-color .15s;}
+.search-box:focus-within{border-color:var(--gold-lt);background:var(--white);}
+.search-box input{flex:1;background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--t1);}
+.search-box input::placeholder{color:var(--t4);}
+.search-icon{color:var(--t4);font-size:14px;}
+.filter-row{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;background:var(--white);-webkit-overflow-scrolling:touch;}
+.filter-row::-webkit-scrollbar{display:none;}
+.fchip{height:28px;padding:0 12px;background:var(--white);border:1px solid var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;border-radius:14px;white-space:nowrap;cursor:pointer;}
+.fchip.on{background:var(--gold-bg);border-color:var(--gold-bd);color:var(--gold);}
+
+/* ── LOG ACTIVITY SHEET ── */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
+.sheet-overlay.open{opacity:1;pointer-events:all;}
+.sheet{background:var(--white);border-radius:16px 16px 0 0;padding:0 0 calc(20px + var(--safe-bottom));max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .25s ease;}
+.sheet-overlay.open .sheet{transform:translateY(0);}
+.sheet-handle{width:36px;height:4px;background:var(--bd2);border-radius:2px;margin:10px auto 0;}
+.sheet-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;padding:14px 20px 10px;color:var(--t1);}
+.sheet-sub{font-size:12px;color:var(--t3);padding:0 20px 12px;border-bottom:1px solid var(--bd);}
+.sheet-body{padding:16px 20px;}
+.fg{margin-bottom:14px;}
+.fg-l{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);font-weight:500;margin-bottom:5px;}
+.fi{width:100%;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none;}
+.fi:focus{border-color:var(--gold-lt);background:var(--white);}
+select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8880' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
+.type-grid{display:block;margin-top:4px;}
+.type-btn{padding:8px 6px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;text-align:center;cursor:pointer;font-size:11px;font-weight:500;color:var(--t2);transition:all .15s;line-height:1.3;}
+.type-btn span{display:block;font-size:18px;margin-bottom:3px;}
+.type-btn.on{background:var(--gold-bg);border-color:var(--gold-lt);color:var(--gold);}
+.planned-toggle{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;}
+.toggle-track{width:40px;height:22px;border-radius:11px;background:var(--bd);position:relative;flex-shrink:0;transition:background .15s;}
+.toggle-track.on{background:var(--gold);}
+.toggle-thumb{width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.toggle-track.on .toggle-thumb{left:20px;}
+.planned-label{font-size:13px;color:var(--t2);}
+.sheet-actions{padding:16px 20px 0;display:flex;gap:8px;}
+.btn-cancel{flex:1;height:46px;background:var(--s2);border:1px solid var(--bd);color:var(--t2);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;}
+.btn-save{flex:2;height:46px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;}
+.btn-save:active{background:var(--t2);}
+.btn-gold{flex:2;height:46px;background:var(--gold);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;}
+
+/* ── BROKER DETAIL SHEET ── */
+.detail-sheet{position:fixed;inset:0;background:var(--white);z-index:400;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;}
+.detail-sheet.open{transform:translateX(0);}
+.detail-topbar{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--bd);flex-shrink:0;}
+.back-btn{font-size:24px;color:var(--t2);cursor:pointer;padding:4px;margin-left:-4px;}
+.detail-title{font-size:15px;font-weight:500;color:var(--t1);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.log-fab{height:36px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;white-space:nowrap;}
+.detail-hero{padding:16px;background:var(--gold-bg);border-bottom:1px solid var(--gold-bd);flex-shrink:0;}
+.hero-name{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--t1);margin-bottom:2px;}
+.hero-agency{font-size:12px;color:var(--t3);}
+.hero-row{display:flex;align-items:center;gap:8px;margin-top:10px;}
+.hero-stage{font-size:10px;font-weight:500;padding:3px 9px;border-radius:4px;}
+.hero-score-wrap{margin-left:auto;text-align:right;}
+.hero-score-n{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;}
+.hero-score-l{font-size:9px;color:var(--t3);letter-spacing:.5px;}
+.detail-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.detail-section{padding:14px 16px;border-bottom:1px solid var(--bd);}
+.detail-sec-title{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:500;margin-bottom:10px;}
+.detail-row{display:flex;justify-content:space-between;margin-bottom:7px;gap:8px;}
+.detail-label{font-size:12px;color:var(--t3);flex-shrink:0;}
+.detail-val{font-size:12px;color:var(--t1);text-align:right;word-break:break-all;}
+.detail-val a{color:var(--gold);text-decoration:none;}
+.act-item{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:10px 12px;margin-bottom:6px;}
+.act-item.planned-item{border-style:dashed;background:var(--white);}
+.act-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.act-item-type{font-size:12px;font-weight:500;color:var(--t1);}
+.act-item-date{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);}
+.act-item-notes{font-size:11px;color:var(--t3);}
+.act-item-badge{font-size:9px;font-weight:500;padding:1px 6px;border-radius:3px;}
+.badge-planned{background:var(--blue-bg);color:var(--blue);}
+.badge-done{background:var(--green-bg);color:var(--green);}
+.stage-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;}
+.stage-btn{padding:8px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;font-size:11px;font-weight:500;color:var(--t2);cursor:pointer;text-align:center;transition:all .15s;}
+.stage-btn.on{background:var(--gold-bg);border-color:var(--gold-lt);color:var(--gold);}
+.stage-btn:active{background:var(--gold-bg);}
+.notes-area{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--t1);padding:10px 12px;outline:none;min-height:80px;resize:none;transition:border-color .15s;}
+.notes-area:focus{border-color:var(--gold-lt);background:var(--white);}
+.save-notes-btn{margin-top:8px;width:100%;height:40px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:8px;cursor:pointer;}
+
+/* ── ADD BROKER SHEET ── */
+.add-broker-btn-wrap{padding:14px 16px;position:sticky;bottom:0;background:linear-gradient(to top,var(--bg) 70%,transparent);pointer-events:none;}
+.add-broker-btn-wrap button{pointer-events:all;width:100%;height:48px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:calc(80px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--t1);color:#fff;font-size:12px;padding:9px 18px;border-radius:20px;z-index:999;opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.gold{background:var(--gold);}
+
+/* ── LOADING ── */
+.loading-bar{position:fixed;top:0;left:0;right:0;height:2px;background:var(--gold-lt);z-index:9999;transform:scaleX(0);transform-origin:left;transition:transform .3s,opacity .4s;opacity:0;}
+.loading-bar.on{opacity:1;animation:progress 1.2s ease infinite;}
+@keyframes progress{0%{transform:scaleX(0)}50%{transform:scaleX(.7)}100%{transform:scaleX(1)}}
+
+/* ── CRM LINK BANNER ── */
+.crm-link{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--gold-bg);border:1px solid var(--gold-bd);border-radius:8px;margin:12px 16px;cursor:pointer;text-decoration:none;}
+.crm-link-icon{width:30px;height:30px;background:var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex-shrink:0;}
+.crm-link-text{flex:1;}
+.crm-link-title{font-size:12px;font-weight:500;color:var(--gold);}
+.crm-link-sub{font-size:10px;color:var(--amber);}
+.crm-link-arrow{color:var(--gold-lt);font-size:16px;}
+
+/* ── PIPELINE SUMMARY ── */
+.pipeline-row{display:flex;gap:4px;padding:10px 16px;overflow-x:auto;}
+.pipeline-row::-webkit-scrollbar{display:none;}
+.pip-stage{flex-shrink:0;background:var(--white);border:1px solid var(--bd);border-radius:6px;padding:8px 12px;text-align:center;min-width:70px;}
+.pip-stage.active{border-color:var(--gold-lt);background:var(--gold-bg);}
+.pip-n{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--t1);}
+.pip-l{font-size:9px;color:var(--t3);margin-top:2px;white-space:nowrap;}
+
+
+/* ── CALENDAR ── */
+.cal-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--white);border-bottom:1px solid var(--bd);}
+.cal-month{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--t1);}
+.cal-nav-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-size:14px;}
+.cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);background:var(--white);border-bottom:1px solid var(--bd);}
+.cal-dow{text-align:center;padding:5px 0;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t4);font-weight:500;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);background:var(--white);}
+.cal-cell{min-height:52px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:3px;position:relative;cursor:pointer;}
+.cal-cell:nth-child(7n){border-right:none;}
+.cal-cell.other-month .cal-day-num{color:var(--t4);}
+.cal-cell.today .cal-day-num{background:var(--gold);color:#fff;border-radius:50%;}
+.cal-cell.selected{background:var(--gold-bg);}
+.cal-day-num{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--t2);margin-bottom:2px;}
+.cal-dot-row{display:flex;gap:2px;flex-wrap:wrap;padding:0 1px;}
+.cal-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.dot-ov{background:var(--red);}
+.dot-td{background:var(--amber);}
+.dot-soon{background:var(--blue);}
+.dot-up{background:var(--bd2);}
+.cal-day-detail{background:var(--white);border-top:2px solid var(--gold-lt);flex:1;overflow-y:auto;}
+.cal-detail-hd{padding:12px 16px 8px;font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--t1);border-bottom:1px solid var(--bd);}
+.cal-ev-item{display:flex;gap:10px;align-items:flex-start;padding:10px 16px;border-bottom:1px solid var(--bd);cursor:pointer;}
+.cal-ev-item:active{background:var(--s2);}
+.cal-ev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.cal-ev-info{flex:1;min-width:0;}
+.cal-ev-title{font-size:13px;font-weight:500;color:var(--t1);}
+.cal-ev-sub{font-size:11px;color:var(--t3);margin-top:1px;}
+.cal-ev-time{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);flex-shrink:0;}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<!-- LOADING BAR -->
+<div class="loading-bar" id="loading-bar"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">PA<span>·</span>Field</div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <select id="user-select" class="user-select" onchange="onUserChange(this.value)">
+      <option value="">— Who are you? —</option>
+    </select>
+    <div class="sync-btn" id="sync-btn" onclick="loadData()" title="Sync">↻</div>
+  </div>
+</div>
+
+<!-- AUCTION SELECTOR -->
+<div class="auction-bar">
+  <div class="auction-dot" id="a-dot"></div>
+  <select class="auction-select" id="a-select" onchange="onAuctionChange()">
+    <option value="">Loading auctions…</option>
+  </select>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main" id="main-scroll">
+  <div id="view-today"></div>
+  <div id="view-brokers" style="display:none"></div>
+  <div id="view-log" style="display:none"></div>
+  <div id="view-cal" style="display:none"></div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tabbar">
+  <button class="tab on" id="tab-today" onclick="switchTab('today')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    Today
+    <div class="tab-dot" id="dot-today"></div>
+  </button>
+  <button class="tab" id="tab-brokers" onclick="switchTab('brokers')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    Brokers
+  </button>
+  <button class="tab" id="tab-log" onclick="switchTab('log')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Log
+  </button>
+  <button class="tab" id="tab-cal" onclick="switchTab('cal')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Calendar
+  </button>
+</div>
+
+<!-- LOG ACTIVITY SHEET -->
+<div class="sheet-overlay" id="log-sheet" onclick="if(event.target===this)closeLogSheet()">
+  <div class="sheet" id="log-sheet-inner">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Log activity</div>
+    <div class="sheet-sub" id="log-sheet-broker-name">Select broker below</div>
+    <div class="sheet-body">
+      <div class="fg">
+        <div class="fg-l">Broker</div>
+        <select class="fi" id="log-broker"></select>
+      </div>
+      <div class="fg">
+        <div class="fg-l">Type</div>
+        <div class="type-grid" id="type-grid"></div>
+      </div>
+      <div class="fg">
+        <div class="fg-l">Date</div>
+        <input type="date" class="fi" id="log-date">
+      </div>
+      <div class="fg">
+        <div class="fg-l">Notes (optional)</div>
+        <input class="fi" id="log-notes" placeholder="e.g. Very interested, has CH buyer…">
+      </div>
+      <div class="fg" onclick="togglePlanned()">
+        <div class="planned-toggle">
+          <div class="toggle-track" id="planned-track"><div class="toggle-thumb"></div></div>
+          <div class="planned-label">Planned next action (not done yet)</div>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeLogSheet()">Cancel</button>
+      <button class="btn-save" onclick="submitLog()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- BROKER DETAIL SHEET -->
+<div class="detail-sheet" id="detail-sheet">
+  <div class="detail-topbar">
+    <div class="back-btn" onclick="closeDetail()">←</div>
+    <div class="detail-title" id="detail-title">Broker</div>
+    <button class="log-fab" onclick="openLogForBroker()">+ Log</button>
+  </div>
+  <div class="detail-hero" id="detail-hero"></div>
+  <div class="detail-scroll" id="detail-scroll">
+    <div id="detail-body"></div>
+  </div>
+</div>
+
+
+<!-- ADD BROKER SHEET -->
+<div class="sheet-overlay" id="add-broker-sheet" onclick="if(event.target===this)closeAddBroker()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add broker / contact</div>
+    <div class="sheet-sub">Will appear in CRM immediately</div>
+    <div class="sheet-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Name *</div>
+          <input class="fi" id="nb-name" placeholder="Full name">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Agency / Company</div>
+          <input class="fi" id="nb-agency" placeholder="Agency name">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Phone</div>
+          <input class="fi" id="nb-phone" type="tel" placeholder="+33 6…">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Email</div>
+          <input class="fi" id="nb-email" type="email" placeholder="…@…">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Area</div>
+          <input class="fi" id="nb-area" placeholder="e.g. Cannes">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Country</div>
+          <input class="fi" id="nb-country" placeholder="France">
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fg-l">Type</div>
+        <select class="fi" id="nb-type">
+          <option value="RE Agency">RE Agency</option>
+          <option value="Buyer's Agent">Buyer's Agent</option>
+          <option value="Notaire">Notaire</option>
+          <option value="Wealth Manager">Wealth Manager</option>
+          <option value="Family Office">Family Office</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="fg-l">Assigned to</div>
+        <select class="fi" id="nb-assigned"></select>
+      </div>
+      <div class="fg">
+        <div class="fg-l">Property (optional)</div>
+        <input class="fi" id="nb-property" placeholder="e.g. Villa Les Pins, Mougins — €4.5M">
+      </div>
+      <div class="fg">
+        <div class="fg-l">Referred by (optional)</div>
+        <input class="fi" id="nb-ref" placeholder="Name or agency">
+      </div>
+      <div class="fg">
+        <div class="fg-l">Notes</div>
+        <textarea class="fi" id="nb-notes" style="min-height:60px;resize:none" placeholder="First impression, context…"></textarea>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeAddBroker()">Cancel</button>
+      <button class="btn-save" onclick="submitNewBroker()">Add to CRM</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── CONFIG (same Supabase as CRM) ─────────────────────────
+const SUPA_URL='https://hzbwlqyhklwfxjbcramx.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6YndscXloa2x3ZnhqYmNyYW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDI5MjMsImV4cCI6MjA5MjUxODkyM30.3x1I5Rkz9nJYcqd6kBpAKth6hXKeBLVYQAz1qDPoTL8';
+const H={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
+
+const TEAM=['Laure','Rodolphe','Laurence','Bertrand','Jane','Tony','Barbara','Jorge'];
+const STAGES={
+  9:'Addendum signed',
+  8:'Addendum sent',
+  7:'Addendum drafted',
+  6:'Mandate confirmed',
+  5:'Property visited',
+  4:'Pitch done',
+  3:'Interested',
+  2:'Contacted',
+  1:'Identified',
+  0:'Not relevant'
+};
+const SCLS={9:'s9',8:'s8',7:'s7',6:'s6',5:'s5',4:'s4',3:'s3',2:'s2',1:'s1',0:'s0'};
+// Addendum substates (stored in broker.bd_addendum field)
+const ADDENDUM_STATUS={
+  '':'—',
+  'draft':'Being drafted',
+  'sent':'Sent to agent',
+  'vendor_review':'With vendor',
+  'signed':'Signed ✓',
+  'blocked':'Blocked'
+};
+const ACT_TYPES=[
+  {key:'Call',icon:'📞',css:'icon-call',group:'Outreach'},
+  {key:'WhatsApp',icon:'💬',css:'icon-wa',group:'Outreach'},
+  {key:'Meeting',icon:'🤝',css:'icon-meet',group:'Outreach'},
+  {key:'Property pitch',icon:'🏠',css:'icon-other',group:'BD'},
+  {key:'Property visit',icon:'🔑',css:'icon-meet',group:'BD'},
+  {key:'Mandate proposal',icon:'📋',css:'icon-mail',group:'BD'},
+  {key:'Flyer sent',icon:'📄',css:'icon-mail',group:'Material'},
+  {key:'File sent',icon:'📁',css:'icon-mail',group:'Material'},
+  {key:'Training',icon:'🎓',css:'icon-other',group:'Material'},
+  {key:'Invited B2B Open Day',icon:'🏢',css:'icon-other',group:'Event'},
+  {key:'Invited B2C Open Day',icon:'🏡',css:'icon-other',group:'Event'},
+  {key:'Other',icon:'📌',css:'icon-other',group:'Event'},
+  {key:'Notice sent',icon:'✉️',css:'icon-mail',group:'_hidden'},
+];
+
+// ── STATE ──────────────────────────────────────────────────
+let auctions=[], curAuction=null, brokers=[], activities=[], clients=[];
+let curTab='today', selBroker=null, logPlanned=false, logType='Call';
+let filterQ='', filterStage=null, filterBdStage=null, filterAssigned=null;
+const savedUser=localStorage.getItem('pa_field_user')||TEAM[0];
+let curUser=savedUser;
+let userIdx=TEAM.indexOf(curUser);if(userIdx<0)userIdx=0;
+
+// ── HELPERS ───────────────────────────────────────────────
+function fmt(d){if(!d)return'';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
+function today(){return new Date().toISOString().slice(0,10);}
+function esc(s){return(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function toast(msg,gold=false){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast'+(gold?' gold':'')+' show';
+  clearTimeout(el._t);el._t=setTimeout(()=>el.className='toast',2200);
+}
+function loading(on){
+  const el=document.getElementById('loading-bar');
+  el.className='loading-bar'+(on?' on':'');
+}
+
+function naStatus(b){
+  const planned=(b.activities||[]).filter(a=>a.planned);
+  if(!planned.length)return'none';
+  const sorted=planned.slice().sort((a,b)=>new Date(a.acted_at)-new Date(b.acted_at));
+  const now=new Date();now.setHours(0,0,0,0);
+  const up=sorted.filter(a=>{const d=new Date(a.acted_at);d.setHours(0,0,0,0);return d>=now;});
+  const next=up.length?up[0]:sorted[sorted.length-1];
+  const d=new Date(next.acted_at),t=new Date();t.setHours(0,0,0,0);d.setHours(0,0,0,0);
+  const df=Math.round((d-t)/86400000);
+  if(df<0)return'overdue';if(df===0)return'today';if(df<=7)return'soon';return'upcoming';
+}
+function nextAct(b){
+  const planned=(b.activities||[]).filter(a=>a.planned);
+  if(!planned.length)return null;
+  const sorted=planned.slice().sort((a,b)=>new Date(a.acted_at)-new Date(b.acted_at));
+  const now=new Date();now.setHours(0,0,0,0);
+  const up=sorted.filter(a=>{const d=new Date(a.acted_at);d.setHours(0,0,0,0);return d>=now;});
+  return up.length?up[0]:sorted[sorted.length-1];
+}
+function brokerScore(b){
+  const c=b.clients||[],acts=(b.activities||[]).filter(a=>!a.planned);
+  if(!c.length&&!acts.length)return 0;
+  let s=0;
+  if(c.some(x=>['pre-auction-bid','contract-signed','bidding'].includes(x.status)))s+=3;
+  else if(c.some(x=>['pre-auction-registration','registered'].includes(x.status)))s+=2;
+  if(c.some(x=>x.interest==='ready'||x.interest==='serious'))s+=2;
+  if(b.stage>=7)s+=3;else if(b.stage>=5)s+=2;else if(b.stage>=3)s+=1;
+  const now=Date.now(),wk=7*86400000;
+  if(acts.filter(a=>new Date(a.acted_at).getTime()>now-wk).length>=3)s+=1;
+  return Math.min(9,s);
+}
+function momentum(b){
+  const acts=(b.activities||[]).filter(a=>!a.planned);
+  if(!acts.length)return'cold';
+  const now=Date.now(),last=new Date(acts[0].acted_at).getTime();
+  const days=(now-last)/86400000,wk=acts.filter(a=>new Date(a.acted_at).getTime()>now-7*86400000).length;
+  if(wk>=3)return'hot';if(days<=3)return'warm';if(days>14)return'stale';return'warm';
+}
+function actIcon(type){const t=ACT_TYPES.find(x=>x.key===type)||ACT_TYPES[8];return t.icon;}
+
+// ── DATA ──────────────────────────────────────────────────
+async function dbGet(table,params=''){
+  const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?'+params,{headers:{...H,'Accept':'application/json'}});
+  if(!r.ok)throw new Error(await r.text());return r.json();
+}
+async function dbPost(table,body){
+  const r=await fetch(SUPA_URL+'/rest/v1/'+table,{method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error(await r.text());return r.json();
+}
+async function dbPatch(table,id,body){
+  const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?id=eq.'+id,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error(await r.text());
+}
+
+async function loadData(){
+  const btn=document.getElementById('sync-btn');
+  btn.classList.add('spinning');loading(true);
+  try{
+    // ── PHASE 1: fetch auctions, resolve curAuction ──────────
+    const aRows=await dbGet('auctions','order=id');
+    const prev=curAuction?.id;
+    auctions=aRows.map(r=>({id:r.id,name:r.name||'',location:r.location||'',date:r.date||'',
+      status:r.status||'upcoming',team:(r.team||'').split(',').map(x=>x.trim()).filter(Boolean)}));
+    if(prev){
+      curAuction=auctions.find(a=>a.id===prev)||auctions.find(a=>a.status==='active')||auctions[0]||null;
+    } else {
+      curAuction=auctions.find(a=>a.status==='active')||auctions[0]||null;
+    }
+    buildAuctionSelector();
+
+    // ── PHASE 2: fetch brokers/clients/activities for resolved auction ──
+    brokers=[];
+    if(curAuction){
+      const [bRows,cRows,actRows]=await Promise.all([
+        dbGet('brokers','auction_id=eq.'+curAuction.id+'&order=name'),
+        dbGet('clients','auction_id=eq.'+curAuction.id),
+        dbGet('broker_activities','auction_id=eq.'+curAuction.id+'&order=acted_at.desc'),
+      ]);
+      const bMap={};
+      brokers=bRows.map(r=>({
+        id:r.id,auction_id:r.auction_id,
+        name:r.name||'',agency:r.agency||'',type:r.type||'RE Agency',
+        area:r.area||'',country:r.country||'',phone:r.phone||'',email:r.email||'',
+        assigned:r.assigned||'',stage:r.stage!=null?Number(r.stage):1,bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
+        notes:r.notes||'',activities:[],clients:[],
+        bd_property:r.bd_property||'',bd_value:r.bd_value||'',
+        bd_addendum:r.bd_addendum||'',bd_ref:r.bd_ref||''
+      }));
+      brokers.forEach(b=>bMap[b.id]=b);
+      actRows.forEach(a=>{
+        if(bMap[a.broker_id])bMap[a.broker_id].activities.push({
+          id:a.id,type:a.type||'',notes:a.notes||'',planned:!!a.planned,acted_at:a.acted_at||''
+        });
+      });
+      cRows.forEach(c=>{
+        if(c.broker_id&&bMap[c.broker_id])bMap[c.broker_id].clients.push({
+          id:c.id,name:c.name||'',interest:c.interest||'',status:c.status||'aware',origin:c.origin||''
+        });
+      });
+    }
+
+    renderCurrentTab();
+    updateOverdueDot();
+    toast('Synced — '+brokers.length+' brokers',true);
+  }catch(e){toast('Sync error: '+e.message);}
+  finally{btn.classList.remove('spinning');loading(false);}
+}
+
+function buildAuctionSelector(){
+  const sel=document.getElementById('a-select');
+  sel.innerHTML=auctions.map(a=>`<option value="${a.id}"${curAuction&&a.id===curAuction.id?' selected':''}>${a.name}${a.status==='active'?' ●':''}</option>`).join('');
+  if(!auctions.length)sel.innerHTML='<option>No auctions found</option>';
+  const dot=document.getElementById('a-dot');
+  dot.className='auction-dot'+(curAuction?' dot-'+curAuction.status:'');
+}
+
+function onAuctionChange(){
+  const id=parseInt(document.getElementById('a-select').value);
+  curAuction=auctions.find(a=>a.id===id)||null;
+  loadData();
+}
+
+// ── USER ─────────────────────────────────────────────────
+function buildUserSelect(){
+  const sel=document.getElementById('user-select');
+  sel.innerHTML='<option value="">— Who are you? —</option>'+
+    TEAM.map(m=>`<option value="${m}"${m===curUser?' selected':''}>${m}</option>`).join('');
+}
+function onUserChange(val){
+  if(!val)return;
+  curUser=val;
+  userIdx=TEAM.indexOf(val);
+  localStorage.setItem('pa_field_user',curUser);
+  renderCurrentTab();
+}
+
+// ── ADD BROKER ────────────────────────────────────────────
+function openAddBroker(){
+  if(!curAuction){toast('Select an auction first');return;}
+  document.getElementById('nb-name').value='';
+  document.getElementById('nb-agency').value='';
+  document.getElementById('nb-phone').value='';
+  document.getElementById('nb-email').value='';
+  document.getElementById('nb-area').value='';
+  document.getElementById('nb-country').value='France';
+  document.getElementById('nb-type').value='RE Agency';
+  document.getElementById('nb-property').value='';
+  document.getElementById('nb-ref').value='';
+  document.getElementById('nb-notes').value='';
+  const asgn=document.getElementById('nb-assigned');
+  asgn.innerHTML=TEAM.map(m=>`<option value="${m}"${m===curUser?' selected':''}>${m}</option>`).join('');
+  document.getElementById('add-broker-sheet').classList.add('open');
+}
+function closeAddBroker(){
+  document.getElementById('add-broker-sheet').classList.remove('open');
+}
+async function submitNewBroker(){
+  const name=document.getElementById('nb-name').value.trim();
+  if(!name){toast('Name is required');return;}
+  if(!curAuction){toast('No auction selected');return;}
+  const bd_property=document.getElementById('nb-property').value.trim();
+  const bd_ref=document.getElementById('nb-ref').value.trim();
+  const notes=document.getElementById('nb-notes').value.trim();
+  const body={
+    auction_id:curAuction.id,
+    name,
+    agency:document.getElementById('nb-agency').value.trim(),
+    phone:document.getElementById('nb-phone').value.trim(),
+    email:document.getElementById('nb-email').value.trim(),
+    area:document.getElementById('nb-area').value.trim(),
+    country:document.getElementById('nb-country').value.trim()||'France',
+    type:document.getElementById('nb-type').value,
+    assigned:document.getElementById('nb-assigned').value,
+    stage:1,bd_stage:1,
+    bd_property,bd_value:'',bd_addendum:'',bd_ref,
+    notes
+  };
+  try{
+    loading(true);
+    const rows=await dbPost('brokers',body);
+    const newB={...rows[0],activities:[],clients:[],
+      bd_property,bd_value:'',bd_addendum:'',bd_ref,
+      notes};
+    brokers.push(newB);
+    closeAddBroker();
+    toast(name+' added to CRM ✓',true);
+    renderCurrentTab();
+    // Open detail immediately so user can keep filling in info
+    openDetail(newB.id);
+  }catch(e){toast('Error: '+e.message);}
+  finally{loading(false);}
+}
+
+// ── TABS ─────────────────────────────────────────────────
+function switchTab(t){
+  curTab=t;
+  ['today','brokers','log','cal'].forEach(id=>{
+    document.getElementById('view-'+id).style.display=id===t?'block':'none';
+    document.getElementById('tab-'+id).classList.toggle('on',id===t);
+  });
+  if(t==='log'){openLogSheet();return;}
+  renderCurrentTab();
+}
+function renderCurrentTab(){
+  if(curTab==='today')renderToday();
+  else if(curTab==='brokers')renderBrokers();
+  else if(curTab==='cal')renderCal();
+}
+
+// ── UPDATE OVERDUE DOT ────────────────────────────────────
+function updateOverdueDot(){
+  const ov=brokers.filter(b=>naStatus(b)==='overdue').length;
+  document.getElementById('dot-today').classList.toggle('show',ov>0);
+}
+
+// ── TODAY VIEW ────────────────────────────────────────────
+function renderToday(){
+  const v=document.getElementById('view-today');
+  if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';return;}
+
+  // KPIs
+  const overdue=brokers.filter(b=>naStatus(b)==='overdue').length;
+  const signed=brokers.filter(b=>b.bd_addendum==='signed').length;
+  const inPlay=brokers.filter(b=>b.bd_stage>=4&&b.bd_stage<=8).length;
+
+  // My brokers with actions due
+  const myBrokers=brokers.filter(b=>!b.assigned||b.assigned===curUser);
+  const withActions=myBrokers.filter(b=>['overdue','today','soon'].includes(naStatus(b)));
+  withActions.sort((a,b)=>{const ord={overdue:0,today:1,soon:2};return ord[naStatus(a)]-ord[naStatus(b)];});
+
+  // Recent logged by me (across all brokers, last 5)
+  const myActs=brokers.flatMap(b=>(b.activities||[]).filter(a=>!a.planned).map(a=>({...a,brokerName:b.name,brokerId:b.id}))).sort((a,b)=>new Date(b.acted_at)-new Date(a.acted_at)).slice(0,5);
+
+  const crmUrl=window.location.href.replace('bd-field.html','index.html');
+
+  v.innerHTML=`
+  <div class="kpi-row">
+    <div class="kpi-card"><div class="kpi-n ${overdue?'warn':''}">${overdue}</div><div class="kpi-l">Overdue</div></div>
+    <div class="kpi-card"><div class="kpi-n ${inPlay>0?'gold':''}">${inPlay}</div><div class="kpi-l">In play</div></div>
+    <div class="kpi-card"><div class="kpi-n ${signed>0?'hi':''}">${signed}</div><div class="kpi-l">Signed</div></div>
+  </div>
+
+  <a class="crm-link" href="${crmUrl}" target="_blank">
+    <div class="crm-link-icon">⬡</div>
+    <div class="crm-link-text">
+      <div class="crm-link-title">Open full CRM →</div>
+      <div class="crm-link-sub">${curAuction.name} · ${curAuction.status}</div>
+    </div>
+    <div class="crm-link-arrow">›</div>
+  </a>
+
+  <div class="sec-hd">My actions${withActions.length?' ('+withActions.length+')':''}</div>
+  ${withActions.length?withActions.map(b=>{
+    const na=nextAct(b),s=naStatus(b);
+    return`<div class="act-card ${s==='overdue'?'overdue':s==='today'?'today':''}" onclick="openDetail(${b.id})">
+      <div class="act-icon ${(ACT_TYPES.find(t=>t.key===(na?.type||''))||ACT_TYPES[8]).css}">${actIcon(na?.type||'Other')}</div>
+      <div class="act-info">
+        <div class="act-broker">${esc(b.name)}</div>
+        <div class="act-sub">${esc(b.agency)}${b.area?' · '+esc(b.area):''}</div>
+        ${na?.notes?`<div class="act-sub" style="margin-top:3px;font-style:italic">${esc(na.notes)}</div>`:''}
+      </div>
+      <div class="act-right">
+        <span class="act-tag ${s==='overdue'?'tag-ov':s==='today'?'tag-td':'tag-pl'}">${s==='overdue'?'Overdue':s==='today'?'Today':'Soon'}</span>
+        <span class="act-date">${na?fmt(na.acted_at):''}</span>
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty-state" style="padding:30px 24px"><div class="empty-msg">No pending actions — all clear ✓</div></div>`}
+
+  <div class="sec-hd">Recent activity</div>
+  ${myActs.length?myActs.map(a=>`
+    <div class="act-card done" onclick="openDetail(${a.brokerId})">
+      <div class="act-icon ${(ACT_TYPES.find(t=>t.key===a.type)||ACT_TYPES[8]).css}">${actIcon(a.type)}</div>
+      <div class="act-info">
+        <div class="act-broker">${esc(a.brokerName)}</div>
+        <div class="act-sub">${esc(a.type)}${a.notes?' · '+esc(a.notes):''}</div>
+      </div>
+      <div class="act-right">
+        <span class="act-tag tag-dn">Done</span>
+        <span class="act-date">${fmt(a.acted_at)}</span>
+      </div>
+    </div>
+  `).join(''):`<div style="padding:16px 16px;color:var(--t4);font-size:12px">No activity yet</div>`}
+  `;
+  // fix overdue count display
+  v.querySelector('.kpi-row .kpi-card:first-child .kpi-n').textContent=overdue;
+}
+
+// ── BROKER LIST VIEW ──────────────────────────────────────
+function renderBrokers(){
+  const v=document.getElementById('view-brokers');
+  if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';return;}
+
+  let filtered=brokers.filter(b=>{
+    if(filterAssigned&&b.assigned!==filterAssigned)return false;
+    if(filterBdStage!==null&&b.bd_stage!==filterBdStage)return false;
+    if(filterQ){const q=filterQ.toLowerCase();if(!(b.name+b.agency+(b.area||'')).toLowerCase().includes(q))return false;}
+    return true;
+  });
+
+  // Sort: overdue > today > score desc
+  filtered.sort((a,b)=>{
+    const ord={overdue:0,today:1,soon:2,upcoming:3,none:4};
+    const da=ord[naStatus(a)]??5,db=ord[naStatus(b)]??5;
+    if(da!==db)return da-db;
+    return brokerScore(b)-brokerScore(a);
+  });
+
+  const myCount=brokers.filter(b=>b.assigned===curUser).length;
+
+  v.innerHTML=`
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon">⌕</span>
+      <input type="search" placeholder="Search brokers…" value="${esc(filterQ)}" oninput="filterQ=this.value;renderBrokers()" autocomplete="off">
+    </div>
+  </div>
+  <div class="filter-row">
+    <span class="fchip${!filterAssigned&&filterStage===null?' on':''}" onclick="filterAssigned=null;filterBdStage=null;renderBrokers()">All (${brokers.length})</span>
+    <span class="fchip${filterAssigned===curUser?' on':''}" onclick="filterAssigned=filterAssigned===curUser?null:curUser;renderBrokers()">Mine (${myCount})</span>
+    <span class="fchip${filterBdStage===4?' on':''}" onclick="filterBdStage=filterBdStage===4?null:4;renderBrokers()">Pitched</span>
+    <span class="fchip${filterBdStage===6?' on':''}" onclick="filterBdStage=filterBdStage===6?null:6;renderBrokers()">Mandate confirmed</span>
+    <span class="fchip${filterBdStage===8?' on':''}" onclick="filterBdStage=filterBdStage===8?null:8;renderBrokers()">Addendum sent</span>
+    <span class="fchip${filterBdStage===9?' on':''}" onclick="filterBdStage=filterBdStage===9?null:9;renderBrokers()">Signed ✓</span>
+  </div>
+  <div style="padding:10px 16px 0;display:flex;justify-content:flex-end">
+    <button onclick="openAddBroker()" style="height:34px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px">＋ Add broker</button>
+  </div>
+  ${filtered.length?filtered.map(b=>{
+    const sc=brokerScore(b),mom=momentum(b),na=naStatus(b),nxt=nextAct(b);
+    return`<div class="broker-card ${mom==='hot'?'hot':mom==='warm'?'warm':''}" onclick="openDetail(${b.id})">
+      <div class="broker-score ${sc>=7?'sc-h':sc>=4?'sc-w':'sc-c'}">${sc}</div>
+      <div class="broker-info">
+        <div class="broker-name">${esc(b.name)}</div>
+        <div class="broker-agency">${esc(b.agency)}${b.area?' · '+esc(b.area):''}</div>
+        ${b.bd_property?`<div style="font-size:10px;color:var(--gold);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🏠 ${esc(b.bd_property)}</div>`:''}
+      </div>
+      <div class="broker-right">
+        <span class="stg-pill ${SCLS[b.bd_stage]||'s1'}">${STAGES[b.bd_stage]||'—'}</span>
+        ${b.bd_addendum&&b.bd_addendum!==''?`<span style="font-size:9px;font-weight:500;padding:1px 5px;border-radius:3px;background:${b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)'};color:${b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)'}">${ADDENDUM_STATUS[b.bd_addendum]}</span>`:''}
+        ${na!=='none'?`<span class="next-action ${na==='overdue'?'ov':na==='today'?'td':''}">${na==='overdue'?'⚠ Overdue':na==='today'?'● Today':nxt?fmt(nxt.acted_at):''}</span>`:''}
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty-state"><div class="empty-msg">No brokers match your filters</div></div>`}
+  <div style="height:80px"></div>
+  `;
+}
+
+// ── BROKER DETAIL ─────────────────────────────────────────
+function openDetail(brokerId){
+  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
+  selBroker=b;
+  document.getElementById('detail-title').textContent=b.name;
+  const sc=brokerScore(b),mom=momentum(b);
+
+  document.getElementById('detail-hero').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <div class="hero-name">${esc(b.name)}</div>
+        <div class="hero-agency">${esc(b.agency)}${b.area?' · '+esc(b.area):''}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px">
+        ${b.phone?`<a href="tel:${esc(b.phone)}" style="width:38px;height:38px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-bd);display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="Call">📞</a>`:''}
+        ${b.phone?`<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}" target="_blank" style="width:38px;height:38px;border-radius:50%;background:#dcf8c6;border:1px solid #a8e0a0;display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="WhatsApp">💬</a>`:''}
+        ${b.email?`<a href="mailto:${esc(b.email)}" style="width:38px;height:38px;border-radius:50%;background:var(--blue-bg);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="Email">✉️</a>`:''}
+      </div>
+    </div>
+    <div class="hero-row">
+      <span class="hero-stage ${SCLS[b.bd_stage]||'s1'}">${STAGES[b.bd_stage]}</span>
+      ${b.assigned?`<span style="font-size:11px;color:var(--t3)">${esc(b.assigned)}</span>`:''}
+      ${b.bd_addendum&&b.bd_addendum!==''?`<span style="font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;background:${b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)'};color:${b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)'}">${ADDENDUM_STATUS[b.bd_addendum]||''}</span>`:''}
+    </div>
+    ${b.bd_property?`<div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.04);border-radius:6px;font-size:12px;color:var(--t2)">🏠 ${esc(b.bd_property)}${b.bd_value?' · <span style="color:var(--gold);font-weight:500">'+esc(b.bd_value)+'</span>':''}</div>`:''}
+  `;
+
+  document.getElementById('detail-body').innerHTML=`
+    <!-- Quick contact -->
+    <div class="detail-section">
+      <div class="detail-sec-title">Contact</div>
+      ${b.phone?`<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val"><a href="tel:${esc(b.phone)}">${esc(b.phone)}</a></span></div>`:''}
+      ${b.email?`<div class="detail-row"><span class="detail-label">Email</span><span class="detail-val"><a href="mailto:${esc(b.email)}">${esc(b.email)}</a></span></div>`:''}
+      <div class="detail-row"><span class="detail-label">Type</span><span class="detail-val">${esc(b.type)}</span></div>
+      <div class="detail-row"><span class="detail-label">Country</span><span class="detail-val">${esc(b.country)||'—'}</span></div>
+    </div>
+
+    <!-- BD Sourcing block -->
+    <div class="detail-section">
+      <div class="detail-sec-title">Sourcing</div>
+      <div class="fg" style="margin-bottom:10px">
+        <div class="fg-l">Property</div>
+        <input class="fi" id="bd-property" placeholder="e.g. Villa Les Pins, Mougins — 5 bed" value="${esc(b.bd_property||'')}">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div class="fg" style="margin:0">
+          <div class="fg-l">Est. value</div>
+          <input class="fi" id="bd-value" placeholder="e.g. €4.5M" value="${esc(b.bd_value||'')}">
+        </div>
+        <div class="fg" style="margin:0">
+          <div class="fg-l">Referred by</div>
+          <input class="fi" id="bd-ref" placeholder="Name or agency" value="${esc(b.bd_ref||'')}">
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:10px">
+        <div class="fg-l">Addendum status</div>
+        <select class="fi" id="bd-addendum">
+          ${Object.entries(ADDENDUM_STATUS).map(([k,v])=>`<option value="${k}"${b.bd_addendum===k?' selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <!-- Pipeline stage -->
+    <div class="detail-section">
+      <div class="detail-sec-title">BD pipeline stage</div>
+      <div class="stage-grid" id="stage-grid">
+        ${[1,2,3,4,5,6,7,8,9].map(s=>`<div class="stage-btn ${b.bd_stage===s?'on':''}" data-stage="${s}" onclick="setStage(${b.id},${s})">${STAGES[s]}</div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Buyers (from CRM — read-only context) -->
+    ${cli.length?`
+    <div class="detail-section">
+      <div class="detail-sec-title">Buyers in pipeline (${cli.length})</div>
+      ${cli.map(c=>`<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span>${esc(c.name||'Anon.')} · ${esc(c.origin)}</span><span style="color:var(--t3)">${esc(c.interest)} · ${esc(c.status.replace(/-/g,' '))}</span></div>`).join('')}
+    </div>`:''}
+
+    <!-- Planned actions -->
+    ${planned.length?`
+    <div class="detail-section">
+      <div class="detail-sec-title">Planned actions (${planned.length})</div>
+      ${planned.map(a=>`
+        <div class="act-item planned-item">
+          <div class="act-item-top">
+            <span class="act-item-type">${actIcon(a.type)} ${esc(a.type)}</span>
+            <span class="act-item-badge badge-planned">Planned</span>
+          </div>
+          <div class="act-item-date">${fmt(a.acted_at)}</div>
+          ${a.notes?`<div class="act-item-notes">${esc(a.notes)}</div>`:''}
+        </div>
+      `).join('')}
+    </div>`:''}
+
+    <!-- Activity log -->
+    <div class="detail-section">
+      <div class="detail-sec-title">Activity log</div>
+      ${done.length?done.map(a=>`
+        <div class="act-item">
+          <div class="act-item-top">
+            <span class="act-item-type">${actIcon(a.type)} ${esc(a.type)}</span>
+            <span class="act-item-date">${fmt(a.acted_at)}</span>
+          </div>
+          ${a.notes?`<div class="act-item-notes">${esc(a.notes)}</div>`:''}
+        </div>
+      `).join(''):`<div style="font-size:12px;color:var(--t4);padding:6px 0">No activity logged yet</div>`}
+    </div>
+
+    <!-- Notes + save all -->
+    <div class="detail-section">
+      <div class="detail-sec-title">Field notes</div>
+      <textarea class="notes-area" id="broker-notes" placeholder="Vendor situation, competition, objections…">${esc(b.notes)}</textarea>
+      <button class="save-notes-btn" onclick="saveBdMeta(${b.id})">Save</button>
+    </div>
+    <div style="height:24px"></div>
+  `;
+
+  document.getElementById('detail-sheet').classList.add('open');
+}
+
+function closeDetail(){
+  document.getElementById('detail-sheet').classList.remove('open');
+  selBroker=null;
+}
+
+async function setStage(brokerId,stage){
+  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
+  b.bd_stage=stage;
+  // Update stage grid UI immediately
+  document.querySelectorAll('#stage-grid .stage-btn').forEach(el=>{el.classList.toggle('on',parseInt(el.dataset.stage)===stage);});
+  // Update hero pill
+  document.querySelector('.hero-stage').className='hero-stage '+(SCLS[stage]||'s1');
+  document.querySelector('.hero-stage').textContent=STAGES[stage];
+  try{
+    await dbPatch('brokers',brokerId,{bd_stage:stage});
+    toast('Stage updated → '+STAGES[stage],true);
+  }catch(e){toast('Error: '+e.message);}
+}
+
+async function saveNotes(brokerId){
+  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
+  const notes=document.getElementById('broker-notes').value;
+  b.notes=notes;
+  try{
+    await dbPatch('brokers',brokerId,{notes});
+    toast('Notes saved',true);
+  }catch(e){toast('Error: '+e.message);}
+}
+
+async function saveBdMeta(brokerId){
+  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
+  b.bd_property=document.getElementById('bd-property').value.trim();
+  b.bd_value=document.getElementById('bd-value').value.trim();
+  b.bd_addendum=document.getElementById('bd-addendum').value;
+  b.bd_ref=document.getElementById('bd-ref').value.trim();
+  b.notes=document.getElementById('broker-notes').value;
+  try{
+    await dbPatch('brokers',brokerId,{
+      bd_property:b.bd_property,
+      bd_value:b.bd_value,
+      bd_addendum:b.bd_addendum,
+      bd_ref:b.bd_ref,
+      notes:b.notes
+    });
+    toast('Saved',true);
+  }catch(e){toast('Error: '+e.message);}
+}
+
+function openLogForBroker(){
+  openLogSheet(selBroker?.id);
+}
+
+// ── LOG SHEET ─────────────────────────────────────────────
+function buildTypeGrid(){
+  const container=document.getElementById('type-grid');
+  const groups=['Outreach','BD','Material','Event'];
+  const groupLabels={'Outreach':'Outreach','BD':'BD / Sourcing','Material':'Material & Training','Event':'Events & Other'};
+  let html='';
+  groups.forEach(g=>{
+    const items=ACT_TYPES.filter(t=>t.group===g);
+    if(!items.length)return;
+    const label=groupLabels[g];
+    if(label)html+=`<div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t4);margin-top:8px;margin-bottom:4px">${label}</div>`;
+    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
+    items.forEach(t=>{
+      html+=`<div class="type-btn ${logType===t.key?'on':''}" onclick="selectType('${t.key}',this)"><span>${t.icon}</span>${t.key}</div>`;
+    });
+    html+='</div>';
+  });
+  container.innerHTML=html;
+}
+function selectType(key,el){
+  logType=key;
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+}
+function togglePlanned(){
+  logPlanned=!logPlanned;
+  document.getElementById('planned-track').classList.toggle('on',logPlanned);
+}
+
+function openLogSheet(brokerId=null){
+  if(!curAuction){toast('Select an auction first');switchTab('today');return;}
+  logPlanned=false;logType='Call';
+  document.getElementById('planned-track').classList.remove('on');
+  document.getElementById('log-date').value=today();
+  document.getElementById('log-notes').value='';
+  buildTypeGrid();
+
+  // Populate broker dropdown
+  const sel=document.getElementById('log-broker');
+  sel.innerHTML=brokers.map(b=>`<option value="${b.id}"${b.id===brokerId?' selected':''}>${esc(b.name)} (${esc(b.agency)})</option>`).join('');
+  if(brokerId){
+    const b=brokers.find(x=>x.id===brokerId);
+    document.getElementById('log-sheet-broker-name').textContent=b?b.name+' · '+b.agency:'';
+  } else {
+    document.getElementById('log-sheet-broker-name').textContent='';
+    sel.onchange=function(){const b=brokers.find(x=>x.id===parseInt(this.value));document.getElementById('log-sheet-broker-name').textContent=b?b.name+' · '+b.agency:'';};
+  }
+  document.getElementById('log-sheet').classList.add('open');
+}
+function closeLogSheet(){
+  document.getElementById('log-sheet').classList.remove('open');
+  if(curTab==='log')switchTab('today');
+}
+
+async function submitLog(){
+  const brokerId=parseInt(document.getElementById('log-broker').value);
+  const date=document.getElementById('log-date').value;
+  const notes=document.getElementById('log-notes').value;
+  if(!brokerId||!date){toast('Please select a broker and date');return;}
+  if(!curAuction){toast('No auction selected');return;}
+
+  const body={broker_id:brokerId,auction_id:curAuction.id,type:logType,notes,planned:logPlanned,acted_at:date};
+  try{
+    loading(true);
+    const rows=await dbPost('broker_activities',body);
+    const newAct=rows[0];
+    const b=brokers.find(x=>x.id===brokerId);
+    if(b&&newAct){
+      if(logPlanned)b.activities.unshift({...newAct});
+      else b.activities.unshift({...newAct});
+    }
+    toast(logPlanned?'Planned action saved':'Activity logged ✓',true);
+    closeLogSheet();
+    updateOverdueDot();
+    renderCurrentTab();
+    // If detail sheet open for this broker, refresh it
+    if(selBroker&&selBroker.id===brokerId)openDetail(brokerId);
+  }catch(e){toast('Error: '+e.message);}
+  finally{loading(false);}
+}
+
+
+// ── CALENDAR ──────────────────────────────────────────────
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+let calSelDate=null; // "YYYY-MM-DD" string
+
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();}
+
+function renderCal(){
+  const v=document.getElementById('view-cal');
+  if(!curAuction){
+    v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';
+    return;
+  }
+
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  // Build event index: date string → array of events
+  const evMap={};
+  function addEv(dateStr,ev){if(!evMap[dateStr])evMap[dateStr]=[];evMap[dateStr].push(ev);}
+
+  const now=new Date();now.setHours(0,0,0,0);
+
+  brokers.forEach(b=>{
+    (b.activities||[]).filter(a=>a.planned).forEach(a=>{
+      const d=new Date(a.acted_at);
+      const ds=a.acted_at.slice(0,10);
+      d.setHours(0,0,0,0);
+      const df=Math.round((d-now)/86400000);
+      const urgency=df<0?'ov':df===0?'td':df<=7?'soon':'up';
+      addEv(ds,{kind:'broker',broker:b,act:a,urgency,
+        title:b.name.split(' ')[0]+' · '+a.type,
+        sub:b.agency+(a.notes?' — '+a.notes:''),
+        color:urgency==='ov'?'var(--red)':urgency==='td'?'var(--amber)':urgency==='soon'?'var(--blue)':'var(--bd2)'});
+    });
+  });
+  if(curAuction.date){
+    addEv(curAuction.date,{kind:'auction',title:'🏛 Auction day',sub:curAuction.name,color:'var(--gold)'});
+  }
+
+  // Grid
+  const firstDay=new Date(calYear,calMonth,1);
+  let startDow=firstDay.getDay();startDow=(startDow+6)%7;
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  const todayStr=now.toISOString().slice(0,10);
+
+  let cells=[];
+  for(let i=startDow-1;i>=0;i--)cells.push({day:daysInPrev-i,cur:false});
+  for(let d=1;d<=daysInMonth;d++)cells.push({day:d,cur:true});
+  let nx=1;while(cells.length%7!==0)cells.push({day:nx++,cur:false});
+
+  const gridHtml=cells.map(cell=>{
+    if(!cell.cur)return`<div class="cal-cell other-month"><div class="cal-day-num">${cell.day}</div></div>`;
+    const ds=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(cell.day).padStart(2,'0');
+    const evs=evMap[ds]||[];
+    const isToday=ds===todayStr;
+    const isSel=ds===calSelDate;
+    const dots=evs.slice(0,4).map(e=>`<div class="cal-dot dot-${e.urgency||'up'}" style="background:${e.color}"></div>`).join('');
+    return`<div class="cal-cell${isToday?' today':''}${isSel?' selected':''}" onclick="selectCalDay('${ds}')">
+      <div class="cal-day-num">${cell.day}</div>
+      ${dots?`<div class="cal-dot-row">${dots}</div>`:''}
+    </div>`;
+  }).join('');
+
+  // Default selected day: today if in current month, else 1st
+  if(!calSelDate||calSelDate.slice(0,7)!==calYear+'-'+String(calMonth+1).padStart(2,'0')){
+    const curMonStr=calYear+'-'+String(calMonth+1).padStart(2,'0');
+    calSelDate=todayStr.startsWith(curMonStr)?todayStr:curMonStr+'-01';
+  }
+
+  v.innerHTML=`
+    <div style="display:flex;flex-direction:column;height:100%">
+      <div class="cal-hd">
+        <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+        <span class="cal-month">${MONTHS[calMonth]} ${calYear}</span>
+        <button class="cal-nav-btn" onclick="calNext()">›</button>
+      </div>
+      <div class="cal-dow-row">${DAYS.map(d=>`<div class="cal-dow">${d}</div>`).join('')}</div>
+      <div class="cal-grid" id="cal-grid-cells">${gridHtml}</div>
+      <div class="cal-day-detail" id="cal-day-detail"></div>
+    </div>
+  `;
+
+  renderDayDetail(calSelDate,evMap);
+}
+
+function selectCalDay(ds){
+  calSelDate=ds;
+  // Re-highlight selected cell
+  document.querySelectorAll('#cal-grid-cells .cal-cell').forEach(el=>{
+    el.classList.remove('selected');
+    if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes("'"+ds+"'"))el.classList.add('selected');
+  });
+  const evMap={};
+  brokers.forEach(b=>{
+    (b.activities||[]).filter(a=>a.planned).forEach(a=>{
+      const d=new Date(a.acted_at);d.setHours(0,0,0,0);
+      const now=new Date();now.setHours(0,0,0,0);
+      const df=Math.round((d-now)/86400000);
+      const urgency=df<0?'ov':df===0?'td':df<=7?'soon':'up';
+      const key=a.acted_at.slice(0,10);
+      if(!evMap[key])evMap[key]=[];
+      evMap[key].push({kind:'broker',broker:b,act:a,urgency,
+        title:b.name.split(' ')[0]+' · '+a.type,
+        sub:b.agency+(a.notes?' — '+a.notes:''),
+        color:urgency==='ov'?'var(--red)':urgency==='td'?'var(--amber)':urgency==='soon'?'var(--blue)':'var(--bd2)'});
+    });
+  });
+  if(curAuction&&curAuction.date)evMap[curAuction.date]=(evMap[curAuction.date]||[]).concat([{kind:'auction',title:'🏛 Auction day',sub:curAuction.name,color:'var(--gold)'}]);
+  renderDayDetail(ds,evMap);
+}
+
+function renderDayDetail(ds,evMap){
+  const det=document.getElementById('cal-day-detail');
+  if(!det)return;
+  const evs=evMap[ds]||[];
+  const d=new Date(ds+'T12:00:00Z');
+  const label=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+
+  const evHtml=evs.length?evs.map(ev=>`
+    <div class="cal-ev-item" onclick="${ev.kind==='broker'?'openDetail('+ev.broker.id+')':''}">
+      <div class="cal-ev-dot" style="background:${ev.color}"></div>
+      <div class="cal-ev-info">
+        <div class="cal-ev-title">${esc(ev.title)}</div>
+        ${ev.sub?`<div class="cal-ev-sub">${esc(ev.sub)}</div>`:''}
+      </div>
+      ${ev.kind==='broker'?`<span onclick="event.stopPropagation();markActDone(${ev.act.id},${ev.broker.id})" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;flex-shrink:0">✓</span>`:''}
+    </div>
+  `).join(''):`<div style="padding:20px 16px;font-size:12px;color:var(--t4)">Nothing scheduled</div>`;
+
+  const addBtn=`<div style="padding:10px 16px">
+    <button onclick="openLogSheetForDate('${ds}')" style="width:100%;height:36px;background:none;border:1.5px dashed var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;border-radius:8px;transition:all .12s" onmouseover="this.style.borderColor='var(--gold-lt)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)';this.style.color='var(--t3)'">+ Plan action for this day</button>
+  </div>`;
+
+  det.innerHTML=`<div class="cal-detail-hd">${label}</div>${evHtml}${addBtn}`;
+}
+
+function openLogSheetForDate(ds){
+  openLogSheet();
+  // Pre-fill the date after the sheet opens
+  setTimeout(()=>{
+    const el=document.getElementById('log-date');
+    if(el)el.value=ds;
+    // Pre-check planned toggle
+    logPlanned=true;
+    document.getElementById('planned-track').classList.add('on');
+  },50);
+}
+
+async function markActDone(actId,brokerId){
+  // Find activity and mark planned=false
+  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
+  const act=b.activities.find(a=>a.id===actId);if(!act)return;
+  act.planned=false;
+  try{
+    await dbPatch('broker_activities',actId,{planned:false});
+    toast('Marked done ✓',true);
+    updateOverdueDot();
+    renderCal();
+    if(curTab==='today')renderToday();
+  }catch(e){toast('Error: '+e.message);}
+}
+
+// ── INIT ─────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  buildUserSelect();
+  loadData();
+  document.getElementById('view-today').style.display='block';
+  document.getElementById('view-brokers').style.display='none';
+  document.getElementById('view-log').style.display='none';
+  document.getElementById('view-cal').style.display='none';
+});
+</script>
+</body>
+</html>
