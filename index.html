@@ -3,8 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PA · Field</title>
+<title>PAMob</title>
+<!-- PWA / home screen meta -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PAMob">
+<meta name="application-name" content="PAMob">
+<meta name="theme-color" content="#0A0A0A">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUEEgRmllbGQiLCJzaG9ydF9uYW1lIjoiUEEgRmllbGQiLCJzdGFydF91cmwiOiIuLyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwQTBBMEEiLCJ0aGVtZV9jb2xvciI6IiMwQTBBMEEiLCJpY29ucyI6W3sic3JjIjoiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxOTIgMTkyJyUzRSUzQ3JlY3Qgd2lkdGg9JzE5MicgaGVpZ2h0PScxOTInIHJ4PSczMicgZmlsbD0nJTIzMEEwQTBBJy8lM0UlM0N0ZXh0IHg9Jzk2JyB5PScxMjAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjaycgZm9udC1zaXplPSc3MicgZm9udC13ZWlnaHQ9JzkwMCcgZmlsbD0nJTIzQTg4MzJBJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyUzRUJEJTNDL3RleHQlM0UlM0Mvc3ZnJTNFIiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
+
+<!-- Favicon -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230A0A0A'/%3E%3Ctext x='16' y='22' font-family='Arial Black' font-size='10' font-weight='900' fill='%23A8832A' text-anchor='middle' letter-spacing='0.5'%3EBD%3C/text%3E%3C/svg%3E">
+
+<!-- Apple touch icon (home screen icon on iOS) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='30' fill='%230A0A0A'/%3E%3Ctext x='90' y='115' font-family='Arial Black' font-size='68' font-weight='900' fill='%23A8832A' text-anchor='middle'%3EBD%3C/text%3E%3C/svg%3E">
+
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -22,7 +35,7 @@
 html,body{height:100%;overflow:hidden;background:var(--bg);}
 body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:flex;flex-direction:column;}
 
-/* ── TOPBAR ── */
+/* â”€â”€ TOPBAR â”€â”€ */
 .topbar{
   height:56px;background:var(--white);border-bottom:1px solid var(--bd);
   display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;
@@ -37,7 +50,7 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 .user-chip{font-size:11px;font-weight:500;padding:4px 10px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);border-radius:20px;cursor:pointer;}
 .user-select{height:32px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;border-radius:20px;padding:0 28px 0 12px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23A8832A' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
 
-/* ── AUCTION SELECTOR ── */
+/* â”€â”€ AUCTION SELECTOR â”€â”€ */
 .auction-bar{
   padding:10px 16px;background:var(--white);border-bottom:1px solid var(--bd);
   display:flex;align-items:center;gap:8px;flex-shrink:0;
@@ -52,7 +65,7 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 .dot-upcoming{background:var(--gold-lt);}
 .dot-closed{background:var(--t4);}
 
-/* ── TAB BAR ── */
+/* â”€â”€ TAB BAR â”€â”€ */
 .tabbar{
   height:56px;background:var(--white);border-top:1px solid var(--bd);
   display:flex;align-items:stretch;flex-shrink:0;
@@ -64,16 +77,16 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 .tab .tab-dot{width:5px;height:5px;border-radius:50%;background:var(--red);display:none;margin-top:-10px;margin-left:14px;}
 .tab .tab-dot.show{display:block;}
 
-/* ── MAIN SCROLL ── */
+/* â”€â”€ MAIN SCROLL â”€â”€ */
 .main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 
-/* ── SECTION HEADERS ── */
+/* â”€â”€ SECTION HEADERS â”€â”€ */
 .sec-hd{padding:14px 16px 6px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:500;}
 .empty-state{text-align:center;padding:60px 24px;color:var(--t4);}
 .empty-icon{font-family:'Cormorant Garamond',serif;font-size:40px;color:var(--gold-bd);margin-bottom:10px;}
 .empty-msg{font-size:13px;color:var(--t3);}
 
-/* ── TODAY VIEW ── */
+/* â”€â”€ TODAY VIEW â”€â”€ */
 .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px 4px;}
 .kpi-card{background:var(--white);border:1px solid var(--bd);border-radius:8px;padding:12px 10px;text-align:center;}
 .kpi-n{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:600;line-height:1;}
@@ -82,7 +95,7 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 .kpi-n.gold{color:var(--gold);}
 .kpi-l{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-top:3px;}
 
-/* ── ACTIVITY ITEMS ── */
+/* â”€â”€ ACTIVITY ITEMS â”€â”€ */
 .act-card{
   background:var(--white);border-bottom:1px solid var(--bd);
   padding:13px 16px;display:flex;gap:12px;align-items:flex-start;
@@ -109,7 +122,7 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 .act-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
 .act-date{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);}
 
-/* ── BROKER LIST ── */
+/* â”€â”€ BROKER LIST â”€â”€ */
 .broker-card{
   background:var(--white);border-bottom:1px solid var(--bd);
   padding:13px 16px;display:flex;gap:12px;align-items:center;
@@ -141,7 +154,7 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 .next-action.ov{color:var(--red);font-weight:500;}
 .next-action.td{color:var(--amber);font-weight:500;}
 
-/* ── SEARCH BAR ── */
+/* â”€â”€ SEARCH BAR â”€â”€ */
 .search-wrap{padding:10px 16px;background:var(--white);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:10;}
 .search-box{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:0 12px;height:38px;transition:border-color .15s;}
 .search-box:focus-within{border-color:var(--gold-lt);background:var(--white);}
@@ -153,7 +166,7 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 .fchip{height:28px;padding:0 12px;background:var(--white);border:1px solid var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;border-radius:14px;white-space:nowrap;cursor:pointer;}
 .fchip.on{background:var(--gold-bg);border-color:var(--gold-bd);color:var(--gold);}
 
-/* ── LOG ACTIVITY SHEET ── */
+/* â”€â”€ LOG ACTIVITY SHEET â”€â”€ */
 .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
 .sheet-overlay.open{opacity:1;pointer-events:all;}
 .sheet{background:var(--white);border-radius:16px 16px 0 0;padding:0 0 calc(20px + var(--safe-bottom));max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .25s ease;}
@@ -183,7 +196,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .btn-save:active{background:var(--t2);}
 .btn-gold{flex:2;height:46px;background:var(--gold);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;}
 
-/* ── BROKER DETAIL SHEET ── */
+/* â”€â”€ BROKER DETAIL SHEET â”€â”€ */
 .detail-sheet{position:fixed;inset:0;background:var(--white);z-index:400;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;}
 .detail-sheet.open{transform:translateX(0);}
 .detail-topbar{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--bd);flex-shrink:0;}
@@ -222,21 +235,21 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .notes-area:focus{border-color:var(--gold-lt);background:var(--white);}
 .save-notes-btn{margin-top:8px;width:100%;height:40px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:8px;cursor:pointer;}
 
-/* ── ADD BROKER SHEET ── */
+/* â”€â”€ ADD BROKER SHEET â”€â”€ */
 .add-broker-btn-wrap{padding:14px 16px;position:sticky;bottom:0;background:linear-gradient(to top,var(--bg) 70%,transparent);pointer-events:none;}
 .add-broker-btn-wrap button{pointer-events:all;width:100%;height:48px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
 
-/* ── TOAST ── */
+/* â”€â”€ TOAST â”€â”€ */
 .toast{position:fixed;bottom:calc(80px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--t1);color:#fff;font-size:12px;padding:9px 18px;border-radius:20px;z-index:999;opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .toast.gold{background:var(--gold);}
 
-/* ── LOADING ── */
+/* â”€â”€ LOADING â”€â”€ */
 .loading-bar{position:fixed;top:0;left:0;right:0;height:2px;background:var(--gold-lt);z-index:9999;transform:scaleX(0);transform-origin:left;transition:transform .3s,opacity .4s;opacity:0;}
 .loading-bar.on{opacity:1;animation:progress 1.2s ease infinite;}
 @keyframes progress{0%{transform:scaleX(0)}50%{transform:scaleX(.7)}100%{transform:scaleX(1)}}
 
-/* ── CRM LINK BANNER ── */
+/* â”€â”€ CRM LINK BANNER â”€â”€ */
 .crm-link{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--gold-bg);border:1px solid var(--gold-bd);border-radius:8px;margin:12px 16px;cursor:pointer;text-decoration:none;}
 .crm-link-icon{width:30px;height:30px;background:var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex-shrink:0;}
 .crm-link-text{flex:1;}
@@ -244,7 +257,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .crm-link-sub{font-size:10px;color:var(--amber);}
 .crm-link-arrow{color:var(--gold-lt);font-size:16px;}
 
-/* ── PIPELINE SUMMARY ── */
+/* â”€â”€ PIPELINE SUMMARY â”€â”€ */
 .pipeline-row{display:flex;gap:4px;padding:10px 16px;overflow-x:auto;}
 .pipeline-row::-webkit-scrollbar{display:none;}
 .pip-stage{flex-shrink:0;background:var(--white);border:1px solid var(--bd);border-radius:6px;padding:8px 12px;text-align:center;min-width:70px;}
@@ -253,7 +266,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .pip-l{font-size:9px;color:var(--t3);margin-top:2px;white-space:nowrap;}
 
 
-/* ── CALENDAR ── */
+/* â”€â”€ CALENDAR â”€â”€ */
 .cal-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--white);border-bottom:1px solid var(--bd);}
 .cal-month{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--t1);}
 .cal-nav-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-size:14px;}
@@ -292,12 +305,12 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="logo">PA<span>·</span>Field</div>
+  <div class="logo">PA<span>Â·</span>Mob</div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
     <select id="user-select" class="user-select" onchange="onUserChange(this.value)">
-      <option value="">— Who are you? —</option>
+      <option value="">â€” Who are you? â€”</option>
     </select>
-    <div class="sync-btn" id="sync-btn" onclick="loadData()" title="Sync">↻</div>
+    <div class="sync-btn" id="sync-btn" onclick="loadData()" title="Sync">â†»</div>
   </div>
 </div>
 
@@ -305,7 +318,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 <div class="auction-bar">
   <div class="auction-dot" id="a-dot"></div>
   <select class="auction-select" id="a-select" onchange="onAuctionChange()">
-    <option value="">Loading auctions…</option>
+    <option value="">Loading auctionsâ€¦</option>
   </select>
 </div>
 
@@ -359,7 +372,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
       </div>
       <div class="fg">
         <div class="fg-l">Notes (optional)</div>
-        <input class="fi" id="log-notes" placeholder="e.g. Very interested, has CH buyer…">
+        <input class="fi" id="log-notes" placeholder="e.g. Very interested, has CH buyerâ€¦">
       </div>
       <div class="fg" onclick="togglePlanned()">
         <div class="planned-toggle">
@@ -378,7 +391,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 <!-- BROKER DETAIL SHEET -->
 <div class="detail-sheet" id="detail-sheet">
   <div class="detail-topbar">
-    <div class="back-btn" onclick="closeDetail()">←</div>
+    <div class="back-btn" onclick="closeDetail()">â†</div>
     <div class="detail-title" id="detail-title">Broker</div>
     <button class="log-fab" onclick="openLogForBroker()">+ Log</button>
   </div>
@@ -407,11 +420,11 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
         </div>
         <div class="fg" style="margin:0 0 10px">
           <div class="fg-l">Phone</div>
-          <input class="fi" id="nb-phone" type="tel" placeholder="+33 6…">
+          <input class="fi" id="nb-phone" type="tel" placeholder="+33 6â€¦">
         </div>
         <div class="fg" style="margin:0 0 10px">
           <div class="fg-l">Email</div>
-          <input class="fi" id="nb-email" type="email" placeholder="…@…">
+          <input class="fi" id="nb-email" type="email" placeholder="â€¦@â€¦">
         </div>
         <div class="fg" style="margin:0 0 10px">
           <div class="fg-l">Area</div>
@@ -439,7 +452,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
       </div>
       <div class="fg">
         <div class="fg-l">Property (optional)</div>
-        <input class="fi" id="nb-property" placeholder="e.g. Villa Les Pins, Mougins — €4.5M">
+        <input class="fi" id="nb-property" placeholder="e.g. Villa Les Pins, Mougins â€” â‚¬4.5M">
       </div>
       <div class="fg">
         <div class="fg-l">Referred by (optional)</div>
@@ -447,7 +460,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
       </div>
       <div class="fg">
         <div class="fg-l">Notes</div>
-        <textarea class="fi" id="nb-notes" style="min-height:60px;resize:none" placeholder="First impression, context…"></textarea>
+        <textarea class="fi" id="nb-notes" style="min-height:60px;resize:none" placeholder="First impression, contextâ€¦"></textarea>
       </div>
     </div>
     <div class="sheet-actions">
@@ -462,7 +475,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ── CONFIG (same Supabase as CRM) ─────────────────────────
+// â”€â”€ CONFIG (same Supabase as CRM) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SUPA_URL='https://hzbwlqyhklwfxjbcramx.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6YndscXloa2x3ZnhqYmNyYW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDI5MjMsImV4cCI6MjA5MjUxODkyM30.3x1I5Rkz9nJYcqd6kBpAKth6hXKeBLVYQAz1qDPoTL8';
 const H={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
@@ -483,30 +496,30 @@ const STAGES={
 const SCLS={9:'s9',8:'s8',7:'s7',6:'s6',5:'s5',4:'s4',3:'s3',2:'s2',1:'s1',0:'s0'};
 // Addendum substates (stored in broker.bd_addendum field)
 const ADDENDUM_STATUS={
-  '':'—',
+  '':'â€”',
   'draft':'Being drafted',
   'sent':'Sent to agent',
   'vendor_review':'With vendor',
-  'signed':'Signed ✓',
+  'signed':'Signed âœ“',
   'blocked':'Blocked'
 };
 const ACT_TYPES=[
-  {key:'Call',icon:'📞',css:'icon-call',group:'Outreach'},
-  {key:'WhatsApp',icon:'💬',css:'icon-wa',group:'Outreach'},
-  {key:'Meeting',icon:'🤝',css:'icon-meet',group:'Outreach'},
-  {key:'Property pitch',icon:'🏠',css:'icon-other',group:'BD'},
-  {key:'Property visit',icon:'🔑',css:'icon-meet',group:'BD'},
-  {key:'Mandate proposal',icon:'📋',css:'icon-mail',group:'BD'},
-  {key:'Flyer sent',icon:'📄',css:'icon-mail',group:'Material'},
-  {key:'File sent',icon:'📁',css:'icon-mail',group:'Material'},
-  {key:'Training',icon:'🎓',css:'icon-other',group:'Material'},
-  {key:'Invited B2B Open Day',icon:'🏢',css:'icon-other',group:'Event'},
-  {key:'Invited B2C Open Day',icon:'🏡',css:'icon-other',group:'Event'},
-  {key:'Other',icon:'📌',css:'icon-other',group:'Event'},
-  {key:'Notice sent',icon:'✉️',css:'icon-mail',group:'_hidden'},
+  {key:'Call',icon:'ðŸ“ž',css:'icon-call',group:'Outreach'},
+  {key:'WhatsApp',icon:'ðŸ’¬',css:'icon-wa',group:'Outreach'},
+  {key:'Meeting',icon:'ðŸ¤',css:'icon-meet',group:'Outreach'},
+  {key:'Property pitch',icon:'ðŸ ',css:'icon-other',group:'BD'},
+  {key:'Property visit',icon:'ðŸ”‘',css:'icon-meet',group:'BD'},
+  {key:'Mandate proposal',icon:'ðŸ“‹',css:'icon-mail',group:'BD'},
+  {key:'Flyer sent',icon:'ðŸ“„',css:'icon-mail',group:'Material'},
+  {key:'File sent',icon:'ðŸ“',css:'icon-mail',group:'Material'},
+  {key:'Training',icon:'ðŸŽ“',css:'icon-other',group:'Material'},
+  {key:'Invited B2B Open Day',icon:'ðŸ¢',css:'icon-other',group:'Event'},
+  {key:'Invited B2C Open Day',icon:'ðŸ¡',css:'icon-other',group:'Event'},
+  {key:'Other',icon:'ðŸ“Œ',css:'icon-other',group:'Event'},
+  {key:'Notice sent',icon:'âœ‰ï¸',css:'icon-mail',group:'_hidden'},
 ];
 
-// ── STATE ──────────────────────────────────────────────────
+// â”€â”€ STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let auctions=[], curAuction=null, brokers=[], activities=[], clients=[];
 let curTab='today', selBroker=null, logPlanned=false, logType='Call';
 let filterQ='', filterStage=null, filterBdStage=null, filterAssigned=null;
@@ -514,7 +527,7 @@ const savedUser=localStorage.getItem('pa_field_user')||TEAM[0];
 let curUser=savedUser;
 let userIdx=TEAM.indexOf(curUser);if(userIdx<0)userIdx=0;
 
-// ── HELPERS ───────────────────────────────────────────────
+// â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function fmt(d){if(!d)return'';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
 function today(){return new Date().toISOString().slice(0,10);}
 function esc(s){return(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -568,7 +581,7 @@ function momentum(b){
 }
 function actIcon(type){const t=ACT_TYPES.find(x=>x.key===type)||ACT_TYPES[8];return t.icon;}
 
-// ── DATA ──────────────────────────────────────────────────
+// â”€â”€ DATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function dbGet(table,params=''){
   const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?'+params,{headers:{...H,'Accept':'application/json'}});
   if(!r.ok)throw new Error(await r.text());return r.json();
@@ -586,7 +599,7 @@ async function loadData(){
   const btn=document.getElementById('sync-btn');
   btn.classList.add('spinning');loading(true);
   try{
-    // ── PHASE 1: fetch auctions, resolve curAuction ──────────
+    // â”€â”€ PHASE 1: fetch auctions, resolve curAuction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const aRows=await dbGet('auctions','order=id');
     const prev=curAuction?.id;
     auctions=aRows.map(r=>({id:r.id,name:r.name||'',location:r.location||'',date:r.date||'',
@@ -598,7 +611,7 @@ async function loadData(){
     }
     buildAuctionSelector();
 
-    // ── PHASE 2: fetch brokers/clients/activities for resolved auction ──
+    // â”€â”€ PHASE 2: fetch brokers/clients/activities for resolved auction â”€â”€
     brokers=[];
     if(curAuction){
       const [bRows,cRows,actRows]=await Promise.all([
@@ -631,14 +644,14 @@ async function loadData(){
 
     renderCurrentTab();
     updateOverdueDot();
-    toast('Synced — '+brokers.length+' brokers',true);
+    toast('Synced â€” '+brokers.length+' brokers',true);
   }catch(e){toast('Sync error: '+e.message);}
   finally{btn.classList.remove('spinning');loading(false);}
 }
 
 function buildAuctionSelector(){
   const sel=document.getElementById('a-select');
-  sel.innerHTML=auctions.map(a=>`<option value="${a.id}"${curAuction&&a.id===curAuction.id?' selected':''}>${a.name}${a.status==='active'?' ●':''}</option>`).join('');
+  sel.innerHTML=auctions.map(a=>`<option value="${a.id}"${curAuction&&a.id===curAuction.id?' selected':''}>${a.name}${a.status==='active'?' â—':''}</option>`).join('');
   if(!auctions.length)sel.innerHTML='<option>No auctions found</option>';
   const dot=document.getElementById('a-dot');
   dot.className='auction-dot'+(curAuction?' dot-'+curAuction.status:'');
@@ -650,10 +663,10 @@ function onAuctionChange(){
   loadData();
 }
 
-// ── USER ─────────────────────────────────────────────────
+// â”€â”€ USER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildUserSelect(){
   const sel=document.getElementById('user-select');
-  sel.innerHTML='<option value="">— Who are you? —</option>'+
+  sel.innerHTML='<option value="">â€” Who are you? â€”</option>'+
     TEAM.map(m=>`<option value="${m}"${m===curUser?' selected':''}>${m}</option>`).join('');
 }
 function onUserChange(val){
@@ -664,7 +677,7 @@ function onUserChange(val){
   renderCurrentTab();
 }
 
-// ── ADD BROKER ────────────────────────────────────────────
+// â”€â”€ ADD BROKER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function openAddBroker(){
   if(!curAuction){toast('Select an auction first');return;}
   document.getElementById('nb-name').value='';
@@ -713,7 +726,7 @@ async function submitNewBroker(){
       notes};
     brokers.push(newB);
     closeAddBroker();
-    toast(name+' added to CRM ✓',true);
+    toast(name+' added to CRM âœ“',true);
     renderCurrentTab();
     // Open detail immediately so user can keep filling in info
     openDetail(newB.id);
@@ -721,7 +734,7 @@ async function submitNewBroker(){
   finally{loading(false);}
 }
 
-// ── TABS ─────────────────────────────────────────────────
+// â”€â”€ TABS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function switchTab(t){
   curTab=t;
   ['today','brokers','log','cal'].forEach(id=>{
@@ -737,16 +750,16 @@ function renderCurrentTab(){
   else if(curTab==='cal')renderCal();
 }
 
-// ── UPDATE OVERDUE DOT ────────────────────────────────────
+// â”€â”€ UPDATE OVERDUE DOT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function updateOverdueDot(){
   const ov=brokers.filter(b=>naStatus(b)==='overdue').length;
   document.getElementById('dot-today').classList.toggle('show',ov>0);
 }
 
-// ── TODAY VIEW ────────────────────────────────────────────
+// â”€â”€ TODAY VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderToday(){
   const v=document.getElementById('view-today');
-  if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';return;}
+  if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">â—‡</div><div class="empty-msg">Select an auction above</div></div>';return;}
 
   // KPIs
   const overdue=brokers.filter(b=>naStatus(b)==='overdue').length;
@@ -771,12 +784,12 @@ function renderToday(){
   </div>
 
   <a class="crm-link" href="${crmUrl}" target="_blank">
-    <div class="crm-link-icon">⬡</div>
+    <div class="crm-link-icon">â¬¡</div>
     <div class="crm-link-text">
-      <div class="crm-link-title">Open full CRM →</div>
-      <div class="crm-link-sub">${curAuction.name} · ${curAuction.status}</div>
+      <div class="crm-link-title">Open full CRM â†’</div>
+      <div class="crm-link-sub">${curAuction.name} Â· ${curAuction.status}</div>
     </div>
-    <div class="crm-link-arrow">›</div>
+    <div class="crm-link-arrow">â€º</div>
   </a>
 
   <div class="sec-hd">My actions${withActions.length?' ('+withActions.length+')':''}</div>
@@ -786,7 +799,7 @@ function renderToday(){
       <div class="act-icon ${(ACT_TYPES.find(t=>t.key===(na?.type||''))||ACT_TYPES[8]).css}">${actIcon(na?.type||'Other')}</div>
       <div class="act-info">
         <div class="act-broker">${esc(b.name)}</div>
-        <div class="act-sub">${esc(b.agency)}${b.area?' · '+esc(b.area):''}</div>
+        <div class="act-sub">${esc(b.agency)}${b.area?' Â· '+esc(b.area):''}</div>
         ${na?.notes?`<div class="act-sub" style="margin-top:3px;font-style:italic">${esc(na.notes)}</div>`:''}
       </div>
       <div class="act-right">
@@ -794,7 +807,7 @@ function renderToday(){
         <span class="act-date">${na?fmt(na.acted_at):''}</span>
       </div>
     </div>`;
-  }).join(''):`<div class="empty-state" style="padding:30px 24px"><div class="empty-msg">No pending actions — all clear ✓</div></div>`}
+  }).join(''):`<div class="empty-state" style="padding:30px 24px"><div class="empty-msg">No pending actions â€” all clear âœ“</div></div>`}
 
   <div class="sec-hd">Recent activity</div>
   ${myActs.length?myActs.map(a=>`
@@ -802,7 +815,7 @@ function renderToday(){
       <div class="act-icon ${(ACT_TYPES.find(t=>t.key===a.type)||ACT_TYPES[8]).css}">${actIcon(a.type)}</div>
       <div class="act-info">
         <div class="act-broker">${esc(a.brokerName)}</div>
-        <div class="act-sub">${esc(a.type)}${a.notes?' · '+esc(a.notes):''}</div>
+        <div class="act-sub">${esc(a.type)}${a.notes?' Â· '+esc(a.notes):''}</div>
       </div>
       <div class="act-right">
         <span class="act-tag tag-dn">Done</span>
@@ -815,10 +828,10 @@ function renderToday(){
   v.querySelector('.kpi-row .kpi-card:first-child .kpi-n').textContent=overdue;
 }
 
-// ── BROKER LIST VIEW ──────────────────────────────────────
+// â”€â”€ BROKER LIST VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderBrokers(){
   const v=document.getElementById('view-brokers');
-  if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';return;}
+  if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">â—‡</div><div class="empty-msg">Select an auction above</div></div>';return;}
 
   let filtered=brokers.filter(b=>{
     if(filterAssigned&&b.assigned!==filterAssigned)return false;
@@ -840,8 +853,8 @@ function renderBrokers(){
   v.innerHTML=`
   <div class="search-wrap">
     <div class="search-box">
-      <span class="search-icon">⌕</span>
-      <input type="search" placeholder="Search brokers…" value="${esc(filterQ)}" oninput="filterQ=this.value;renderBrokers()" autocomplete="off">
+      <span class="search-icon">âŒ•</span>
+      <input type="search" placeholder="Search brokersâ€¦" value="${esc(filterQ)}" oninput="filterQ=this.value;renderBrokers()" autocomplete="off">
     </div>
   </div>
   <div class="filter-row">
@@ -850,10 +863,10 @@ function renderBrokers(){
     <span class="fchip${filterBdStage===4?' on':''}" onclick="filterBdStage=filterBdStage===4?null:4;renderBrokers()">Pitched</span>
     <span class="fchip${filterBdStage===6?' on':''}" onclick="filterBdStage=filterBdStage===6?null:6;renderBrokers()">Mandate confirmed</span>
     <span class="fchip${filterBdStage===8?' on':''}" onclick="filterBdStage=filterBdStage===8?null:8;renderBrokers()">Addendum sent</span>
-    <span class="fchip${filterBdStage===9?' on':''}" onclick="filterBdStage=filterBdStage===9?null:9;renderBrokers()">Signed ✓</span>
+    <span class="fchip${filterBdStage===9?' on':''}" onclick="filterBdStage=filterBdStage===9?null:9;renderBrokers()">Signed âœ“</span>
   </div>
   <div style="padding:10px 16px 0;display:flex;justify-content:flex-end">
-    <button onclick="openAddBroker()" style="height:34px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px">＋ Add broker</button>
+    <button onclick="openAddBroker()" style="height:34px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px">ï¼‹ Add broker</button>
   </div>
   ${filtered.length?filtered.map(b=>{
     const sc=brokerScore(b),mom=momentum(b),na=naStatus(b),nxt=nextAct(b);
@@ -861,13 +874,13 @@ function renderBrokers(){
       <div class="broker-score ${sc>=7?'sc-h':sc>=4?'sc-w':'sc-c'}">${sc}</div>
       <div class="broker-info">
         <div class="broker-name">${esc(b.name)}</div>
-        <div class="broker-agency">${esc(b.agency)}${b.area?' · '+esc(b.area):''}</div>
-        ${b.bd_property?`<div style="font-size:10px;color:var(--gold);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🏠 ${esc(b.bd_property)}</div>`:''}
+        <div class="broker-agency">${esc(b.agency)}${b.area?' Â· '+esc(b.area):''}</div>
+        ${b.bd_property?`<div style="font-size:10px;color:var(--gold);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ðŸ  ${esc(b.bd_property)}</div>`:''}
       </div>
       <div class="broker-right">
-        <span class="stg-pill ${SCLS[b.bd_stage]||'s1'}">${STAGES[b.bd_stage]||'—'}</span>
+        <span class="stg-pill ${SCLS[b.bd_stage]||'s1'}">${STAGES[b.bd_stage]||'â€”'}</span>
         ${b.bd_addendum&&b.bd_addendum!==''?`<span style="font-size:9px;font-weight:500;padding:1px 5px;border-radius:3px;background:${b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)'};color:${b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)'}">${ADDENDUM_STATUS[b.bd_addendum]}</span>`:''}
-        ${na!=='none'?`<span class="next-action ${na==='overdue'?'ov':na==='today'?'td':''}">${na==='overdue'?'⚠ Overdue':na==='today'?'● Today':nxt?fmt(nxt.acted_at):''}</span>`:''}
+        ${na!=='none'?`<span class="next-action ${na==='overdue'?'ov':na==='today'?'td':''}">${na==='overdue'?'âš  Overdue':na==='today'?'â— Today':nxt?fmt(nxt.acted_at):''}</span>`:''}
       </div>
     </div>`;
   }).join(''):`<div class="empty-state"><div class="empty-msg">No brokers match your filters</div></div>`}
@@ -875,7 +888,7 @@ function renderBrokers(){
   `;
 }
 
-// ── BROKER DETAIL ─────────────────────────────────────────
+// â”€â”€ BROKER DETAIL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function openDetail(brokerId){
   const b=brokers.find(x=>x.id===brokerId);if(!b)return;
   selBroker=b;
@@ -886,12 +899,12 @@ function openDetail(brokerId){
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div style="flex:1;min-width:0">
         <div class="hero-name">${esc(b.name)}</div>
-        <div class="hero-agency">${esc(b.agency)}${b.area?' · '+esc(b.area):''}</div>
+        <div class="hero-agency">${esc(b.agency)}${b.area?' Â· '+esc(b.area):''}</div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px">
-        ${b.phone?`<a href="tel:${esc(b.phone)}" style="width:38px;height:38px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-bd);display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="Call">📞</a>`:''}
-        ${b.phone?`<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}" target="_blank" style="width:38px;height:38px;border-radius:50%;background:#dcf8c6;border:1px solid #a8e0a0;display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="WhatsApp">💬</a>`:''}
-        ${b.email?`<a href="mailto:${esc(b.email)}" style="width:38px;height:38px;border-radius:50%;background:var(--blue-bg);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="Email">✉️</a>`:''}
+        ${b.phone?`<a href="tel:${esc(b.phone)}" style="width:38px;height:38px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-bd);display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="Call">ðŸ“ž</a>`:''}
+        ${b.phone?`<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}" target="_blank" style="width:38px;height:38px;border-radius:50%;background:#dcf8c6;border:1px solid #a8e0a0;display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="WhatsApp">ðŸ’¬</a>`:''}
+        ${b.email?`<a href="mailto:${esc(b.email)}" style="width:38px;height:38px;border-radius:50%;background:var(--blue-bg);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="Email">âœ‰ï¸</a>`:''}
       </div>
     </div>
     <div class="hero-row">
@@ -899,7 +912,7 @@ function openDetail(brokerId){
       ${b.assigned?`<span style="font-size:11px;color:var(--t3)">${esc(b.assigned)}</span>`:''}
       ${b.bd_addendum&&b.bd_addendum!==''?`<span style="font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;background:${b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)'};color:${b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)'}">${ADDENDUM_STATUS[b.bd_addendum]||''}</span>`:''}
     </div>
-    ${b.bd_property?`<div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.04);border-radius:6px;font-size:12px;color:var(--t2)">🏠 ${esc(b.bd_property)}${b.bd_value?' · <span style="color:var(--gold);font-weight:500">'+esc(b.bd_value)+'</span>':''}</div>`:''}
+    ${b.bd_property?`<div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.04);border-radius:6px;font-size:12px;color:var(--t2)">ðŸ  ${esc(b.bd_property)}${b.bd_value?' Â· <span style="color:var(--gold);font-weight:500">'+esc(b.bd_value)+'</span>':''}</div>`:''}
   `;
 
   document.getElementById('detail-body').innerHTML=`
@@ -909,7 +922,7 @@ function openDetail(brokerId){
       ${b.phone?`<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val"><a href="tel:${esc(b.phone)}">${esc(b.phone)}</a></span></div>`:''}
       ${b.email?`<div class="detail-row"><span class="detail-label">Email</span><span class="detail-val"><a href="mailto:${esc(b.email)}">${esc(b.email)}</a></span></div>`:''}
       <div class="detail-row"><span class="detail-label">Type</span><span class="detail-val">${esc(b.type)}</span></div>
-      <div class="detail-row"><span class="detail-label">Country</span><span class="detail-val">${esc(b.country)||'—'}</span></div>
+      <div class="detail-row"><span class="detail-label">Country</span><span class="detail-val">${esc(b.country)||'â€”'}</span></div>
     </div>
 
     <!-- BD Sourcing block -->
@@ -917,12 +930,12 @@ function openDetail(brokerId){
       <div class="detail-sec-title">Sourcing</div>
       <div class="fg" style="margin-bottom:10px">
         <div class="fg-l">Property</div>
-        <input class="fi" id="bd-property" placeholder="e.g. Villa Les Pins, Mougins — 5 bed" value="${esc(b.bd_property||'')}">
+        <input class="fi" id="bd-property" placeholder="e.g. Villa Les Pins, Mougins â€” 5 bed" value="${esc(b.bd_property||'')}">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
         <div class="fg" style="margin:0">
           <div class="fg-l">Est. value</div>
-          <input class="fi" id="bd-value" placeholder="e.g. €4.5M" value="${esc(b.bd_value||'')}">
+          <input class="fi" id="bd-value" placeholder="e.g. â‚¬4.5M" value="${esc(b.bd_value||'')}">
         </div>
         <div class="fg" style="margin:0">
           <div class="fg-l">Referred by</div>
@@ -945,11 +958,11 @@ function openDetail(brokerId){
       </div>
     </div>
 
-    <!-- Buyers (from CRM — read-only context) -->
+    <!-- Buyers (from CRM â€” read-only context) -->
     ${cli.length?`
     <div class="detail-section">
       <div class="detail-sec-title">Buyers in pipeline (${cli.length})</div>
-      ${cli.map(c=>`<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span>${esc(c.name||'Anon.')} · ${esc(c.origin)}</span><span style="color:var(--t3)">${esc(c.interest)} · ${esc(c.status.replace(/-/g,' '))}</span></div>`).join('')}
+      ${cli.map(c=>`<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span>${esc(c.name||'Anon.')} Â· ${esc(c.origin)}</span><span style="color:var(--t3)">${esc(c.interest)} Â· ${esc(c.status.replace(/-/g,' '))}</span></div>`).join('')}
     </div>`:''}
 
     <!-- Planned actions -->
@@ -985,7 +998,7 @@ function openDetail(brokerId){
     <!-- Notes + save all -->
     <div class="detail-section">
       <div class="detail-sec-title">Field notes</div>
-      <textarea class="notes-area" id="broker-notes" placeholder="Vendor situation, competition, objections…">${esc(b.notes)}</textarea>
+      <textarea class="notes-area" id="broker-notes" placeholder="Vendor situation, competition, objectionsâ€¦">${esc(b.notes)}</textarea>
       <button class="save-notes-btn" onclick="saveBdMeta(${b.id})">Save</button>
     </div>
     <div style="height:24px"></div>
@@ -1009,7 +1022,7 @@ async function setStage(brokerId,stage){
   document.querySelector('.hero-stage').textContent=STAGES[stage];
   try{
     await dbPatch('brokers',brokerId,{bd_stage:stage});
-    toast('Stage updated → '+STAGES[stage],true);
+    toast('Stage updated â†’ '+STAGES[stage],true);
   }catch(e){toast('Error: '+e.message);}
 }
 
@@ -1046,7 +1059,7 @@ function openLogForBroker(){
   openLogSheet(selBroker?.id);
 }
 
-// ── LOG SHEET ─────────────────────────────────────────────
+// â”€â”€ LOG SHEET â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildTypeGrid(){
   const container=document.getElementById('type-grid');
   const groups=['Outreach','BD','Material','Event'];
@@ -1088,10 +1101,10 @@ function openLogSheet(brokerId=null){
   sel.innerHTML=brokers.map(b=>`<option value="${b.id}"${b.id===brokerId?' selected':''}>${esc(b.name)} (${esc(b.agency)})</option>`).join('');
   if(brokerId){
     const b=brokers.find(x=>x.id===brokerId);
-    document.getElementById('log-sheet-broker-name').textContent=b?b.name+' · '+b.agency:'';
+    document.getElementById('log-sheet-broker-name').textContent=b?b.name+' Â· '+b.agency:'';
   } else {
     document.getElementById('log-sheet-broker-name').textContent='';
-    sel.onchange=function(){const b=brokers.find(x=>x.id===parseInt(this.value));document.getElementById('log-sheet-broker-name').textContent=b?b.name+' · '+b.agency:'';};
+    sel.onchange=function(){const b=brokers.find(x=>x.id===parseInt(this.value));document.getElementById('log-sheet-broker-name').textContent=b?b.name+' Â· '+b.agency:'';};
   }
   document.getElementById('log-sheet').classList.add('open');
 }
@@ -1117,7 +1130,7 @@ async function submitLog(){
       if(logPlanned)b.activities.unshift({...newAct});
       else b.activities.unshift({...newAct});
     }
-    toast(logPlanned?'Planned action saved':'Activity logged ✓',true);
+    toast(logPlanned?'Planned action saved':'Activity logged âœ“',true);
     closeLogSheet();
     updateOverdueDot();
     renderCurrentTab();
@@ -1128,7 +1141,7 @@ async function submitLog(){
 }
 
 
-// ── CALENDAR ──────────────────────────────────────────────
+// â”€â”€ CALENDAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let calSelDate=null; // "YYYY-MM-DD" string
 
@@ -1138,14 +1151,14 @@ function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();
 function renderCal(){
   const v=document.getElementById('view-cal');
   if(!curAuction){
-    v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';
+    v.innerHTML='<div class="empty-state"><div class="empty-icon">â—‡</div><div class="empty-msg">Select an auction above</div></div>';
     return;
   }
 
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-  // Build event index: date string → array of events
+  // Build event index: date string â†’ array of events
   const evMap={};
   function addEv(dateStr,ev){if(!evMap[dateStr])evMap[dateStr]=[];evMap[dateStr].push(ev);}
 
@@ -1159,13 +1172,13 @@ function renderCal(){
       const df=Math.round((d-now)/86400000);
       const urgency=df<0?'ov':df===0?'td':df<=7?'soon':'up';
       addEv(ds,{kind:'broker',broker:b,act:a,urgency,
-        title:b.name.split(' ')[0]+' · '+a.type,
-        sub:b.agency+(a.notes?' — '+a.notes:''),
+        title:b.name.split(' ')[0]+' Â· '+a.type,
+        sub:b.agency+(a.notes?' â€” '+a.notes:''),
         color:urgency==='ov'?'var(--red)':urgency==='td'?'var(--amber)':urgency==='soon'?'var(--blue)':'var(--bd2)'});
     });
   });
   if(curAuction.date){
-    addEv(curAuction.date,{kind:'auction',title:'🏛 Auction day',sub:curAuction.name,color:'var(--gold)'});
+    addEv(curAuction.date,{kind:'auction',title:'ðŸ› Auction day',sub:curAuction.name,color:'var(--gold)'});
   }
 
   // Grid
@@ -1202,9 +1215,9 @@ function renderCal(){
   v.innerHTML=`
     <div style="display:flex;flex-direction:column;height:100%">
       <div class="cal-hd">
-        <button class="cal-nav-btn" onclick="calPrev()">‹</button>
+        <button class="cal-nav-btn" onclick="calPrev()">â€¹</button>
         <span class="cal-month">${MONTHS[calMonth]} ${calYear}</span>
-        <button class="cal-nav-btn" onclick="calNext()">›</button>
+        <button class="cal-nav-btn" onclick="calNext()">â€º</button>
       </div>
       <div class="cal-dow-row">${DAYS.map(d=>`<div class="cal-dow">${d}</div>`).join('')}</div>
       <div class="cal-grid" id="cal-grid-cells">${gridHtml}</div>
@@ -1232,12 +1245,12 @@ function selectCalDay(ds){
       const key=a.acted_at.slice(0,10);
       if(!evMap[key])evMap[key]=[];
       evMap[key].push({kind:'broker',broker:b,act:a,urgency,
-        title:b.name.split(' ')[0]+' · '+a.type,
-        sub:b.agency+(a.notes?' — '+a.notes:''),
+        title:b.name.split(' ')[0]+' Â· '+a.type,
+        sub:b.agency+(a.notes?' â€” '+a.notes:''),
         color:urgency==='ov'?'var(--red)':urgency==='td'?'var(--amber)':urgency==='soon'?'var(--blue)':'var(--bd2)'});
     });
   });
-  if(curAuction&&curAuction.date)evMap[curAuction.date]=(evMap[curAuction.date]||[]).concat([{kind:'auction',title:'🏛 Auction day',sub:curAuction.name,color:'var(--gold)'}]);
+  if(curAuction&&curAuction.date)evMap[curAuction.date]=(evMap[curAuction.date]||[]).concat([{kind:'auction',title:'ðŸ› Auction day',sub:curAuction.name,color:'var(--gold)'}]);
   renderDayDetail(ds,evMap);
 }
 
@@ -1255,7 +1268,7 @@ function renderDayDetail(ds,evMap){
         <div class="cal-ev-title">${esc(ev.title)}</div>
         ${ev.sub?`<div class="cal-ev-sub">${esc(ev.sub)}</div>`:''}
       </div>
-      ${ev.kind==='broker'?`<span onclick="event.stopPropagation();markActDone(${ev.act.id},${ev.broker.id})" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;flex-shrink:0">✓</span>`:''}
+      ${ev.kind==='broker'?`<span onclick="event.stopPropagation();markActDone(${ev.act.id},${ev.broker.id})" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;flex-shrink:0">âœ“</span>`:''}
     </div>
   `).join(''):`<div style="padding:20px 16px;font-size:12px;color:var(--t4)">Nothing scheduled</div>`;
 
@@ -1285,14 +1298,14 @@ async function markActDone(actId,brokerId){
   act.planned=false;
   try{
     await dbPatch('broker_activities',actId,{planned:false});
-    toast('Marked done ✓',true);
+    toast('Marked done âœ“',true);
     updateOverdueDot();
     renderCal();
     if(curTab==='today')renderToday();
   }catch(e){toast('Error: '+e.message);}
 }
 
-// ── INIT ─────────────────────────────────────────────────
+// â”€â”€ INIT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 window.addEventListener('DOMContentLoaded',()=>{
   buildUserSelect();
   loadData();
