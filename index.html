@@ -34,22 +34,22 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);}
-body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:flex;flex-direction:column;}
+body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:flex;flex-direction:column;}
 
 /* ── TOPBAR ── */
 .topbar{
-  height:56px;background:var(--white);border-bottom:1px solid var(--bd);
-  display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;
+  height:62px;background:var(--white);border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0;
   box-shadow:0 1px 3px rgba(0,0,0,.05);
 }
-.logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--t1);letter-spacing:-0.5px;}
+.logo{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--t1);letter-spacing:-0.5px;}
 .logo span{color:var(--gold);}
 .sync-btn{margin-left:auto;width:32px;height:32px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);font-size:14px;transition:all .15s;}
 .sync-btn:hover{border-color:var(--gold-lt);color:var(--gold);}
 .sync-btn.spinning{animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .user-chip{font-size:11px;font-weight:500;padding:4px 10px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);border-radius:20px;cursor:pointer;}
-.user-select{height:32px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;border-radius:20px;padding:0 28px 0 12px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23A8832A' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+.user-select{height:36px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:20px;padding:0 28px 0 12px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23A8832A' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
 
 /* ── AUCTION SELECTOR ── */
 .auction-bar{
@@ -57,8 +57,8 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
   display:flex;align-items:center;gap:8px;flex-shrink:0;
 }
 .auction-select{
-  flex:1;height:36px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;
-  font-family:'DM Sans',sans-serif;font-size:13px;color:var(--t1);padding:0 10px;outline:none;
+  flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;
+  font-family:'DM Sans',sans-serif;font-size:15px;color:var(--t1);padding:0 10px;outline:none;
 }
 .auction-select:focus{border-color:var(--gold-lt);}
 .auction-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -68,12 +68,12 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 
 /* ── TAB BAR ── */
 .tabbar{
-  height:56px;background:var(--white);border-top:1px solid var(--bd);
+  height:64px;background:var(--white);border-top:1px solid var(--bd);
   display:flex;align-items:stretch;flex-shrink:0;
   padding-bottom:var(--safe-bottom);box-shadow:0 -1px 3px rgba(0,0,0,.05);
 }
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--t4);transition:color .15s;font-size:9px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;border:none;background:none;}
-.tab svg{width:20px;height:20px;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--t4);transition:color .15s;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;border:none;background:none;}
+.tab svg{width:22px;height:22px;}
 .tab.on{color:var(--gold);}
 .tab .tab-dot{width:5px;height:5px;border-radius:50%;background:var(--red);display:none;margin-top:-10px;margin-left:14px;}
 .tab .tab-dot.show{display:block;}
@@ -82,65 +82,65 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 .main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 
 /* ── SECTION HEADERS ── */
-.sec-hd{padding:14px 16px 6px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:500;}
+.sec-hd{padding:16px 16px 8px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:600;}
 .empty-state{text-align:center;padding:60px 24px;color:var(--t4);}
 .empty-icon{font-family:'Cormorant Garamond',serif;font-size:40px;color:var(--gold-bd);margin-bottom:10px;}
 .empty-msg{font-size:13px;color:var(--t3);}
 
 /* ── TODAY VIEW ── */
 .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px 4px;}
-.kpi-card{background:var(--white);border:1px solid var(--bd);border-radius:8px;padding:12px 10px;text-align:center;}
-.kpi-n{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:600;line-height:1;}
+.kpi-card{background:var(--white);border:1px solid var(--bd);border-radius:10px;padding:16px 10px;text-align:center;}
+.kpi-n{font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:600;line-height:1;}
 .kpi-n.hi{color:var(--green);}
 .kpi-n.warn{color:var(--amber);}
 .kpi-n.gold{color:var(--gold);}
-.kpi-l{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-top:3px;}
+.kpi-l{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-top:4px;font-weight:500;}
 
 /* ── ACTIVITY ITEMS ── */
 .act-card{
   background:var(--white);border-bottom:1px solid var(--bd);
-  padding:13px 16px;display:flex;gap:12px;align-items:flex-start;
+  padding:16px 16px;display:flex;gap:14px;align-items:flex-start;
   cursor:pointer;transition:background .1s;
 }
 .act-card:active{background:var(--s2);}
 .act-card.overdue{border-left:3px solid var(--red);}
 .act-card.today{border-left:3px solid var(--amber);}
 .act-card.done{opacity:.55;}
-.act-icon{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.act-icon{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
 .icon-call{background:var(--green-bg);}
 .icon-wa{background:#dcf8c6;}
 .icon-meet{background:var(--purple-bg);}
 .icon-mail{background:var(--blue-bg);}
 .icon-other{background:var(--s2);}
 .act-info{flex:1;min-width:0;}
-.act-broker{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.act-sub{font-size:11px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.act-tag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;}
+.act-broker{font-size:15px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.act-sub{font-size:13px;color:var(--t3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.act-tag{font-size:11px;font-weight:600;padding:4px 9px;border-radius:4px;white-space:nowrap;}
 .tag-ov{background:var(--red-bg);color:var(--red);}
 .tag-td{background:var(--amber-bg);color:var(--amber);}
 .tag-pl{background:var(--blue-bg);color:var(--blue);}
 .tag-dn{background:var(--green-bg);color:var(--green);}
 .act-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
-.act-date{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);}
+.act-date{font-size:12px;font-family:'DM Mono',monospace;color:var(--t3);}
 
 /* ── BROKER LIST ── */
 .broker-card{
   background:var(--white);border-bottom:1px solid var(--bd);
-  padding:13px 16px;display:flex;gap:12px;align-items:center;
+  padding:18px 16px;display:flex;gap:14px;align-items:center;
   cursor:pointer;transition:background .1s;
 }
 .broker-card:active{background:var(--s2);}
 .broker-card.hot{border-left:3px solid var(--green);}
 .broker-card.warm{border-left:3px solid var(--gold-lt);}
-.broker-score{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:12px;font-weight:500;flex-shrink:0;}
+.broker-score{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:14px;font-weight:600;flex-shrink:0;}
 .sc-h{background:var(--green-bg);color:var(--green);border:1.5px solid var(--green-bd);}
 .sc-w{background:var(--gold-bg);color:var(--gold);border:1.5px solid var(--gold-bd);}
 .sc-c{background:var(--s2);color:var(--t3);border:1.5px solid var(--bd);}
 .broker-info{flex:1;min-width:0;}
-.broker-name{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.broker-agency{font-size:11px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.broker-name{font-size:16px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.broker-agency{font-size:13px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;}
 .broker-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
-.stg-pill{font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;}
+.stg-pill{font-size:11px;font-weight:600;padding:4px 9px;border-radius:4px;}
 .s9{background:var(--green-bg);color:var(--green);}
 .s8{background:#EEF8F3;color:#1F7A50;}
 .s7{background:#EEF8F3;color:#2A6A48;}
@@ -151,20 +151,20 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 .s2{background:var(--s2);color:var(--t2);}
 .s1{background:var(--s2);color:var(--t3);}
 .s0{background:var(--red-bg);color:var(--red);}
-.next-action{font-size:10px;color:var(--t3);}
+.next-action{font-size:12px;color:var(--t3);}
 .next-action.ov{color:var(--red);font-weight:500;}
 .next-action.td{color:var(--amber);font-weight:500;}
 
 /* ── SEARCH BAR ── */
 .search-wrap{padding:10px 16px;background:var(--white);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:10;}
-.search-box{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:0 12px;height:38px;transition:border-color .15s;}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;padding:0 14px;height:46px;transition:border-color .15s;}
 .search-box:focus-within{border-color:var(--gold-lt);background:var(--white);}
-.search-box input{flex:1;background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--t1);}
+.search-box input{flex:1;background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);}
 .search-box input::placeholder{color:var(--t4);}
 .search-icon{color:var(--t4);font-size:14px;}
 .filter-row{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;background:var(--white);-webkit-overflow-scrolling:touch;}
 .filter-row::-webkit-scrollbar{display:none;}
-.fchip{height:28px;padding:0 12px;background:var(--white);border:1px solid var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;border-radius:14px;white-space:nowrap;cursor:pointer;}
+.fchip{height:34px;padding:0 14px;background:var(--white);border:1px solid var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:17px;white-space:nowrap;cursor:pointer;}
 .fchip.on{background:var(--gold-bg);border-color:var(--gold-bd);color:var(--gold);}
 
 /* ── LOG ACTIVITY SHEET ── */
@@ -173,17 +173,17 @@ body{font-family:'DM Sans',sans-serif;font-size:14px;color:var(--t1);display:fle
 .sheet{background:var(--white);border-radius:16px 16px 0 0;padding:0 0 calc(20px + var(--safe-bottom));max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .25s ease;}
 .sheet-overlay.open .sheet{transform:translateY(0);}
 .sheet-handle{width:36px;height:4px;background:var(--bd2);border-radius:2px;margin:10px auto 0;}
-.sheet-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;padding:14px 20px 10px;color:var(--t1);}
-.sheet-sub{font-size:12px;color:var(--t3);padding:0 20px 12px;border-bottom:1px solid var(--bd);}
+.sheet-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;padding:16px 20px 10px;color:var(--t1);}
+.sheet-sub{font-size:14px;color:var(--t3);padding:0 20px 14px;border-bottom:1px solid var(--bd);}
 .sheet-body{padding:16px 20px;}
 .fg{margin-bottom:14px;}
-.fg-l{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);font-weight:500;margin-bottom:5px;}
-.fi{width:100%;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none;}
+.fg-l{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);font-weight:600;margin-bottom:6px;}
+.fi{width:100%;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:16px;padding:13px 14px;border-radius:10px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none;}
 .fi:focus{border-color:var(--gold-lt);background:var(--white);}
 select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8880' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
 .type-grid{display:block;margin-top:4px;}
-.type-btn{padding:8px 6px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;text-align:center;cursor:pointer;font-size:11px;font-weight:500;color:var(--t2);transition:all .15s;line-height:1.3;}
-.type-btn span{display:block;font-size:18px;margin-bottom:3px;}
+.type-btn{padding:12px 6px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--t2);transition:all .15s;line-height:1.3;}
+.type-btn span{display:block;font-size:22px;margin-bottom:5px;}
 .type-btn.on{background:var(--gold-bg);border-color:var(--gold-lt);color:var(--gold);}
 .planned-toggle{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;}
 .toggle-track{width:40px;height:22px;border-radius:11px;background:var(--bd);position:relative;flex-shrink:0;transition:background .15s;}
@@ -192,56 +192,56 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .toggle-track.on .toggle-thumb{left:20px;}
 .planned-label{font-size:13px;color:var(--t2);}
 .sheet-actions{padding:16px 20px 0;display:flex;gap:8px;}
-.btn-cancel{flex:1;height:46px;background:var(--s2);border:1px solid var(--bd);color:var(--t2);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;}
-.btn-save{flex:2;height:46px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;}
+.btn-cancel{flex:1;height:52px;background:var(--s2);border:1px solid var(--bd);color:var(--t2);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;}
+.btn-save{flex:2;height:52px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;border-radius:10px;cursor:pointer;}
 .btn-save:active{background:var(--t2);}
-.btn-gold{flex:2;height:46px;background:var(--gold);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;}
+.btn-gold{flex:2;height:52px;background:var(--gold);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;border-radius:10px;cursor:pointer;}
 
 /* ── BROKER DETAIL SHEET ── */
 .detail-sheet{position:fixed;inset:0;background:var(--white);z-index:400;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;}
 .detail-sheet.open{transform:translateX(0);}
 .detail-topbar{height:52px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--bd);flex-shrink:0;}
-.back-btn{font-size:24px;color:var(--t2);cursor:pointer;padding:4px;margin-left:-4px;}
-.detail-title{font-size:15px;font-weight:500;color:var(--t1);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.log-fab{height:36px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;border-radius:6px;cursor:pointer;white-space:nowrap;}
+.back-btn{font-size:28px;color:var(--t2);cursor:pointer;padding:4px;margin-left:-4px;}
+.detail-title{font-size:17px;font-weight:600;color:var(--t1);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.log-fab{height:40px;padding:0 18px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;white-space:nowrap;}
 .detail-hero{padding:16px;background:var(--gold-bg);border-bottom:1px solid var(--gold-bd);flex-shrink:0;}
-.hero-name{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--t1);margin-bottom:2px;}
-.hero-agency{font-size:12px;color:var(--t3);}
+.hero-name{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--t1);margin-bottom:4px;}
+.hero-agency{font-size:14px;color:var(--t3);}
 .hero-row{display:flex;align-items:center;gap:8px;margin-top:10px;}
-.hero-stage{font-size:10px;font-weight:500;padding:3px 9px;border-radius:4px;}
+.hero-stage{font-size:12px;font-weight:600;padding:5px 11px;border-radius:5px;}
 .hero-score-wrap{margin-left:auto;text-align:right;}
-.hero-score-n{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;}
-.hero-score-l{font-size:9px;color:var(--t3);letter-spacing:.5px;}
+.hero-score-n{font-family:'DM Mono',monospace;font-size:22px;font-weight:600;}
+.hero-score-l{font-size:11px;color:var(--t3);letter-spacing:.5px;}
 .detail-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .detail-section{padding:14px 16px;border-bottom:1px solid var(--bd);}
-.detail-sec-title{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:500;margin-bottom:10px;}
+.detail-sec-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);font-weight:600;margin-bottom:12px;}
 .detail-row{display:flex;justify-content:space-between;margin-bottom:7px;gap:8px;}
-.detail-label{font-size:12px;color:var(--t3);flex-shrink:0;}
-.detail-val{font-size:12px;color:var(--t1);text-align:right;word-break:break-all;}
+.detail-label{font-size:14px;color:var(--t3);flex-shrink:0;}
+.detail-val{font-size:14px;color:var(--t1);text-align:right;word-break:break-all;}
 .detail-val a{color:var(--gold);text-decoration:none;}
-.act-item{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:10px 12px;margin-bottom:6px;}
+.act-item{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 14px;margin-bottom:8px;}
 .act-item.planned-item{border-style:dashed;background:var(--white);}
 .act-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
-.act-item-type{font-size:12px;font-weight:500;color:var(--t1);}
-.act-item-date{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);}
-.act-item-notes{font-size:11px;color:var(--t3);}
-.act-item-badge{font-size:9px;font-weight:500;padding:1px 6px;border-radius:3px;}
+.act-item-type{font-size:14px;font-weight:600;color:var(--t1);}
+.act-item-date{font-size:12px;font-family:'DM Mono',monospace;color:var(--t3);}
+.act-item-notes{font-size:13px;color:var(--t3);}
+.act-item-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;}
 .badge-planned{background:var(--blue-bg);color:var(--blue);}
 .badge-done{background:var(--green-bg);color:var(--green);}
 .stage-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;}
-.stage-btn{padding:8px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;font-size:11px;font-weight:500;color:var(--t2);cursor:pointer;text-align:center;transition:all .15s;}
+.stage-btn{padding:12px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;font-size:13px;font-weight:500;color:var(--t2);cursor:pointer;text-align:center;transition:all .15s;}
 .stage-btn.on{background:var(--gold-bg);border-color:var(--gold-lt);color:var(--gold);}
 .stage-btn:active{background:var(--gold-bg);}
-.notes-area{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--t1);padding:10px 12px;outline:none;min-height:80px;resize:none;transition:border-color .15s;}
+.notes-area{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--t1);padding:10px 12px;outline:none;min-height:80px;resize:none;transition:border-color .15s;}
 .notes-area:focus{border-color:var(--gold-lt);background:var(--white);}
-.save-notes-btn{margin-top:8px;width:100%;height:40px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:8px;cursor:pointer;}
+.save-notes-btn{margin-top:10px;width:100%;height:48px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:8px;cursor:pointer;}
 
 /* ── ADD BROKER SHEET ── */
 .add-broker-btn-wrap{padding:14px 16px;position:sticky;bottom:0;background:linear-gradient(to top,var(--bg) 70%,transparent);pointer-events:none;}
 .add-broker-btn-wrap button{pointer-events:all;width:100%;height:48px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
 
 /* ── TOAST ── */
-.toast{position:fixed;bottom:calc(80px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--t1);color:#fff;font-size:12px;padding:9px 18px;border-radius:20px;z-index:999;opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none;}
+.toast{position:fixed;bottom:calc(80px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--t1);color:#fff;font-size:14px;padding:9px 18px;border-radius:20px;z-index:999;opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .toast.gold{background:var(--gold);}
 
@@ -269,17 +269,17 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
 /* ── CALENDAR ── */
 .cal-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--white);border-bottom:1px solid var(--bd);}
-.cal-month{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--t1);}
+.cal-month{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--t1);}
 .cal-nav-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-size:14px;}
 .cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);background:var(--white);border-bottom:1px solid var(--bd);}
-.cal-dow{text-align:center;padding:5px 0;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t4);font-weight:500;}
+.cal-dow{text-align:center;padding:6px 0;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--t4);font-weight:600;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);background:var(--white);}
-.cal-cell{min-height:52px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:3px;position:relative;cursor:pointer;}
+.cal-cell{min-height:58px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:3px;position:relative;cursor:pointer;}
 .cal-cell:nth-child(7n){border-right:none;}
 .cal-cell.other-month .cal-day-num{color:var(--t4);}
 .cal-cell.today .cal-day-num{background:var(--gold);color:#fff;border-radius:50%;}
 .cal-cell.selected{background:var(--gold-bg);}
-.cal-day-num{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:var(--t2);margin-bottom:2px;}
+.cal-day-num{width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--t2);margin-bottom:2px;}
 .cal-dot-row{display:flex;gap:2px;flex-wrap:wrap;padding:0 1px;}
 .cal-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
 .dot-ov{background:var(--red);}
@@ -287,13 +287,13 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .dot-soon{background:var(--blue);}
 .dot-up{background:var(--bd2);}
 .cal-day-detail{background:var(--white);border-top:2px solid var(--gold-lt);flex:1;overflow-y:auto;}
-.cal-detail-hd{padding:12px 16px 8px;font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--t1);border-bottom:1px solid var(--bd);}
-.cal-ev-item{display:flex;gap:10px;align-items:flex-start;padding:10px 16px;border-bottom:1px solid var(--bd);cursor:pointer;}
+.cal-detail-hd{padding:14px 16px 10px;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--t1);border-bottom:1px solid var(--bd);}
+.cal-ev-item{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-bottom:1px solid var(--bd);cursor:pointer;}
 .cal-ev-item:active{background:var(--s2);}
 .cal-ev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
 .cal-ev-info{flex:1;min-width:0;}
-.cal-ev-title{font-size:13px;font-weight:500;color:var(--t1);}
-.cal-ev-sub{font-size:11px;color:var(--t3);margin-top:1px;}
+.cal-ev-title{font-size:15px;font-weight:600;color:var(--t1);}
+.cal-ev-sub{font-size:13px;color:var(--t3);margin-top:2px;}
 .cal-ev-time{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);flex-shrink:0;}
 ::-webkit-scrollbar{width:3px;height:3px;}
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px;}
@@ -762,74 +762,79 @@ function renderToday(){
   const v=document.getElementById('view-today');
   if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';return;}
 
-  // KPIs
   const overdue=brokers.filter(b=>naStatus(b)==='overdue').length;
   const signed=brokers.filter(b=>b.bd_addendum==='signed').length;
   const inPlay=brokers.filter(b=>b.bd_stage>=4&&b.bd_stage<=8).length;
 
-  // My brokers with actions due
   const myBrokers=brokers.filter(b=>!b.assigned||b.assigned===curUser);
   const withActions=myBrokers.filter(b=>['overdue','today','soon'].includes(naStatus(b)));
   withActions.sort((a,b)=>{const ord={overdue:0,today:1,soon:2};return ord[naStatus(a)]-ord[naStatus(b)];});
 
-  // Recent logged by me (across all brokers, last 5)
   const myActs=brokers.flatMap(b=>(b.activities||[]).filter(a=>!a.planned).map(a=>({...a,brokerName:b.name,brokerId:b.id}))).sort((a,b)=>new Date(b.acted_at)-new Date(a.acted_at)).slice(0,5);
 
-  const crmUrl=window.location.href.replace('bd-field.html','index.html');
+  const crmUrl=window.location.href.replace('index.html','').replace(/pa-field\/?$/,'')+'index.html';
 
-  v.innerHTML=`
-  <div class="kpi-row">
-    <div class="kpi-card"><div class="kpi-n ${overdue?'warn':''}">${overdue}</div><div class="kpi-l">Overdue</div></div>
-    <div class="kpi-card"><div class="kpi-n ${inPlay>0?'gold':''}">${inPlay}</div><div class="kpi-l">In play</div></div>
-    <div class="kpi-card"><div class="kpi-n ${signed>0?'hi':''}">${signed}</div><div class="kpi-l">Signed</div></div>
-  </div>
+  let actionsHtml='';
+  if(withActions.length){
+    withActions.forEach(b=>{
+      const na=nextAct(b),s=naStatus(b);
+      const aType=ACT_TYPES.find(t=>t.key===(na&&na.type?na.type:''))||ACT_TYPES[8];
+      actionsHtml+='<div class="act-card '+(s==='overdue'?'overdue':s==='today'?'today':'')+'" onclick="openDetail('+b.id+')">'
+        +'<div class="act-icon '+aType.css+'">'+actIcon(na&&na.type?na.type:'Other')+'</div>'
+        +'<div class="act-info">'
+          +'<div class="act-broker">'+esc(b.name)+'</div>'
+          +'<div class="act-sub">'+esc(b.agency)+(b.area?' &middot; '+esc(b.area):'')+'</div>'
+          +(na&&na.notes?'<div class="act-sub" style="margin-top:3px;font-style:italic">'+esc(na.notes)+'</div>':'')
+        +'</div>'
+        +'<div class="act-right">'
+          +'<span class="act-tag '+(s==='overdue'?'tag-ov':s==='today'?'tag-td':'tag-pl')+'">'+(s==='overdue'?'Overdue':s==='today'?'Today':'Soon')+'</span>'
+          +'<span class="act-date">'+(na?fmt(na.acted_at):'')+'</span>'
+        +'</div>'
+        +'</div>';
+    });
+  } else {
+    actionsHtml='<div class="empty-state" style="padding:30px 24px"><div class="empty-msg">No pending actions — all clear</div></div>';
+  }
 
-  <a class="crm-link" href="${crmUrl}" target="_blank">
-    <div class="crm-link-icon">#</div>
-    <div class="crm-link-text">
-      <div class="crm-link-title">Open full CRM →</div>
-      <div class="crm-link-sub">${curAuction.name} · ${curAuction.status}</div>
-    </div>
-    <div class="crm-link-arrow">›</div>
-  </a>
+  let recentHtml='';
+  if(myActs.length){
+    myActs.forEach(a=>{
+      recentHtml+='<div class="act-card done" onclick="openDetail('+a.brokerId+')">'
+        +'<div class="act-icon '+((ACT_TYPES.find(t=>t.key===a.type)||ACT_TYPES[8]).css)+'">'+actIcon(a.type)+'</div>'
+        +'<div class="act-info">'
+          +'<div class="act-broker">'+esc(a.brokerName)+'</div>'
+          +'<div class="act-sub">'+esc(a.type)+(a.notes?' &middot; '+esc(a.notes):'')+'</div>'
+        +'</div>'
+        +'<div class="act-right">'
+          +'<span class="act-tag tag-dn">Done</span>'
+          +'<span class="act-date">'+fmt(a.acted_at)+'</span>'
+        +'</div>'
+        +'</div>';
+    });
+  } else {
+    recentHtml='<div style="padding:16px 16px;color:var(--t4);font-size:14px">No activity yet</div>';
+  }
 
-  <div class="sec-hd">My actions${withActions.length?' ('+withActions.length+')':''}</div>
-  ${withActions.length?withActions.map(b=>{
-    const na=nextAct(b),s=naStatus(b);
-    return`<div class="act-card ${s==='overdue'?'overdue':s==='today'?'today':''}" onclick="openDetail(${b.id})">
-      <div class="act-icon ${(ACT_TYPES.find(t=>t.key===(na?.type||''))||ACT_TYPES[8]).css}">${actIcon(na?.type||'Other')}</div>
-      <div class="act-info">
-        <div class="act-broker">${esc(b.name)}</div>
-        <div class="act-sub">${esc(b.agency)}${b.area?' · '+esc(b.area):''}</div>
-        ${na?.notes?`<div class="act-sub" style="margin-top:3px;font-style:italic">${esc(na.notes)}</div>`:''}
-      </div>
-      <div class="act-right">
-        <span class="act-tag ${s==='overdue'?'tag-ov':s==='today'?'tag-td':'tag-pl'}">${s==='overdue'?'Overdue':s==='today'?'Today':'Soon'}</span>
-        <span class="act-date">${na?fmt(na.acted_at):''}</span>
-      </div>
-    </div>`;
-  }).join(''):`<div class="empty-state" style="padding:30px 24px"><div class="empty-msg">No pending actions — all clear ✓</div></div>`}
-
-  <div class="sec-hd">Recent activity</div>
-  ${myActs.length?myActs.map(a=>`
-    <div class="act-card done" onclick="openDetail(${a.brokerId})">
-      <div class="act-icon ${(ACT_TYPES.find(t=>t.key===a.type)||ACT_TYPES[8]).css}">${actIcon(a.type)}</div>
-      <div class="act-info">
-        <div class="act-broker">${esc(a.brokerName)}</div>
-        <div class="act-sub">${esc(a.type)}${a.notes?' · '+esc(a.notes):''}</div>
-      </div>
-      <div class="act-right">
-        <span class="act-tag tag-dn">Done</span>
-        <span class="act-date">${fmt(a.acted_at)}</span>
-      </div>
-    </div>
-  `).join(''):`<div style="padding:16px 16px;color:var(--t4);font-size:12px">No activity yet</div>`}
-  `;
-  // fix overdue count display
-  v.querySelector('.kpi-row .kpi-card:first-child .kpi-n').textContent=overdue;
+  v.innerHTML=''
+    +'<div class="kpi-row">'
+      +'<div class="kpi-card"><div class="kpi-n '+(overdue?'warn':'')+'" id="kpi-ov">'+overdue+'</div><div class="kpi-l">Overdue</div></div>'
+      +'<div class="kpi-card"><div class="kpi-n '+(inPlay>0?'gold':'')+'">'+inPlay+'</div><div class="kpi-l">In play</div></div>'
+      +'<div class="kpi-card"><div class="kpi-n '+(signed>0?'hi':'')+'">'+signed+'</div><div class="kpi-l">Signed</div></div>'
+    +'</div>'
+    +'<a class="crm-link" href="'+crmUrl+'" target="_blank">'
+      +'<div class="crm-link-icon">#</div>'
+      +'<div class="crm-link-text">'
+        +'<div class="crm-link-title">Open full CRM</div>'
+        +'<div class="crm-link-sub">'+esc(curAuction.name)+' &middot; '+esc(curAuction.status)+'</div>'
+      +'</div>'
+      +'<div class="crm-link-arrow">&rsaquo;</div>'
+    +'</a>'
+    +'<div class="sec-hd">My actions'+(withActions.length?' ('+withActions.length+')':'')+'</div>'
+    +actionsHtml
+    +'<div class="sec-hd">Recent activity</div>'
+    +recentHtml;
 }
 
-// ── BROKER LIST VIEW ──────────────────────────────────────
 function renderBrokers(){
   const v=document.getElementById('view-brokers');
   if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';return;}
@@ -841,55 +846,71 @@ function renderBrokers(){
     return true;
   });
 
-  // Sort: overdue > today > score desc
   filtered.sort((a,b)=>{
     const ord={overdue:0,today:1,soon:2,upcoming:3,none:4};
-    const da=ord[naStatus(a)]??5,db=ord[naStatus(b)]??5;
+    const da=ord[naStatus(a)]||5,db=ord[naStatus(b)]||5;
     if(da!==db)return da-db;
     return brokerScore(b)-brokerScore(a);
   });
 
   const myCount=brokers.filter(b=>b.assigned===curUser).length;
 
-  v.innerHTML=`
-  <div class="search-wrap">
-    <div class="search-box">
-      <span class="search-icon">⌕</span>
-      <input type="search" placeholder="Search brokers..." value="${esc(filterQ)}" oninput="filterQ=this.value;renderBrokers()" autocomplete="off">
-    </div>
-  </div>
-  <div class="filter-row">
-    <span class="fchip${!filterAssigned&&filterStage===null?' on':''}" onclick="filterAssigned=null;filterBdStage=null;renderBrokers()">All (${brokers.length})</span>
-    <span class="fchip${filterAssigned===curUser?' on':''}" onclick="filterAssigned=filterAssigned===curUser?null:curUser;renderBrokers()">Mine (${myCount})</span>
-    <span class="fchip${filterBdStage===4?' on':''}" onclick="filterBdStage=filterBdStage===4?null:4;renderBrokers()">Pitched</span>
-    <span class="fchip${filterBdStage===6?' on':''}" onclick="filterBdStage=filterBdStage===6?null:6;renderBrokers()">Mandate confirmed</span>
-    <span class="fchip${filterBdStage===8?' on':''}" onclick="filterBdStage=filterBdStage===8?null:8;renderBrokers()">Addendum sent</span>
-    <span class="fchip${filterBdStage===9?' on':''}" onclick="filterBdStage=filterBdStage===9?null:9;renderBrokers()">Signed ✓</span>
-  </div>
-  <div style="padding:10px 16px 0;display:flex;justify-content:flex-end">
-    <button onclick="openAddBroker()" style="height:34px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px">+ Add broker</button>
-  </div>
-  ${filtered.length?filtered.map(b=>{
-    const sc=brokerScore(b),mom=momentum(b),na=naStatus(b),nxt=nextAct(b);
-    return`<div class="broker-card ${mom==='hot'?'hot':mom==='warm'?'warm':''}" onclick="openDetail(${b.id})">
-      <div class="broker-score ${sc>=7?'sc-h':sc>=4?'sc-w':'sc-c'}">${sc}</div>
-      <div class="broker-info">
-        <div class="broker-name">${esc(b.name)}</div>
-        <div class="broker-agency">${esc(b.agency)}${b.area?' · '+esc(b.area):''}</div>
-        ${b.bd_property?`<div style="font-size:10px;color:var(--gold);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">&#x2302; ${esc(b.bd_property)}</div>`:''}
-      </div>
-      <div class="broker-right">
-        <span class="stg-pill ${SCLS[b.bd_stage]||'s1'}">${STAGES[b.bd_stage]||'—'}</span>
-        ${b.bd_addendum&&b.bd_addendum!==''?`<span style="font-size:9px;font-weight:500;padding:1px 5px;border-radius:3px;background:${b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)'};color:${b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)'}">${ADDENDUM_STATUS[b.bd_addendum]}</span>`:''}
-        ${na!=='none'?`<span class="next-action ${na==='overdue'?'ov':na==='today'?'td':''}">${na==='overdue'?'! Overdue':na==='today'?'● Today':nxt?fmt(nxt.acted_at):''}</span>`:''}
-      </div>
-    </div>`;
-  }).join(''):`<div class="empty-state"><div class="empty-msg">No brokers match your filters</div></div>`}
-  <div style="height:80px"></div>
-  `;
+  let cardsHtml='';
+  if(filtered.length){
+    filtered.forEach(b=>{
+      const mom=momentum(b),na=naStatus(b),nxt=nextAct(b);
+      const addBadge=b.bd_addendum&&b.bd_addendum!==''
+        ?'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:4px;background:'+(b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)')+';color:'+(b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)')+'">'+ADDENDUM_STATUS[b.bd_addendum]+'</span>'
+        :'';
+      const propLine=b.bd_property
+        ?'<div style="font-size:13px;color:var(--gold);font-weight:500;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">&#x2302; '+esc(b.bd_property)+(b.bd_value?' &middot; '+esc(b.bd_value):'')+'</div>'
+        :'<div style="font-size:12px;color:var(--t4);margin-top:3px;font-style:italic">No property yet</div>';
+      const naLine=na!=='none'
+        ?'<span class="next-action '+(na==='overdue'?'ov':na==='today'?'td':'')+'">'+(na==='overdue'?'! Overdue':na==='today'?'Today':nxt?fmt(nxt.acted_at):'')+'</span>'
+        :'';
+      const sc=b.bd_addendum==='signed'?'sc-h':b.bd_addendum&&b.bd_addendum!==''?'sc-w':'sc-c';
+      const sl=b.bd_addendum==='signed'?'Sgnd':b.bd_addendum==='sent'?'Sent':b.bd_addendum==='draft'?'Drft':b.bd_addendum==='vendor_review'?'Vndr':b.bd_addendum==='blocked'?'Blkd':'New';
+      cardsHtml+='<div class="broker-card '+(mom==='hot'?'hot':mom==='warm'?'warm':'')+'" onclick="openDetail('+b.id+')">'
+        +'<div class="broker-score '+sc+'" style="font-size:11px;text-align:center;line-height:1.2">'+sl+'</div>'
+        +'<div class="broker-info">'
+          +'<div class="broker-name">'+esc(b.name)+'</div>'
+          +'<div class="broker-agency">'+esc(b.agency)+(b.area?' &middot; '+esc(b.area):'')+'</div>'
+          +propLine
+        +'</div>'
+        +'<div class="broker-right">'
+          +'<span class="stg-pill '+(SCLS[b.bd_stage]||'s1')+'">'+(STAGES[b.bd_stage]||'--')+'</span>'
+          +addBadge
+          +naLine
+        +'</div>'
+        +'</div>';
+    });
+  } else {
+    cardsHtml='<div class="empty-state"><div class="empty-msg">No brokers match your filters</div></div>';
+  }
+
+  v.innerHTML=''
+    +'<div class="search-wrap">'
+      +'<div class="search-box">'
+        +'<span class="search-icon">&#x2315;</span>'
+        +'<input type="search" placeholder="Search brokers..." value="'+esc(filterQ)+'" oninput="filterQ=this.value;renderBrokers()" autocomplete="off">'
+      +'</div>'
+    +'</div>'
+    +'<div class="filter-row">'
+      +'<span class="fchip'+(!filterAssigned&&filterBdStage===null?' on':'')+'" onclick="filterAssigned=null;filterBdStage=null;renderBrokers()">All ('+brokers.length+')</span>'
+      +'<span class="fchip'+(filterAssigned===curUser?' on':'')+'" onclick="filterAssigned=filterAssigned===curUser?null:curUser;renderBrokers()">Mine ('+myCount+')</span>'
+      +'<span class="fchip'+(filterBdStage===4?' on':'')+'" onclick="filterBdStage=filterBdStage===4?null:4;renderBrokers()">Pitched</span>'
+      +'<span class="fchip'+(filterBdStage===6?' on':'')+'" onclick="filterBdStage=filterBdStage===6?null:6;renderBrokers()">Mandate confirmed</span>'
+      +'<span class="fchip'+(filterBdStage===8?' on':'')+'" onclick="filterBdStage=filterBdStage===8?null:8;renderBrokers()">Addendum sent</span>'
+      +'<span class="fchip'+(filterBdStage===9?' on':'')+'" onclick="filterBdStage=filterBdStage===9?null:9;renderBrokers()">Signed</span>'
+    +'</div>'
+    +'<div style="padding:10px 16px 0;display:flex;justify-content:flex-end">'
+      +'<button onclick="openAddBroker()" style="height:40px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer">+ Add broker</button>'
+    +'</div>'
+    +cardsHtml
+    +'<div style="height:80px"></div>';
 }
 
-// ── BROKER DETAIL ─────────────────────────────────────────
+
 function openDetail(brokerId){
   const b=brokers.find(x=>x.id===brokerId);if(!b)return;
   selBroker=b;
@@ -959,12 +980,7 @@ function openDetail(brokerId){
       </div>
     </div>
 
-    <!-- Buyers (from CRM — read-only context) -->
-    ${cli.length?`
-    <div class="detail-section">
-      <div class="detail-sec-title">Buyers in pipeline (${cli.length})</div>
-      ${cli.map(c=>`<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between"><span>${esc(c.name||'Anon.')} · ${esc(c.origin)}</span><span style="color:var(--t3)">${esc(c.interest)} · ${esc(c.status.replace(/-/g,' '))}</span></div>`).join('')}
-    </div>`:''}
+
 
     <!-- Planned actions -->
     ${planned.length?`
