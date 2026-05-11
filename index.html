@@ -94,6 +94,12 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 .kpi-n.hi{color:var(--green);}
 .kpi-n.warn{color:var(--amber);}
 .kpi-n.gold{color:var(--gold);}
+.kpi-card.kpi-red{background:var(--red-bg);border-color:var(--red-bd);}
+.kpi-card.kpi-red .kpi-n{color:var(--red);}
+.kpi-card.kpi-blue{background:var(--blue-bg);border-color:var(--blue-bd);}
+.kpi-card.kpi-blue .kpi-n{color:var(--blue);}
+.kpi-card.kpi-amber{background:var(--amber-bg);border-color:var(--amber-bd);}
+.kpi-card.kpi-amber .kpi-n{color:var(--amber);}
 .kpi-l{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-top:4px;font-weight:500;}
 
 /* ── ACTIVITY ITEMS ── */
@@ -182,8 +188,9 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 .fi:focus{border-color:var(--gold-lt);background:var(--white);}
 select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8880' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
 .type-grid{display:block;margin-top:4px;}
-.type-btn{padding:12px 6px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;text-align:center;cursor:pointer;font-size:13px;font-weight:500;color:var(--t2);transition:all .15s;line-height:1.3;}
-.type-btn span{display:block;font-size:22px;margin-bottom:5px;}
+.type-btn{padding:12px 8px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:var(--t2);transition:all .15s;line-height:1.4;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.type-btn .icon{display:flex;align-items:center;justify-content:center;margin-bottom:6px;color:var(--t2);}
+.type-btn.on .icon{color:var(--gold);}
 .type-btn.on{background:var(--gold-bg);border-color:var(--gold-lt);color:var(--gold);}
 .planned-toggle{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;}
 .toggle-track{width:40px;height:22px;border-radius:11px;background:var(--bd);position:relative;flex-shrink:0;transition:background .15s;}
@@ -250,14 +257,6 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .loading-bar.on{opacity:1;animation:progress 1.2s ease infinite;}
 @keyframes progress{0%{transform:scaleX(0)}50%{transform:scaleX(.7)}100%{transform:scaleX(1)}}
 
-/* ── CRM LINK BANNER ── */
-.crm-link{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--gold-bg);border:1px solid var(--gold-bd);border-radius:8px;margin:12px 16px;cursor:pointer;text-decoration:none;}
-.crm-link-icon{width:30px;height:30px;background:var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;flex-shrink:0;}
-.crm-link-text{flex:1;}
-.crm-link-title{font-size:12px;font-weight:500;color:var(--gold);}
-.crm-link-sub{font-size:10px;color:var(--amber);}
-.crm-link-arrow{color:var(--gold-lt);font-size:16px;}
-
 /* ── PIPELINE SUMMARY ── */
 .pipeline-row{display:flex;gap:4px;padding:10px 16px;overflow-x:auto;}
 .pipeline-row::-webkit-scrollbar{display:none;}
@@ -295,6 +294,15 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .cal-ev-title{font-size:15px;font-weight:600;color:var(--t1);}
 .cal-ev-sub{font-size:13px;color:var(--t3);margin-top:2px;}
 .cal-ev-time{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);flex-shrink:0;}
+
+/* ── OFFLINE BANNER ── */
+.offline-banner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:var(--amber);color:#fff;
+  font-size:13px;font-weight:600;text-align:center;padding:8px 16px;
+  letter-spacing:.3px;
+}
+.offline-banner.show{display:block;}
 ::-webkit-scrollbar{width:3px;height:3px;}
 ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px;}
 </style>
@@ -303,6 +311,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
 <!-- LOADING BAR -->
 <div class="loading-bar" id="loading-bar"></div>
+<div class="offline-banner" id="offline-banner">No connection — changes will sync when back online</div>
 
 <!-- TOP BAR -->
 <div class="topbar">
@@ -505,19 +514,19 @@ const ADDENDUM_STATUS={
   'blocked':'Blocked'
 };
 const ACT_TYPES=[
-  {key:'Call',icon:'Tel',css:'icon-call',group:'Outreach'},
-  {key:'WhatsApp',icon:'Mail',css:'icon-wa',group:'Outreach'},
-  {key:'Meeting',icon:'*',css:'icon-meet',group:'Outreach'},
-  {key:'Property pitch',icon:'⌂',css:'icon-other',group:'BD'},
-  {key:'Property visit',icon:'Key',css:'icon-meet',group:'BD'},
-  {key:'Mandate proposal',icon:'Doc',css:'icon-mail',group:'BD'},
-  {key:'Flyer sent',icon:'◻',css:'icon-mail',group:'Material'},
-  {key:'File sent',icon:'◈',css:'icon-mail',group:'Material'},
-  {key:'Training',icon:'▲',css:'icon-other',group:'Material'},
-  {key:'Invited B2B Open Day',icon:'B2B',css:'icon-other',group:'Event'},
-  {key:'Invited B2C Open Day',icon:'B2C',css:'icon-other',group:'Event'},
-  {key:'Other',icon:'·',css:'icon-other',group:'Event'},
-  {key:'Notice sent',icon:'@',css:'icon-mail',group:'_hidden'},
+  {key:'Call',         icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>', css:'icon-call', group:'Outreach'},
+  {key:'WhatsApp',     icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>', css:'icon-wa',   group:'Outreach'},
+  {key:'Meeting',      icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>', css:'icon-meet', group:'Outreach'},
+  {key:'Property pitch',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>', css:'icon-other', group:'BD'},
+  {key:'Property visit',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>', css:'icon-meet', group:'BD'},
+  {key:'Mandate proposal',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>', css:'icon-mail', group:'BD'},
+  {key:'Training',     icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>', css:'icon-other', group:'Material'},
+  {key:'Flyer sent',   icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>', css:'icon-mail', group:'Material'},
+  {key:'File sent',    icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>', css:'icon-mail', group:'Material'},
+  {key:'Invited B2B Open Day',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>', css:'icon-other', group:'Event'},
+  {key:'Invited B2C Open Day',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>', css:'icon-other', group:'Event'},
+  {key:'Other',        icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>', css:'icon-other', group:'Event'},
+  {key:'Notice sent',  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>', css:'icon-mail', group:'_hidden'},
 ];
 
 // ── STATE ──────────────────────────────────────────────────
@@ -721,7 +730,7 @@ async function submitNewBroker(){
   };
   try{
     loading(true);
-    const rows=await dbPost('brokers',body);
+    const rows=await dbPostQueued('brokers',body);
     const newB={...rows[0],activities:[],clients:[],
       bd_property,bd_value:'',bd_addendum:'',bd_ref,
       notes};
@@ -763,8 +772,9 @@ function renderToday(){
   if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';return;}
 
   const overdue=brokers.filter(b=>naStatus(b)==='overdue').length;
-  const signed=brokers.filter(b=>b.bd_addendum==='signed').length;
-  const inPlay=brokers.filter(b=>b.bd_stage>=4&&b.bd_stage<=8).length;
+  const weekAgo=new Date();weekAgo.setDate(weekAgo.getDate()-7);
+  const metThisWeek=brokers.filter(b=>(b.activities||[]).some(a=>!a.planned&&['Meeting','Property visit','Property pitch'].includes(a.type)&&new Date(a.acted_at)>=weekAgo)).length;
+  const addendumActive=brokers.filter(b=>b.bd_addendum&&!['','signed','blocked'].includes(b.bd_addendum)).length;
 
   const myBrokers=brokers.filter(b=>!b.assigned||b.assigned===curUser);
   const withActions=myBrokers.filter(b=>['overdue','today','soon'].includes(naStatus(b)));
@@ -772,7 +782,6 @@ function renderToday(){
 
   const myActs=brokers.flatMap(b=>(b.activities||[]).filter(a=>!a.planned).map(a=>({...a,brokerName:b.name,brokerId:b.id}))).sort((a,b)=>new Date(b.acted_at)-new Date(a.acted_at)).slice(0,5);
 
-  const crmUrl=window.location.href.replace('index.html','').replace(/pa-field\/?$/,'')+'index.html';
 
   let actionsHtml='';
   if(withActions.length){
@@ -817,18 +826,10 @@ function renderToday(){
 
   v.innerHTML=''
     +'<div class="kpi-row">'
-      +'<div class="kpi-card"><div class="kpi-n '+(overdue?'warn':'')+'" id="kpi-ov">'+overdue+'</div><div class="kpi-l">Overdue</div></div>'
-      +'<div class="kpi-card"><div class="kpi-n '+(inPlay>0?'gold':'')+'">'+inPlay+'</div><div class="kpi-l">In play</div></div>'
-      +'<div class="kpi-card"><div class="kpi-n '+(signed>0?'hi':'')+'">'+signed+'</div><div class="kpi-l">Signed</div></div>'
+    +'<div class="kpi-card kpi-red"><div class="kpi-n">'+overdue+'</div><div class="kpi-l">Overdue</div></div>'
+    +'<div class="kpi-card kpi-blue"><div class="kpi-n">'+metThisWeek+'</div><div class="kpi-l">Met this week</div></div>'
+    +'<div class="kpi-card kpi-amber"><div class="kpi-n">'+addendumActive+'</div><div class="kpi-l">Addendum active</div></div>'
     +'</div>'
-    +'<a class="crm-link" href="'+crmUrl+'" target="_blank">'
-      +'<div class="crm-link-icon">#</div>'
-      +'<div class="crm-link-text">'
-        +'<div class="crm-link-title">Open full CRM</div>'
-        +'<div class="crm-link-sub">'+esc(curAuction.name)+' &middot; '+esc(curAuction.status)+'</div>'
-      +'</div>'
-      +'<div class="crm-link-arrow">&rsaquo;</div>'
-    +'</a>'
     +'<div class="sec-hd">My actions'+(withActions.length?' ('+withActions.length+')':'')+'</div>'
     +actionsHtml
     +'<div class="sec-hd">Recent activity</div>'
@@ -1038,7 +1039,7 @@ async function setStage(brokerId,stage){
   document.querySelector('.hero-stage').className='hero-stage '+(SCLS[stage]||'s1');
   document.querySelector('.hero-stage').textContent=STAGES[stage];
   try{
-    await dbPatch('brokers',brokerId,{bd_stage:stage});
+    await dbPatchQueued('brokers',brokerId,{bd_stage:stage});
     toast('Stage updated → '+STAGES[stage],true);
   }catch(e){toast('Error: '+e.message);}
 }
@@ -1048,7 +1049,7 @@ async function saveNotes(brokerId){
   const notes=document.getElementById('broker-notes').value;
   b.notes=notes;
   try{
-    await dbPatch('brokers',brokerId,{notes});
+    await dbPatchQueued('brokers',brokerId,{notes});
     toast('Notes saved',true);
   }catch(e){toast('Error: '+e.message);}
 }
@@ -1061,7 +1062,7 @@ async function saveBdMeta(brokerId){
   b.bd_ref=document.getElementById('bd-ref').value.trim();
   b.notes=document.getElementById('broker-notes').value;
   try{
-    await dbPatch('brokers',brokerId,{
+    await dbPatchQueued('brokers',brokerId,{
       bd_property:b.bd_property,
       bd_value:b.bd_value,
       bd_addendum:b.bd_addendum,
@@ -1089,7 +1090,7 @@ function buildTypeGrid(){
     if(label)html+=`<div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t4);margin-top:8px;margin-bottom:4px">${label}</div>`;
     html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
     items.forEach(t=>{
-      html+=`<div class="type-btn ${logType===t.key?'on':''}" onclick="selectType('${t.key}',this)"><span>${t.icon}</span>${t.key}</div>`;
+      html+=`<div class="type-btn ${logType===t.key?'on':''}" onclick="selectType('${t.key}',this)"><div class="icon">${t.icon}</div>${t.key}</div>`;
     });
     html+='</div>';
   });
@@ -1140,7 +1141,7 @@ async function submitLog(){
   const body={broker_id:brokerId,auction_id:curAuction.id,type:logType,notes,planned:logPlanned,acted_at:date};
   try{
     loading(true);
-    const rows=await dbPost('broker_activities',body);
+    const rows=await dbPostQueued('broker_activities',body);
     const newAct=rows[0];
     const b=brokers.find(x=>x.id===brokerId);
     if(b&&newAct){
@@ -1314,12 +1315,75 @@ async function markActDone(actId,brokerId){
   const act=b.activities.find(a=>a.id===actId);if(!act)return;
   act.planned=false;
   try{
-    await dbPatch('broker_activities',actId,{planned:false});
+    await dbPatchQueued('broker_activities',actId,{planned:false});
     toast('Marked done ✓',true);
     updateOverdueDot();
     renderCal();
     if(curTab==='today')renderToday();
   }catch(e){toast('Error: '+e.message);}
+}
+
+
+// ── OFFLINE QUEUE ──────────────────────────────────────────
+let isOnline = navigator.onLine;
+let syncQueue = JSON.parse(localStorage.getItem('pa_sync_queue')||'[]');
+
+function saveQueue(){localStorage.setItem('pa_sync_queue',JSON.stringify(syncQueue));}
+
+function updateOnlineStatus(){
+  isOnline = navigator.onLine;
+  const banner = document.getElementById('offline-banner');
+  if(banner) banner.classList.toggle('show', !isOnline);
+  if(isOnline && syncQueue.length>0) flushQueue();
+}
+
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+async function flushQueue(){
+  if(!isOnline || syncQueue.length===0) return;
+  const toFlush = [...syncQueue];
+  syncQueue = [];
+  saveQueue();
+  toast('Syncing '+toFlush.length+' queued action'+(toFlush.length>1?'s':'')+'...', false);
+  let failed = [];
+  for(const op of toFlush){
+    try{
+      if(op.method==='POST') await dbPost(op.table, op.body);
+      else if(op.method==='PATCH') await dbPatch(op.table, op.id, op.body);
+    } catch(e){
+      failed.push(op);
+    }
+  }
+  if(failed.length){
+    syncQueue = [...syncQueue, ...failed];
+    saveQueue();
+    toast(failed.length+' action(s) failed to sync', false);
+  } else {
+    toast('All changes synced', true);
+    loadData();
+  }
+}
+
+// Wrap dbPost and dbPatch to queue when offline
+async function dbPostQueued(table, body){
+  if(!isOnline){
+    syncQueue.push({method:'POST', table, body, ts:Date.now()});
+    saveQueue();
+    toast('Saved offline — will sync when connected', false);
+    return [{...body, id: Date.now()}]; // fake id for local use
+  }
+  return dbPost(table, body);
+}
+
+async function dbPatchQueued(table, id, body){
+  if(!isOnline){
+    syncQueue.push({method:'PATCH', table, id, body, ts:Date.now()});
+    saveQueue();
+    toast('Saved offline — will sync when connected', false);
+    return;
+  }
+  return dbPatch(table, id, body);
 }
 
 // ── INIT ─────────────────────────────────────────────────
