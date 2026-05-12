@@ -48,7 +48,6 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 .sync-btn:hover{border-color:var(--gold-lt);color:var(--gold);}
 .sync-btn.spinning{animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.user-chip{font-size:11px;font-weight:500;padding:4px 10px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);border-radius:20px;cursor:pointer;}
 .user-select{height:36px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:20px;padding:0 28px 0 12px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23A8832A' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
 
 /* ── AUCTION SELECTOR ── */
@@ -202,7 +201,6 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .btn-cancel{flex:1;height:52px;background:var(--s2);border:1px solid var(--bd);color:var(--t2);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;}
 .btn-save{flex:2;height:52px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;border-radius:10px;cursor:pointer;}
 .btn-save:active{background:var(--t2);}
-.btn-gold{flex:2;height:52px;background:var(--gold);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;border-radius:10px;cursor:pointer;}
 
 /* ── BROKER DETAIL SHEET ── */
 .detail-sheet{position:fixed;inset:0;background:var(--white);z-index:400;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;}
@@ -216,9 +214,6 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .hero-agency{font-size:14px;color:var(--t3);}
 .hero-row{display:flex;align-items:center;gap:8px;margin-top:10px;}
 .hero-stage{font-size:12px;font-weight:600;padding:5px 11px;border-radius:5px;}
-.hero-score-wrap{margin-left:auto;text-align:right;}
-.hero-score-n{font-family:'DM Mono',monospace;font-size:22px;font-weight:600;}
-.hero-score-l{font-size:11px;color:var(--t3);letter-spacing:.5px;}
 .detail-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .detail-section{padding:14px 16px;border-bottom:1px solid var(--bd);}
 .detail-sec-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);font-weight:600;margin-bottom:12px;}
@@ -244,8 +239,6 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .save-notes-btn{margin-top:10px;width:100%;height:48px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:8px;cursor:pointer;}
 
 /* ── ADD BROKER SHEET ── */
-.add-broker-btn-wrap{padding:14px 16px;position:sticky;bottom:0;background:linear-gradient(to top,var(--bg) 70%,transparent);pointer-events:none;}
-.add-broker-btn-wrap button{pointer-events:all;width:100%;height:48px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
 
 /* ── TOAST ── */
 .toast{position:fixed;bottom:calc(80px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--t1);color:#fff;font-size:14px;padding:9px 18px;border-radius:20px;z-index:999;opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none;}
@@ -258,12 +251,6 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 @keyframes progress{0%{transform:scaleX(0)}50%{transform:scaleX(.7)}100%{transform:scaleX(1)}}
 
 /* ── PIPELINE SUMMARY ── */
-.pipeline-row{display:flex;gap:4px;padding:10px 16px;overflow-x:auto;}
-.pipeline-row::-webkit-scrollbar{display:none;}
-.pip-stage{flex-shrink:0;background:var(--white);border:1px solid var(--bd);border-radius:6px;padding:8px 12px;text-align:center;min-width:70px;}
-.pip-stage.active{border-color:var(--gold-lt);background:var(--gold-bg);}
-.pip-n{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--t1);}
-.pip-l{font-size:9px;color:var(--t3);margin-top:2px;white-space:nowrap;}
 
 
 /* ── CALENDAR ── */
@@ -419,7 +406,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 <div class="detail-sheet" id="detail-sheet">
   <div class="detail-topbar">
     <div class="back-btn" onclick="closeDetail()">←</div>
-    <div class="detail-title" id="detail-title">Broker</div>
+    <div class="detail-title" id="detail-title">Contact</div>
     <button class="log-fab" onclick="openLogForBroker()">+ Log</button>
   </div>
   <div class="detail-hero" id="detail-hero"></div>
@@ -559,7 +546,7 @@ let userIdx=TEAM.indexOf(curUser);if(userIdx<0)userIdx=0;
 // ── HELPERS ───────────────────────────────────────────────
 function fmt(d){if(!d)return'';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
 function today(){return new Date().toISOString().slice(0,10);}
-function esc(s){return(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/`/g,'&#96;');}
 function toast(msg,gold=false){
   const el=document.getElementById('toast');
   el.textContent=msg;el.className='toast'+(gold?' gold':'')+' show';
@@ -697,7 +684,9 @@ function buildAuctionSelector(){
 function onAuctionChange(){
   const id=parseInt(document.getElementById('a-select').value);
   curAuction=auctions.find(a=>a.id===id)||null;
-  loadData();
+  buildAuctionSelector();
+  renderCurrentTab();
+  // No refetch needed — all contacts already loaded globally
 }
 
 // ── USER ─────────────────────────────────────────────────
@@ -774,6 +763,8 @@ async function submitNewBroker(){
 // ── TABS ─────────────────────────────────────────────────
 function switchTab(t){
   curTab=t;
+  // Clear broker static header so it rebuilds with fresh state on next visit
+  if(t!=='brokers'){const v=document.getElementById('view-brokers');if(v)v.innerHTML='';}
   ['today','brokers','log','cal'].forEach(id=>{
     document.getElementById('view-'+id).style.display=id===t?'block':'none';
     document.getElementById('tab-'+id).classList.toggle('on',id===t);
@@ -863,6 +854,50 @@ function renderToday(){
 
 function renderBrokers(){
   const v=document.getElementById('view-brokers');
+  const myCount=brokers.filter(b=>b.assigned===curUser).length;
+
+  // Build static header only once (preserves search input focus on mobile)
+  if(!document.getElementById('broker-search-input')){
+    v.innerHTML=''
+      +'<div class="search-wrap">'
+        +'<div class="search-box">'
+          +'<span class="search-icon">&#x2315;</span>'
+          +'<input id="broker-search-input" type="search" placeholder="Search contacts..." autocomplete="off">'
+        +'</div>'
+      +'</div>'
+      +'<div class="filter-row" id="broker-filter-row"></div>'
+      +'<div style="padding:10px 16px 0;display:flex;justify-content:flex-end">'
+        +'<button onclick="openAddBroker()" style="height:40px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer">+ Add contact</button>'
+      +'</div>'
+      +'<div id="broker-cards"></div>'
+      +'<div style="height:80px"></div>';
+
+    const inp=document.getElementById('broker-search-input');
+    inp.value=filterQ;
+    inp.addEventListener('input',function(){filterQ=this.value;renderBrokerCards();updateFilterChips();});
+  }
+
+  updateFilterChips();
+  renderBrokerCards();
+}
+
+function updateFilterChips(){
+  const myCount=brokers.filter(b=>b.assigned===curUser).length;
+  const fr=document.getElementById('broker-filter-row');
+  if(!fr)return;
+  fr.innerHTML=''
+    +'<span class="fchip'+(!filterAssigned&&filterBdStage===null?' on':'')+'" onclick="filterAssigned=null;filterBdStage=null;renderBrokerCards();updateFilterChips()">All ('+brokers.length+')</span>'
+    +'<span class="fchip'+(filterAssigned===curUser?' on':'')+'" onclick="filterAssigned=filterAssigned===curUser?null:curUser;renderBrokerCards();updateFilterChips()">Mine ('+myCount+')</span>'
+    +'<span class="fchip'+(filterBdStage===4?' on':'')+'" onclick="filterBdStage=filterBdStage===4?null:4;renderBrokerCards();updateFilterChips()">Pitched</span>'
+    +'<span class="fchip'+(filterBdStage===6?' on':'')+'" onclick="filterBdStage=filterBdStage===6?null:6;renderBrokerCards();updateFilterChips()">Mandate confirmed</span>'
+    +'<span class="fchip'+(filterBdStage===8?' on':'')+'" onclick="filterBdStage=filterBdStage===8?null:8;renderBrokerCards();updateFilterChips()">Addendum sent</span>'
+    +'<span class="fchip'+(filterBdStage===9?' on':'')+'" onclick="filterBdStage=filterBdStage===9?null:9;renderBrokerCards();updateFilterChips()">Signed</span>';
+}
+
+function renderBrokerCards(){
+  const el=document.getElementById('broker-cards');
+  if(!el)return;
+
   let filtered=brokers.filter(b=>{
     if(filterAssigned&&b.assigned!==filterAssigned)return false;
     if(filterBdStage!==null&&b.bd_stage!==filterBdStage)return false;
@@ -877,9 +912,7 @@ function renderBrokers(){
     return brokerScore(b)-brokerScore(a);
   });
 
-  const myCount=brokers.filter(b=>b.assigned===curUser).length;
-
-  let cardsHtml='';
+  let html='';
   if(filtered.length){
     filtered.forEach(b=>{
       const mom=momentum(b),na=naStatus(b),nxt=nextAct(b);
@@ -894,7 +927,7 @@ function renderBrokers(){
         :'';
       const sc=b.bd_addendum==='signed'?'sc-h':b.bd_addendum&&b.bd_addendum!==''?'sc-w':'sc-c';
       const sl=b.bd_addendum==='signed'?'Sgnd':b.bd_addendum==='sent'?'Sent':b.bd_addendum==='draft'?'Drft':b.bd_addendum==='vendor_review'?'Vndr':b.bd_addendum==='blocked'?'Blkd':'New';
-      cardsHtml+='<div class="broker-card '+(mom==='hot'?'hot':mom==='warm'?'warm':'')+'" onclick="openDetail('+b.id+')">'
+      html+='<div class="broker-card '+(mom==='hot'?'hot':mom==='warm'?'warm':'')+'" onclick="openDetail('+b.id+')">'
         +'<div class="broker-score '+sc+'" style="font-size:11px;text-align:center;line-height:1.2">'+sl+'</div>'
         +'<div class="broker-info">'
           +'<div class="broker-name">'+esc(b.name)+'</div>'
@@ -909,29 +942,9 @@ function renderBrokers(){
         +'</div>';
     });
   } else {
-    cardsHtml='<div class="empty-state"><div class="empty-msg">No contacts match your filters</div></div>';
+    html='<div class="empty-state"><div class="empty-msg">No contacts match your filters</div></div>';
   }
-
-  v.innerHTML=''
-    +'<div class="search-wrap">'
-      +'<div class="search-box">'
-        +'<span class="search-icon">&#x2315;</span>'
-        +'<input type="search" placeholder="Search contacts..." value="'+esc(filterQ)+'" oninput="filterQ=this.value;renderBrokers()" autocomplete="off">'
-      +'</div>'
-    +'</div>'
-    +'<div class="filter-row">'
-      +'<span class="fchip'+(!filterAssigned&&filterBdStage===null?' on':'')+'" onclick="filterAssigned=null;filterBdStage=null;renderBrokers()">All ('+brokers.length+')</span>'
-      +'<span class="fchip'+(filterAssigned===curUser?' on':'')+'" onclick="filterAssigned=filterAssigned===curUser?null:curUser;renderBrokers()">Mine ('+myCount+')</span>'
-      +'<span class="fchip'+(filterBdStage===4?' on':'')+'" onclick="filterBdStage=filterBdStage===4?null:4;renderBrokers()">Pitched</span>'
-      +'<span class="fchip'+(filterBdStage===6?' on':'')+'" onclick="filterBdStage=filterBdStage===6?null:6;renderBrokers()">Mandate confirmed</span>'
-      +'<span class="fchip'+(filterBdStage===8?' on':'')+'" onclick="filterBdStage=filterBdStage===8?null:8;renderBrokers()">Addendum sent</span>'
-      +'<span class="fchip'+(filterBdStage===9?' on':'')+'" onclick="filterBdStage=filterBdStage===9?null:9;renderBrokers()">Signed</span>'
-    +'</div>'
-    +'<div style="padding:10px 16px 0;display:flex;justify-content:flex-end">'
-      +'<button onclick="openAddBroker()" style="height:40px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer">+ Add contact</button>'
-    +'</div>'
-    +cardsHtml
-    +'<div style="height:80px"></div>';
+  el.innerHTML=html;
 }
 
 
@@ -939,8 +952,6 @@ function openDetail(brokerId){
   const b=brokers.find(x=>x.id===brokerId);if(!b)return;
   selBroker=b;
   document.getElementById('detail-title').textContent=b.name;
-  const sc=brokerScore(b),mom=momentum(b);
-
   document.getElementById('detail-hero').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div style="flex:1;min-width:0">
@@ -961,12 +972,14 @@ function openDetail(brokerId){
     ${b.bd_property?`<div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.04);border-radius:6px;font-size:12px;color:var(--t2)">&#x2302; ${esc(b.bd_property)}${b.bd_value?' · <span style="color:var(--gold);font-weight:500">'+esc(b.bd_value)+'</span>':''}</div>`:''}
   `;
 
+  const planned=(b.activities||[]).filter(a=>a.planned).sort((a,b)=>new Date(a.acted_at)-new Date(b.acted_at));
+  const done=(b.activities||[]).filter(a=>!a.planned);
   document.getElementById('detail-body').innerHTML=`
     <!-- Quick contact -->
     <div class="detail-section">
       <div class="detail-sec-title">Contact</div>
-      ${b.phone?`<div class="detail-row" style="align-items:center"><span class="detail-label">Phone</span><span class="detail-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><a href="tel:${esc(b.phone)}" style="color:var(--green);font-weight:500">${esc(b.phone)}</a><button onclick="copyToClip('${esc(b.phone)}','Phone')" style="flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3)" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></div>`:''}
-      ${b.email?`<div class="detail-row" style="align-items:center"><span class="detail-label">Email</span><span class="detail-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap"><a href="mailto:${esc(b.email)}" style="color:var(--blue);word-break:break-all">${esc(b.email)}</a><button onclick="copyToClip('${esc(b.email)}','Email')" style="flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3)" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></div>`:''}
+      ${b.phone?`<div class="detail-row" style="align-items:center"><span class="detail-label">Phone</span><span class="detail-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><a href="tel:${esc(b.phone)}" style="color:var(--green);font-weight:500">${esc(b.phone)}</a><button data-copy-phone="1" style="flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3)" title="Copy phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></div>`:''}
+      ${b.email?`<div class="detail-row" style="align-items:center"><span class="detail-label">Email</span><span class="detail-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap"><a href="mailto:${esc(b.email)}" style="color:var(--blue);word-break:break-all">${esc(b.email)}</a><button data-copy-email="1" style="flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3)" title="Copy email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></div>`:''}
       <div class="detail-row"><span class="detail-label">Agency / Property</span><span class="detail-val">${esc(b.agency)||'—'}</span></div>
       ${b.area?`<div class="detail-row"><span class="detail-label">Area</span><span class="detail-val">${esc(b.area)}</span></div>`:''}
       <div class="detail-row"><span class="detail-label">Country</span><span class="detail-val">${esc(b.country)||'—'}</span></div>
@@ -1047,6 +1060,14 @@ function openDetail(brokerId){
     <div style="height:24px"></div>
   `;
 
+  // Event delegation for copy buttons — avoids inline handlers with interpolated data
+  const body=document.getElementById('detail-body');
+  body.onclick=function(e){
+    const phoneBtn=e.target.closest('[data-copy-phone]');
+    const emailBtn=e.target.closest('[data-copy-email]');
+    if(phoneBtn&&selBroker)copyToClip(selBroker.phone,'Phone');
+    if(emailBtn&&selBroker)copyToClip(selBroker.email,'Email');
+  };
   document.getElementById('detail-sheet').classList.add('open');
 }
 
@@ -1066,16 +1087,6 @@ async function setStage(brokerId,stage){
   try{
     await dbPatchQueued('brokers',brokerId,{bd_stage:stage});
     toast('Stage updated → '+STAGES[stage],true);
-  }catch(e){toast('Error: '+e.message);}
-}
-
-async function saveNotes(brokerId){
-  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
-  const notes=document.getElementById('broker-notes').value;
-  b.notes=notes;
-  try{
-    await dbPatchQueued('brokers',brokerId,{notes});
-    toast('Notes saved',true);
   }catch(e){toast('Error: '+e.message);}
 }
 
@@ -1189,7 +1200,7 @@ async function submitLog(){
   const brokerId=parseInt(document.getElementById('log-broker').value);
   const date=document.getElementById('log-date').value;
   const notes=document.getElementById('log-notes').value;
-  if(!brokerId||!date){toast('Please select a broker and date');return;}
+  if(!brokerId||!date){toast('Please select a contact and date');return;}
   if(!curAuction){toast('Select an auction context to log activity');return;}
 
   const body={broker_id:brokerId,auction_id:curAuction.id,type:logType,notes,planned:logPlanned,acted_at:date};
@@ -1198,10 +1209,7 @@ async function submitLog(){
     const rows=await dbPostQueued('broker_activities',body);
     const newAct=rows[0];
     const b=brokers.find(x=>x.id===brokerId);
-    if(b&&newAct){
-      if(logPlanned)b.activities.unshift({...newAct});
-      else b.activities.unshift({...newAct});
-    }
+    if(b&&newAct)b.activities.unshift({...newAct});
 
     // Create follow-up reminder if requested
     if(logReminderDays>0){
@@ -1259,7 +1267,7 @@ function renderCal(){
         color:urgency==='ov'?'var(--red)':urgency==='td'?'var(--amber)':urgency==='soon'?'var(--blue)':'var(--bd2)'});
     });
   });
-  if(curAuction.date){
+  if(curAuction&&curAuction.date){
     addEv(curAuction.date,{kind:'auction',title:'◆ Auction day',sub:curAuction.name,color:'var(--gold)'});
   }
 
