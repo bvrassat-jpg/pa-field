@@ -295,6 +295,10 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .cal-ev-sub{font-size:13px;color:var(--t3);margin-top:2px;}
 .cal-ev-time{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);flex-shrink:0;}
 
+/* ── REMINDER CHIPS ── */
+.reminder-chip{height:34px;padding:0 14px;background:var(--white);border:1px solid var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:17px;cursor:pointer;white-space:nowrap;transition:all .15s;}
+.reminder-chip.on{background:var(--gold-bg);border-color:var(--gold-lt);color:var(--gold);}
+
 /* ── OFFLINE BANNER ── */
 .offline-banner{
   display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
@@ -325,11 +329,12 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 </div>
 
 <!-- AUCTION SELECTOR -->
-<div class="auction-bar">
+<div class="auction-bar" title="Auction context for logging new activities and contacts">
   <div class="auction-dot" id="a-dot"></div>
   <select class="auction-select" id="a-select" onchange="onAuctionChange()">
     <option value="">Loading auctions...</option>
   </select>
+  <span style="font-size:10px;color:var(--t4);white-space:nowrap;letter-spacing:.3px">write context</span>
 </div>
 
 <!-- MAIN CONTENT -->
@@ -349,7 +354,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   </button>
   <button class="tab" id="tab-brokers" onclick="switchTab('brokers')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-    Brokers
+    Contacts
   </button>
   <button class="tab" id="tab-log" onclick="switchTab('log')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -366,10 +371,10 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   <div class="sheet" id="log-sheet-inner">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Log activity</div>
-    <div class="sheet-sub" id="log-sheet-broker-name">Select broker below</div>
+    <div class="sheet-sub" id="log-sheet-broker-name">Select contact below</div>
     <div class="sheet-body">
       <div class="fg">
-        <div class="fg-l">Broker</div>
+        <div class="fg-l">Contact</div>
         <select class="fi" id="log-broker"></select>
       </div>
       <div class="fg">
@@ -389,6 +394,18 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
           <div class="toggle-track" id="planned-track"><div class="toggle-thumb"></div></div>
           <div class="planned-label">Planned next action (not done yet)</div>
         </div>
+      </div>
+      <div class="fg" id="reminder-wrap">
+        <div class="fg-l">Schedule follow-up reminder</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="reminder-chip" data-days="2" onclick="selectReminder(this,2)">2 days</button>
+          <button class="reminder-chip" data-days="3" onclick="selectReminder(this,3)">3 days</button>
+          <button class="reminder-chip" data-days="5" onclick="selectReminder(this,5)">5 days</button>
+          <button class="reminder-chip" data-days="7" onclick="selectReminder(this,7)">1 week</button>
+          <button class="reminder-chip" data-days="14" onclick="selectReminder(this,14)">2 weeks</button>
+          <button class="reminder-chip" data-days="0" onclick="selectReminder(this,0)">None</button>
+        </div>
+        <div id="reminder-preview" style="margin-top:8px;font-size:12px;color:var(--t3);font-style:italic"></div>
       </div>
     </div>
     <div class="sheet-actions">
@@ -416,7 +433,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 <div class="sheet-overlay" id="add-broker-sheet" onclick="if(event.target===this)closeAddBroker()">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Add broker / contact</div>
+    <div class="sheet-title">Add contact</div>
     <div class="sheet-sub">Will appear in CRM immediately</div>
     <div class="sheet-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -425,8 +442,8 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
           <input class="fi" id="nb-name" placeholder="Full name">
         </div>
         <div class="fg" style="margin:0 0 10px">
-          <div class="fg-l">Agency / Company</div>
-          <input class="fi" id="nb-agency" placeholder="Agency name">
+          <div class="fg-l">Agency / Property</div>
+          <input class="fi" id="nb-agency" placeholder="Agency or property name">
         </div>
         <div class="fg" style="margin:0 0 10px">
           <div class="fg-l">Phone</div>
@@ -453,6 +470,8 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
           <option value="Notaire">Notaire</option>
           <option value="Wealth Manager">Wealth Manager</option>
           <option value="Family Office">Family Office</option>
+          <option value="Owner">Owner</option>
+          <option value="Developer">Developer</option>
           <option value="Other">Other</option>
         </select>
       </div>
@@ -475,7 +494,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     </div>
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="closeAddBroker()">Cancel</button>
-      <button class="btn-save" onclick="submitNewBroker()">Add to CRM</button>
+      <button class="btn-save" onclick="submitNewBroker()">Add contact</button>
     </div>
   </div>
 </div>
@@ -531,7 +550,7 @@ const ACT_TYPES=[
 
 // ── STATE ──────────────────────────────────────────────────
 let auctions=[], curAuction=null, brokers=[], activities=[], clients=[];
-let curTab='today', selBroker=null, logPlanned=false, logType='Call';
+let curTab='today', selBroker=null, logPlanned=false, logType='Call', logReminderDays=3;
 let filterQ='', filterStage=null, filterBdStage=null, filterAssigned=null;
 const savedUser=localStorage.getItem('pa_field_user')||TEAM[0];
 let curUser=savedUser;
@@ -551,6 +570,14 @@ function loading(on){
   el.className='loading-bar'+(on?' on':'');
 }
 
+function copyToClip(text,label){
+  navigator.clipboard.writeText(text).then(()=>toast((label||'Text')+' copied',true)).catch(()=>{
+    // fallback
+    const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    toast((label||'Text')+' copied',true);
+  });
+}
 function naStatus(b){
   const planned=(b.activities||[]).filter(a=>a.planned);
   if(!planned.length)return'none';
@@ -609,8 +636,15 @@ async function loadData(){
   const btn=document.getElementById('sync-btn');
   btn.classList.add('spinning');loading(true);
   try{
-    // ── PHASE 1: fetch auctions, resolve curAuction ──────────
-    const aRows=await dbGet('auctions','order=id');
+    // ── Fetch auctions + ALL brokers/activities/clients in parallel ──
+    const [aRows,bRows,actRows,cRows]=await Promise.all([
+      dbGet('auctions','order=id'),
+      dbGet('brokers','order=name'),
+      dbGet('broker_activities','order=acted_at.desc'),
+      dbGet('clients','select=id,broker_id,name,interest,status,origin'),
+    ]);
+
+    // Resolve auctions (for write context + calendar marker)
     const prev=curAuction?.id;
     auctions=aRows.map(r=>({id:r.id,name:r.name||'',location:r.location||'',date:r.date||'',
       status:r.status||'upcoming',team:(r.team||'').split(',').map(x=>x.trim()).filter(Boolean)}));
@@ -621,40 +655,33 @@ async function loadData(){
     }
     buildAuctionSelector();
 
-    // ── PHASE 2: fetch brokers/clients/activities for resolved auction ──
-    brokers=[];
-    if(curAuction){
-      const [bRows,cRows,actRows]=await Promise.all([
-        dbGet('brokers','auction_id=eq.'+curAuction.id+'&order=name'),
-        dbGet('clients','auction_id=eq.'+curAuction.id),
-        dbGet('broker_activities','auction_id=eq.'+curAuction.id+'&order=acted_at.desc'),
-      ]);
-      const bMap={};
-      brokers=bRows.map(r=>({
-        id:r.id,auction_id:r.auction_id,
-        name:r.name||'',agency:r.agency||'',type:r.type||'RE Agency',
-        area:r.area||'',country:r.country||'',phone:r.phone||'',email:r.email||'',
-        assigned:r.assigned||'',stage:r.stage!=null?Number(r.stage):1,bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
-        notes:r.notes||'',activities:[],clients:[],
-        bd_property:r.bd_property||'',bd_value:r.bd_value||'',
-        bd_addendum:r.bd_addendum||'',bd_ref:r.bd_ref||''
-      }));
-      brokers.forEach(b=>bMap[b.id]=b);
-      actRows.forEach(a=>{
-        if(bMap[a.broker_id])bMap[a.broker_id].activities.push({
-          id:a.id,type:a.type||'',notes:a.notes||'',planned:!!a.planned,acted_at:a.acted_at||''
-        });
+    // Build broker map — ALL contacts, no auction filter
+    const bMap={};
+    brokers=bRows.map(r=>({
+      id:r.id,auction_id:r.auction_id,
+      name:r.name||'',agency:r.agency||'',type:r.type||'RE Agency',
+      area:r.area||'',country:r.country||'',phone:r.phone||'',email:r.email||'',
+      assigned:r.assigned||'',stage:r.stage!=null?Number(r.stage):1,bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
+      notes:r.notes||'',activities:[],clients:[],
+      bd_property:r.bd_property||'',bd_value:r.bd_value||'',
+      bd_addendum:r.bd_addendum||'',bd_ref:r.bd_ref||''
+    }));
+    brokers.forEach(b=>bMap[b.id]=b);
+    actRows.forEach(a=>{
+      if(bMap[a.broker_id])bMap[a.broker_id].activities.push({
+        id:a.id,type:a.type||'',notes:a.notes||'',planned:!!a.planned,
+        acted_at:a.acted_at||'',auction_id:a.auction_id
       });
-      cRows.forEach(c=>{
-        if(c.broker_id&&bMap[c.broker_id])bMap[c.broker_id].clients.push({
-          id:c.id,name:c.name||'',interest:c.interest||'',status:c.status||'aware',origin:c.origin||''
-        });
+    });
+    cRows.forEach(c=>{
+      if(c.broker_id&&bMap[c.broker_id])bMap[c.broker_id].clients.push({
+        id:c.id,name:c.name||'',interest:c.interest||'',status:c.status||'aware',origin:c.origin||''
       });
-    }
+    });
 
     renderCurrentTab();
     updateOverdueDot();
-    toast('Synced — '+brokers.length+' brokers',true);
+    toast('Synced — '+brokers.length+' contacts',true);
   }catch(e){toast('Sync error: '+e.message);}
   finally{btn.classList.remove('spinning');loading(false);}
 }
@@ -689,7 +716,7 @@ function onUserChange(val){
 
 // ── ADD BROKER ────────────────────────────────────────────
 function openAddBroker(){
-  if(!curAuction){toast('Select an auction first');return;}
+  if(!curAuction){toast('Select an auction context above to add a contact');return;}
   document.getElementById('nb-name').value='';
   document.getElementById('nb-agency').value='';
   document.getElementById('nb-phone').value='';
@@ -710,7 +737,7 @@ function closeAddBroker(){
 async function submitNewBroker(){
   const name=document.getElementById('nb-name').value.trim();
   if(!name){toast('Name is required');return;}
-  if(!curAuction){toast('No auction selected');return;}
+  if(!curAuction){toast('Select an auction context to add a contact');return;}
   const bd_property=document.getElementById('nb-property').value.trim();
   const bd_ref=document.getElementById('nb-ref').value.trim();
   const notes=document.getElementById('nb-notes').value.trim();
@@ -736,7 +763,7 @@ async function submitNewBroker(){
       notes};
     brokers.push(newB);
     closeAddBroker();
-    toast(name+' added to CRM ✓',true);
+    toast(name+' added ✓',true);
     renderCurrentTab();
     // Open detail immediately so user can keep filling in info
     openDetail(newB.id);
@@ -769,8 +796,6 @@ function updateOverdueDot(){
 // ── TODAY VIEW ────────────────────────────────────────────
 function renderToday(){
   const v=document.getElementById('view-today');
-  if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';return;}
-
   const overdue=brokers.filter(b=>naStatus(b)==='overdue').length;
   const weekAgo=new Date();weekAgo.setDate(weekAgo.getDate()-7);
   const metThisWeek=brokers.filter(b=>(b.activities||[]).some(a=>!a.planned&&['Meeting','Property visit','Property pitch'].includes(a.type)&&new Date(a.acted_at)>=weekAgo)).length;
@@ -838,8 +863,6 @@ function renderToday(){
 
 function renderBrokers(){
   const v=document.getElementById('view-brokers');
-  if(!curAuction){v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';return;}
-
   let filtered=brokers.filter(b=>{
     if(filterAssigned&&b.assigned!==filterAssigned)return false;
     if(filterBdStage!==null&&b.bd_stage!==filterBdStage)return false;
@@ -886,14 +909,14 @@ function renderBrokers(){
         +'</div>';
     });
   } else {
-    cardsHtml='<div class="empty-state"><div class="empty-msg">No brokers match your filters</div></div>';
+    cardsHtml='<div class="empty-state"><div class="empty-msg">No contacts match your filters</div></div>';
   }
 
   v.innerHTML=''
     +'<div class="search-wrap">'
       +'<div class="search-box">'
         +'<span class="search-icon">&#x2315;</span>'
-        +'<input type="search" placeholder="Search brokers..." value="'+esc(filterQ)+'" oninput="filterQ=this.value;renderBrokers()" autocomplete="off">'
+        +'<input type="search" placeholder="Search contacts..." value="'+esc(filterQ)+'" oninput="filterQ=this.value;renderBrokers()" autocomplete="off">'
       +'</div>'
     +'</div>'
     +'<div class="filter-row">'
@@ -905,7 +928,7 @@ function renderBrokers(){
       +'<span class="fchip'+(filterBdStage===9?' on':'')+'" onclick="filterBdStage=filterBdStage===9?null:9;renderBrokers()">Signed</span>'
     +'</div>'
     +'<div style="padding:10px 16px 0;display:flex;justify-content:flex-end">'
-      +'<button onclick="openAddBroker()" style="height:40px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer">+ Add broker</button>'
+      +'<button onclick="openAddBroker()" style="height:40px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer">+ Add contact</button>'
     +'</div>'
     +cardsHtml
     +'<div style="height:80px"></div>';
@@ -922,12 +945,12 @@ function openDetail(brokerId){
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div style="flex:1;min-width:0">
         <div class="hero-name">${esc(b.name)}</div>
-        <div class="hero-agency">${esc(b.agency)}${b.area?' · '+esc(b.area):''}</div>
+        <div class="hero-agency">${esc(b.agency)}${b.area?' · '+esc(b.area):''}${b.country&&b.country!=='France'?' · '+esc(b.country):''}</div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px">
-        ${b.phone?`<a href="tel:${esc(b.phone)}" style="width:38px;height:38px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-bd);display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="Call">Tel</a>`:''}
-        ${b.phone?`<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}" target="_blank" style="width:38px;height:38px;border-radius:50%;background:#dcf8c6;border:1px solid #a8e0a0;display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="WhatsApp">Mail</a>`:''}
-        ${b.email?`<a href="mailto:${esc(b.email)}" style="width:38px;height:38px;border-radius:50%;background:var(--blue-bg);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none" title="Email">@</a>`:''}
+        ${b.phone?`<a href="tel:${esc(b.phone)}" style="width:38px;height:38px;border-radius:50%;background:var(--green-bg);border:1px solid var(--green-bd);display:flex;align-items:center;justify-content:center;text-decoration:none" title="Call ${esc(b.phone)}"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></a>`:''}
+        ${b.phone?`<a href="https://wa.me/${b.phone.replace(/[^0-9+]/g,'').replace(/^\+/,'')}" target="_blank" style="width:38px;height:38px;border-radius:50%;background:#dcf8c6;border:1px solid #a8e0a0;display:flex;align-items:center;justify-content:center;text-decoration:none" title="WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2" width="18" height="18"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></a>`:''}
+        ${b.email?`<a href="mailto:${esc(b.email)}" style="width:38px;height:38px;border-radius:50%;background:var(--blue-bg);border:1px solid var(--blue-bd);display:flex;align-items:center;justify-content:center;text-decoration:none" title="Email ${esc(b.email)}"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></a>`:''}
       </div>
     </div>
     <div class="hero-row">
@@ -942,10 +965,12 @@ function openDetail(brokerId){
     <!-- Quick contact -->
     <div class="detail-section">
       <div class="detail-sec-title">Contact</div>
-      ${b.phone?`<div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val"><a href="tel:${esc(b.phone)}">${esc(b.phone)}</a></span></div>`:''}
-      ${b.email?`<div class="detail-row"><span class="detail-label">Email</span><span class="detail-val"><a href="mailto:${esc(b.email)}">${esc(b.email)}</a></span></div>`:''}
-      <div class="detail-row"><span class="detail-label">Type</span><span class="detail-val">${esc(b.type)}</span></div>
+      ${b.phone?`<div class="detail-row" style="align-items:center"><span class="detail-label">Phone</span><span class="detail-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><a href="tel:${esc(b.phone)}" style="color:var(--green);font-weight:500">${esc(b.phone)}</a><button onclick="copyToClip('${esc(b.phone)}','Phone')" style="flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3)" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></div>`:''}
+      ${b.email?`<div class="detail-row" style="align-items:center"><span class="detail-label">Email</span><span class="detail-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap"><a href="mailto:${esc(b.email)}" style="color:var(--blue);word-break:break-all">${esc(b.email)}</a><button onclick="copyToClip('${esc(b.email)}','Email')" style="flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3)" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></div>`:''}
+      <div class="detail-row"><span class="detail-label">Agency / Property</span><span class="detail-val">${esc(b.agency)||'—'}</span></div>
+      ${b.area?`<div class="detail-row"><span class="detail-label">Area</span><span class="detail-val">${esc(b.area)}</span></div>`:''}
       <div class="detail-row"><span class="detail-label">Country</span><span class="detail-val">${esc(b.country)||'—'}</span></div>
+      <div class="detail-row"><span class="detail-label">Type</span><span class="detail-val">${esc(b.type)}</span></div>
     </div>
 
     <!-- BD Sourcing block -->
@@ -1105,11 +1130,40 @@ function togglePlanned(){
   logPlanned=!logPlanned;
   document.getElementById('planned-track').classList.toggle('on',logPlanned);
 }
+function selectReminder(el,days){
+  logReminderDays=days;
+  document.querySelectorAll('.reminder-chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  const prev=document.getElementById('reminder-preview');
+  if(prev){
+    if(days===0){prev.textContent='No follow-up reminder';}
+    else{
+      const d=new Date();d.setDate(d.getDate()+days);
+      prev.textContent='Will add a follow-up reminder for '+d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+    }
+  }
+}
+function selectReminderDefault(days){
+  logReminderDays=days;
+  document.querySelectorAll('.reminder-chip').forEach(c=>{
+    const cd=parseInt(c.dataset.days);
+    c.classList.toggle('on',cd===days);
+  });
+  const prev=document.getElementById('reminder-preview');
+  if(prev&&days>0){
+    const d=new Date();d.setDate(d.getDate()+days);
+    prev.textContent='Will add a follow-up reminder for '+d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  }
+}
 
 function openLogSheet(brokerId=null){
-  if(!curAuction){toast('Select an auction first');switchTab('today');return;}
-  logPlanned=false;logType='Call';
+  if(!curAuction){toast('Select an auction context above before logging');switchTab('today');return;}
+  logPlanned=false;logType='Call';logReminderDays=3;
   document.getElementById('planned-track').classList.remove('on');
+  const rw=document.getElementById('reminder-wrap');
+  if(rw)rw.style.display='';
+  // Default chip to 3 days
+  selectReminderDefault(3);
   document.getElementById('log-date').value=today();
   document.getElementById('log-notes').value='';
   buildTypeGrid();
@@ -1119,10 +1173,10 @@ function openLogSheet(brokerId=null){
   sel.innerHTML=brokers.map(b=>`<option value="${b.id}"${b.id===brokerId?' selected':''}>${esc(b.name)} (${esc(b.agency)})</option>`).join('');
   if(brokerId){
     const b=brokers.find(x=>x.id===brokerId);
-    document.getElementById('log-sheet-broker-name').textContent=b?b.name+' · '+b.agency:'';
+    document.getElementById('log-sheet-broker-name').textContent=b?b.name+(b.agency?' · '+b.agency:''):'';
   } else {
     document.getElementById('log-sheet-broker-name').textContent='';
-    sel.onchange=function(){const b=brokers.find(x=>x.id===parseInt(this.value));document.getElementById('log-sheet-broker-name').textContent=b?b.name+' · '+b.agency:'';};
+    sel.onchange=function(){const b=brokers.find(x=>x.id===parseInt(this.value));document.getElementById('log-sheet-broker-name').textContent=b?b.name+(b.agency?' · '+b.agency:''):'';};
   }
   document.getElementById('log-sheet').classList.add('open');
 }
@@ -1136,7 +1190,7 @@ async function submitLog(){
   const date=document.getElementById('log-date').value;
   const notes=document.getElementById('log-notes').value;
   if(!brokerId||!date){toast('Please select a broker and date');return;}
-  if(!curAuction){toast('No auction selected');return;}
+  if(!curAuction){toast('Select an auction context to log activity');return;}
 
   const body={broker_id:brokerId,auction_id:curAuction.id,type:logType,notes,planned:logPlanned,acted_at:date};
   try{
@@ -1148,7 +1202,20 @@ async function submitLog(){
       if(logPlanned)b.activities.unshift({...newAct});
       else b.activities.unshift({...newAct});
     }
-    toast(logPlanned?'Planned action saved':'Activity logged ✓',true);
+
+    // Create follow-up reminder if requested
+    if(logReminderDays>0){
+      const remDate=new Date(date);
+      remDate.setDate(remDate.getDate()+logReminderDays);
+      const remDateStr=remDate.toISOString().slice(0,10);
+      const remBody={broker_id:brokerId,auction_id:curAuction.id,type:'Call',notes:'Follow-up',planned:true,acted_at:remDateStr};
+      try{
+        const remRows=await dbPostQueued('broker_activities',remBody);
+        if(b&&remRows[0])b.activities.unshift({...remRows[0]});
+      }catch(e){/* non-fatal */}
+    }
+
+    toast(logPlanned?'Planned action saved'+(logReminderDays>0?' + reminder added':''):'Activity logged ✓'+(logReminderDays>0?' + reminder added':''),true);
     closeLogSheet();
     updateOverdueDot();
     renderCurrentTab();
@@ -1168,10 +1235,7 @@ function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();
 
 function renderCal(){
   const v=document.getElementById('view-cal');
-  if(!curAuction){
-    v.innerHTML='<div class="empty-state"><div class="empty-icon">◇</div><div class="empty-msg">Select an auction above</div></div>';
-    return;
-  }
+  // Calendar shows all planned activities; auction selector only adds the auction-day marker
 
   const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
