@@ -39,16 +39,16 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 /* ── TOPBAR ── */
 .topbar{
   height:62px;background:var(--white);border-bottom:1px solid var(--bd);
-  display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0;
+  display:flex;align-items:center;padding:0 14px;gap:0;flex-shrink:0;
   box-shadow:0 1px 3px rgba(0,0,0,.05);
 }
-.logo{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--t1);letter-spacing:-0.5px;}
+.logo{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--t1);letter-spacing:-0.5px;flex-shrink:0;}
 .logo span{color:var(--gold);}
 .sync-btn{margin-left:auto;width:32px;height:32px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);font-size:14px;transition:all .15s;}
 .sync-btn:hover{border-color:var(--gold-lt);color:var(--gold);}
 .sync-btn.spinning{animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.user-select{height:36px;max-width:110px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:20px;padding:0 24px 0 10px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23A8832A' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;}
+.user-select{height:36px;max-width:100px;min-width:0;flex-shrink:1;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:20px;padding:0 22px 0 10px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23A8832A' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center;}
 
 /* ── AUCTION CHIP (in topbar) ── */
 .auction-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
@@ -60,10 +60,8 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
   height:32px;padding:0 10px;background:var(--s2);
   border:1px solid var(--bd);border-radius:16px;
   font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--t2);
-  cursor:pointer;white-space:nowrap;overflow:hidden;
-  flex-shrink:1;min-width:0;
+  cursor:pointer;white-space:nowrap;flex-shrink:0;
 }
-.auction-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .auction-chip:active{background:var(--gold-bg);border-color:var(--gold-bd);}
 /* Auction picker dropdown overlay */
 .auction-picker{
@@ -344,7 +342,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 <!-- TOP BAR -->
 <div class="topbar">
   <div class="logo">PA<span>&middot;</span>Mob</div>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;min-width:0;flex-shrink:1">
+  <div style="margin-left:8px;display:flex;align-items:center;gap:6px;min-width:0;flex:1;justify-content:flex-end">
     <select id="user-select" class="user-select" onchange="onUserChange(this.value)">
       <option value="">— Who are you? —</option>
     </select>
