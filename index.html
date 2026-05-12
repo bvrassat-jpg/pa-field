@@ -50,24 +50,42 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 @keyframes spin{to{transform:rotate(360deg);}}
 .user-select{height:36px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:20px;padding:0 28px 0 12px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23A8832A' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
 
-/* ── AUCTION SELECTOR ── */
-.auction-bar{
-  padding:10px 16px;background:var(--white);border-bottom:1px solid var(--bd);
-  display:flex;align-items:center;gap:8px;flex-shrink:0;
-}
-.auction-select{
-  flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;
-  font-family:'DM Sans',sans-serif;font-size:15px;color:var(--t1);padding:0 10px;outline:none;
-}
-.auction-select:focus{border-color:var(--gold-lt);}
-.auction-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+/* ── AUCTION CHIP (in topbar) ── */
+.auction-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .dot-active{background:var(--green);}
 .dot-upcoming{background:var(--gold-lt);}
 .dot-closed{background:var(--t4);}
+.auction-chip{
+  display:flex;align-items:center;gap:5px;
+  height:32px;padding:0 10px;background:var(--s2);
+  border:1px solid var(--bd);border-radius:16px;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--t2);
+  cursor:pointer;white-space:nowrap;max-width:160px;overflow:hidden;
+}
+.auction-chip:active{background:var(--gold-bg);border-color:var(--gold-bd);}
+/* Auction picker dropdown overlay */
+.auction-picker{
+  position:fixed;top:62px;left:0;right:0;background:var(--white);
+  border-bottom:2px solid var(--gold-lt);z-index:300;
+  padding:12px 16px;display:none;flex-direction:column;gap:6px;
+  box-shadow:0 4px 16px rgba(0,0,0,.1);
+}
+.auction-picker.open{display:flex;}
+.auction-picker-item{
+  padding:14px 16px;border-radius:10px;border:1px solid var(--bd);
+  font-size:15px;font-weight:500;color:var(--t1);cursor:pointer;
+  display:flex;align-items:center;gap:10px;background:var(--s2);
+}
+.auction-picker-item.active{background:var(--gold-bg);border-color:var(--gold-bd);color:var(--gold);}
+.auction-picker-item:active{background:var(--gold-bg);}
+.auction-picker-close{
+  margin-top:4px;padding:10px;text-align:center;font-size:13px;
+  color:var(--t3);cursor:pointer;
+}
 
 /* ── TAB BAR ── */
 .tabbar{
-  height:64px;background:var(--white);border-top:1px solid var(--bd);
+  height:68px;background:var(--white);border-top:1px solid var(--bd);
   display:flex;align-items:stretch;flex-shrink:0;
   padding-bottom:var(--safe-bottom);box-shadow:0 -1px 3px rgba(0,0,0,.05);
 }
@@ -99,12 +117,12 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 .kpi-card.kpi-blue .kpi-n{color:var(--blue);}
 .kpi-card.kpi-amber{background:var(--amber-bg);border-color:var(--amber-bd);}
 .kpi-card.kpi-amber .kpi-n{color:var(--amber);}
-.kpi-l{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-top:4px;font-weight:500;}
+.kpi-l{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-top:4px;font-weight:600;}
 
 /* ── ACTIVITY ITEMS ── */
 .act-card{
   background:var(--white);border-bottom:1px solid var(--bd);
-  padding:16px 16px;display:flex;gap:14px;align-items:flex-start;
+  padding:18px 16px;display:flex;gap:14px;align-items:flex-start;
   cursor:pointer;transition:background .1s;
 }
 .act-card:active{background:var(--s2);}
@@ -118,9 +136,9 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 .icon-mail{background:var(--blue-bg);}
 .icon-other{background:var(--s2);}
 .act-info{flex:1;min-width:0;}
-.act-broker{font-size:15px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.act-broker{font-size:16px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .act-sub{font-size:13px;color:var(--t3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.act-tag{font-size:11px;font-weight:600;padding:4px 9px;border-radius:4px;white-space:nowrap;}
+.act-tag{font-size:12px;font-weight:700;padding:5px 10px;border-radius:5px;white-space:nowrap;}
 .tag-ov{background:var(--red-bg);color:var(--red);}
 .tag-td{background:var(--amber-bg);color:var(--amber);}
 .tag-pl{background:var(--blue-bg);color:var(--blue);}
@@ -131,7 +149,7 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 /* ── BROKER LIST ── */
 .broker-card{
   background:var(--white);border-bottom:1px solid var(--bd);
-  padding:18px 16px;display:flex;gap:14px;align-items:center;
+  padding:20px 16px;display:flex;gap:14px;align-items:center;
   cursor:pointer;transition:background .1s;
 }
 .broker-card:active{background:var(--s2);}
@@ -142,10 +160,10 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 .sc-w{background:var(--gold-bg);color:var(--gold);border:1.5px solid var(--gold-bd);}
 .sc-c{background:var(--s2);color:var(--t3);border:1.5px solid var(--bd);}
 .broker-info{flex:1;min-width:0;}
-.broker-name{font-size:16px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.broker-name{font-size:17px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .broker-agency{font-size:13px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;}
 .broker-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
-.stg-pill{font-size:11px;font-weight:600;padding:4px 9px;border-radius:4px;}
+.stg-pill{font-size:11px;font-weight:700;padding:5px 10px;border-radius:5px;}
 .s9{background:var(--green-bg);color:var(--green);}
 .s8{background:#EEF8F3;color:#1F7A50;}
 .s7{background:#EEF8F3;color:#2A6A48;}
@@ -172,6 +190,16 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 .fchip{height:34px;padding:0 14px;background:var(--white);border:1px solid var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:17px;white-space:nowrap;cursor:pointer;}
 .fchip.on{background:var(--gold-bg);border-color:var(--gold-bd);color:var(--gold);}
 
+/* ── TYPE CHIPS (log sheet) ── */
+.type-chip{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:8px 10px;min-width:64px;height:60px;
+  background:var(--s2);border:1px solid var(--bd);border-radius:10px;
+  cursor:pointer;color:var(--t2);transition:all .12s;
+}
+.type-chip.on{background:var(--gold-bg);border-color:var(--gold-lt);color:var(--gold);}
+.type-chip svg{width:18px;height:18px;}
+
 /* ── LOG ACTIVITY SHEET ── */
 .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
 .sheet-overlay.open{opacity:1;pointer-events:all;}
@@ -186,11 +214,6 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 .fi{width:100%;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:16px;padding:13px 14px;border-radius:10px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none;}
 .fi:focus{border-color:var(--gold-lt);background:var(--white);}
 select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8880' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
-.type-grid{display:block;margin-top:4px;}
-.type-btn{padding:12px 8px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;text-align:center;cursor:pointer;font-size:12px;font-weight:500;color:var(--t2);transition:all .15s;line-height:1.4;min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-.type-btn .icon{display:flex;align-items:center;justify-content:center;margin-bottom:6px;color:var(--t2);}
-.type-btn.on .icon{color:var(--gold);}
-.type-btn.on{background:var(--gold-bg);border-color:var(--gold-lt);color:var(--gold);}
 .planned-toggle{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;cursor:pointer;}
 .toggle-track{width:40px;height:22px;border-radius:11px;background:var(--bd);position:relative;flex-shrink:0;transition:background .15s;}
 .toggle-track.on{background:var(--gold);}
@@ -210,16 +233,16 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .detail-title{font-size:17px;font-weight:600;color:var(--t1);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .log-fab{height:40px;padding:0 18px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;white-space:nowrap;}
 .detail-hero{padding:16px;background:var(--gold-bg);border-bottom:1px solid var(--gold-bd);flex-shrink:0;}
-.hero-name{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--t1);margin-bottom:4px;}
+.hero-name{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;color:var(--t1);margin-bottom:4px;}
 .hero-agency{font-size:14px;color:var(--t3);}
 .hero-row{display:flex;align-items:center;gap:8px;margin-top:10px;}
 .hero-stage{font-size:12px;font-weight:600;padding:5px 11px;border-radius:5px;}
 .detail-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .detail-section{padding:14px 16px;border-bottom:1px solid var(--bd);}
-.detail-sec-title{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);font-weight:600;margin-bottom:12px;}
+.detail-sec-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);font-weight:600;margin-bottom:10px;}
 .detail-row{display:flex;justify-content:space-between;margin-bottom:7px;gap:8px;}
 .detail-label{font-size:14px;color:var(--t3);flex-shrink:0;}
-.detail-val{font-size:14px;color:var(--t1);text-align:right;word-break:break-all;}
+.detail-val{font-size:15px;color:var(--t1);text-align:right;word-break:break-all;font-weight:500;}
 .detail-val a{color:var(--gold);text-decoration:none;}
 .act-item{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:14px 14px;margin-bottom:8px;}
 .act-item.planned-item{border-style:dashed;background:var(--white);}
@@ -286,6 +309,18 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .reminder-chip{height:34px;padding:0 14px;background:var(--white);border:1px solid var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:17px;cursor:pointer;white-space:nowrap;transition:all .15s;}
 .reminder-chip.on{background:var(--gold-bg);border-color:var(--gold-lt);color:var(--gold);}
 
+/* ── FAB (floating action button) ── */
+.fab{
+  position:fixed;bottom:calc(84px + var(--safe-bottom));right:18px;
+  width:52px;height:52px;border-radius:50%;background:var(--t1);
+  border:none;color:#fff;font-size:26px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(0,0,0,.22);cursor:pointer;
+  transition:transform .15s,background .15s;z-index:200;
+}
+.fab:active{transform:scale(.93);background:var(--t2);}
+.fab.hidden{display:none;}
+
 /* ── OFFLINE BANNER ── */
 .offline-banner{
   display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
@@ -311,24 +346,24 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <select id="user-select" class="user-select" onchange="onUserChange(this.value)">
       <option value="">— Who are you? —</option>
     </select>
+    <div class="auction-chip" id="auction-chip" onclick="toggleAuctionPicker()" style="max-width:140px">
+      <div class="auction-dot" id="a-dot"></div>
+      <span id="auction-chip-label">Loading…</span>
+    </div>
     <div class="sync-btn" id="sync-btn" onclick="loadData()" title="Sync">↻</div>
   </div>
 </div>
 
-<!-- AUCTION SELECTOR -->
-<div class="auction-bar" title="Auction context for logging new activities and contacts">
-  <div class="auction-dot" id="a-dot"></div>
-  <select class="auction-select" id="a-select" onchange="onAuctionChange()">
-    <option value="">Loading auctions...</option>
-  </select>
-  <span style="font-size:10px;color:var(--t4);white-space:nowrap;letter-spacing:.3px">write context</span>
+<!-- AUCTION PICKER OVERLAY -->
+<div class="auction-picker" id="auction-picker">
+  <div id="auction-picker-list"></div>
+  <div class="auction-picker-close" onclick="closeAuctionPicker()">Close</div>
 </div>
 
 <!-- MAIN CONTENT -->
 <div class="main" id="main-scroll">
   <div id="view-today"></div>
   <div id="view-brokers" style="display:none"></div>
-  <div id="view-log" style="display:none"></div>
   <div id="view-cal" style="display:none"></div>
 </div>
 
@@ -343,10 +378,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
     Contacts
   </button>
-  <button class="tab" id="tab-log" onclick="switchTab('log')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Log
-  </button>
+
   <button class="tab" id="tab-cal" onclick="switchTab('cal')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     Calendar
@@ -357,44 +389,54 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 <div class="sheet-overlay" id="log-sheet" onclick="if(event.target===this)closeLogSheet()">
   <div class="sheet" id="log-sheet-inner">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Log activity</div>
-    <div class="sheet-sub" id="log-sheet-broker-name">Select contact below</div>
-    <div class="sheet-body">
+
+    <!-- Contact line -->
+    <div style="padding:14px 20px 0;display:flex;align-items:center;justify-content:space-between">
+      <div id="log-sheet-broker-name" style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--t1);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Select contact</div>
+      <button onclick="closeLogSheet()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);color:var(--t3);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">×</button>
+    </div>
+
+    <!-- Contact picker (shown only when no broker pre-selected) -->
+    <div id="log-contact-picker-wrap" style="padding:8px 20px 0">
+      <select class="fi" id="log-broker" style="font-size:15px"></select>
+    </div>
+
+    <!-- Activity type — horizontal scroll chips -->
+    <div style="padding:14px 20px 6px">
+      <div class="fg-l">What happened?</div>
+    </div>
+    <div id="type-scroll" style="display:flex;gap:8px;padding:0 20px 14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
+
+    <div class="sheet-body" style="padding-top:0">
+      <!-- Notes — prominent -->
       <div class="fg">
-        <div class="fg-l">Contact</div>
-        <select class="fi" id="log-broker"></select>
+        <textarea class="fi" id="log-notes" placeholder="Quick note… buyer interest, objections, next step" style="min-height:72px;resize:none;font-size:16px"></textarea>
       </div>
-      <div class="fg">
-        <div class="fg-l">Type</div>
-        <div class="type-grid" id="type-grid"></div>
-      </div>
-      <div class="fg">
-        <div class="fg-l">Date</div>
-        <input type="date" class="fi" id="log-date">
-      </div>
-      <div class="fg">
-        <div class="fg-l">Notes (optional)</div>
-        <input class="fi" id="log-notes" placeholder="e.g. Very interested, has CH buyer...">
-      </div>
-      <div class="fg" onclick="togglePlanned()">
-        <div class="planned-toggle">
+
+      <!-- Date + Planned row -->
+      <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
+        <input type="date" class="fi" id="log-date" style="flex:1;font-size:15px">
+        <div onclick="togglePlanned()" style="display:flex;align-items:center;gap:8px;padding:0 12px;height:50px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;cursor:pointer;flex-shrink:0">
           <div class="toggle-track" id="planned-track"><div class="toggle-thumb"></div></div>
-          <div class="planned-label">Planned next action (not done yet)</div>
+          <div style="font-size:13px;color:var(--t2);white-space:nowrap">Planned</div>
         </div>
       </div>
+
+      <!-- Reminder chips — compact single row -->
       <div class="fg" id="reminder-wrap">
-        <div class="fg-l">Schedule follow-up reminder</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="reminder-chip" data-days="2" onclick="selectReminder(this,2)">2 days</button>
-          <button class="reminder-chip" data-days="3" onclick="selectReminder(this,3)">3 days</button>
-          <button class="reminder-chip" data-days="5" onclick="selectReminder(this,5)">5 days</button>
-          <button class="reminder-chip" data-days="7" onclick="selectReminder(this,7)">1 week</button>
-          <button class="reminder-chip" data-days="14" onclick="selectReminder(this,14)">2 weeks</button>
+        <div class="fg-l">Follow-up reminder</div>
+        <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none">
+          <button class="reminder-chip" data-days="2" onclick="selectReminder(this,2)">2d</button>
+          <button class="reminder-chip" data-days="3" onclick="selectReminder(this,3)">3d</button>
+          <button class="reminder-chip" data-days="5" onclick="selectReminder(this,5)">5d</button>
+          <button class="reminder-chip" data-days="7" onclick="selectReminder(this,7)">1w</button>
+          <button class="reminder-chip" data-days="14" onclick="selectReminder(this,14)">2w</button>
           <button class="reminder-chip" data-days="0" onclick="selectReminder(this,0)">None</button>
         </div>
-        <div id="reminder-preview" style="margin-top:8px;font-size:12px;color:var(--t3);font-style:italic"></div>
+        <div id="reminder-preview" style="margin-top:6px;font-size:12px;color:var(--t3);font-style:italic"></div>
       </div>
     </div>
+
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="closeLogSheet()">Cancel</button>
       <button class="btn-save" onclick="submitLog()">Save</button>
@@ -488,6 +530,11 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- FAB — quick log from Today / Contacts views -->
+<button class="fab" id="fab" onclick="openLogSheet()" title="Log activity">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22" height="22"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -674,20 +721,41 @@ async function loadData(){
 }
 
 function buildAuctionSelector(){
-  const sel=document.getElementById('a-select');
-  sel.innerHTML=auctions.map(a=>`<option value="${a.id}"${curAuction&&a.id===curAuction.id?' selected':''}>${a.name}${a.status==='active'?' ●':''}</option>`).join('');
-  if(!auctions.length)sel.innerHTML='<option>No auctions found</option>';
+  // Update chip label
+  const chip=document.getElementById('auction-chip-label');
   const dot=document.getElementById('a-dot');
-  dot.className='auction-dot'+(curAuction?' dot-'+curAuction.status:'');
+  if(chip){
+    chip.textContent=curAuction?curAuction.name:'Select auction';
+    dot.className='auction-dot'+(curAuction?' dot-'+curAuction.status:'');
+  }
+  // Build picker list
+  const list=document.getElementById('auction-picker-list');
+  if(list){
+    list.innerHTML=auctions.map(a=>`
+      <div class="auction-picker-item${curAuction&&a.id===curAuction.id?' active':''}" onclick="selectAuction(${a.id})">
+        <div class="auction-dot dot-${a.status||'upcoming'}"></div>
+        <span style="flex:1">${esc(a.name)}</span>
+        ${a.status==='active'?'<span style="font-size:11px;font-weight:600;color:var(--green)">ACTIVE</span>':''}
+      </div>`).join('');
+    if(!auctions.length)list.innerHTML='<div style="padding:12px;color:var(--t4);font-size:14px">No auctions found</div>';
+  }
 }
-
-function onAuctionChange(){
-  const id=parseInt(document.getElementById('a-select').value);
+function toggleAuctionPicker(){
+  const p=document.getElementById('auction-picker');
+  if(p)p.classList.toggle('open');
+}
+function closeAuctionPicker(){
+  const p=document.getElementById('auction-picker');
+  if(p)p.classList.remove('open');
+}
+function selectAuction(id){
   curAuction=auctions.find(a=>a.id===id)||null;
   buildAuctionSelector();
+  closeAuctionPicker();
   renderCurrentTab();
-  // No refetch needed — all contacts already loaded globally
 }
+
+
 
 // ── USER ─────────────────────────────────────────────────
 function buildUserSelect(){
@@ -762,14 +830,17 @@ async function submitNewBroker(){
 
 // ── TABS ─────────────────────────────────────────────────
 function switchTab(t){
+  closeAuctionPicker();
   curTab=t;
   // Clear broker static header so it rebuilds with fresh state on next visit
   if(t!=='brokers'){const v=document.getElementById('view-brokers');if(v)v.innerHTML='';}
-  ['today','brokers','log','cal'].forEach(id=>{
+  ['today','brokers','cal'].forEach(id=>{
     document.getElementById('view-'+id).style.display=id===t?'block':'none';
     document.getElementById('tab-'+id).classList.toggle('on',id===t);
   });
-  if(t==='log'){openLogSheet();return;}
+  // Show FAB only on today and contacts views
+  const fab=document.getElementById('fab');
+  if(fab)fab.classList.toggle('hidden',t==='cal');
   renderCurrentTab();
 }
 function renderCurrentTab(){
@@ -787,6 +858,10 @@ function updateOverdueDot(){
 // ── TODAY VIEW ────────────────────────────────────────────
 function renderToday(){
   const v=document.getElementById('view-today');
+  if(!brokers.length){
+    v.innerHTML='<div class="empty-state" style="padding-top:80px"><div class="empty-icon">◇</div><div class="empty-msg">Loading contacts…</div></div>';
+    return;
+  }
   const overdue=brokers.filter(b=>naStatus(b)==='overdue').length;
   const weekAgo=new Date();weekAgo.setDate(weekAgo.getDate()-7);
   const metThisWeek=brokers.filter(b=>(b.activities||[]).some(a=>!a.planned&&['Meeting','Property visit','Property pitch'].includes(a.type)&&new Date(a.acted_at)>=weekAgo)).length;
@@ -1014,8 +1089,8 @@ function openDetail(brokerId){
     <!-- Pipeline stage -->
     <div class="detail-section">
       <div class="detail-sec-title">BD pipeline stage</div>
-      <div class="stage-grid" id="stage-grid">
-        ${[1,2,3,4,5,6,7,8,9].map(s=>`<div class="stage-btn ${b.bd_stage===s?'on':''}" data-stage="${s}" onclick="setStage(${b.id},${s})">${STAGES[s]}</div>`).join('')}
+      <div class="stage-grid" id="stage-grid" style="grid-template-columns:repeat(3,1fr)">
+        ${[1,2,3,4,5,6,7,8,9].map(s=>`<div class="stage-btn ${b.bd_stage===s?'on':''}" data-stage="${s}" onclick="setStage(${b.id},${s})" style="font-size:12px;padding:10px 6px">${STAGES[s]}</div>`).join('')}
       </div>
     </div>
 
@@ -1114,27 +1189,20 @@ function openLogForBroker(){
 }
 
 // ── LOG SHEET ─────────────────────────────────────────────
-function buildTypeGrid(){
-  const container=document.getElementById('type-grid');
-  const groups=['Outreach','BD','Material','Event'];
-  const groupLabels={'Outreach':'Outreach','BD':'BD / Sourcing','Material':'Material & Training','Event':'Events & Other'};
-  let html='';
-  groups.forEach(g=>{
-    const items=ACT_TYPES.filter(t=>t.group===g);
-    if(!items.length)return;
-    const label=groupLabels[g];
-    if(label)html+=`<div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t4);margin-top:8px;margin-bottom:4px">${label}</div>`;
-    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
-    items.forEach(t=>{
-      html+=`<div class="type-btn ${logType===t.key?'on':''}" onclick="selectType('${t.key}',this)"><div class="icon">${t.icon}</div>${t.key}</div>`;
-    });
-    html+='</div>';
-  });
-  container.innerHTML=html;
+function buildTypeScroll(){
+  const container=document.getElementById('type-scroll');
+  if(!container)return;
+  // Flat list of all visible types as horizontal chips
+  const visible=ACT_TYPES.filter(t=>t.group!=='_hidden');
+  container.innerHTML=visible.map(t=>`
+    <div class="type-chip${logType===t.key?' on':''}" onclick="selectType('${t.key}',this)" style="flex-shrink:0">
+      <div style="margin-bottom:3px">${t.icon}</div>
+      <div style="font-size:10px;font-weight:600;white-space:nowrap">${t.key}</div>
+    </div>`).join('');
 }
 function selectType(key,el){
   logType=key;
-  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.type-chip').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
 }
 function togglePlanned(){
@@ -1168,32 +1236,41 @@ function selectReminderDefault(days){
 }
 
 function openLogSheet(brokerId=null){
-  if(!curAuction){toast('Select an auction context above before logging');switchTab('today');return;}
+  if(!curAuction){toast('Select an auction context above before logging');return;}
   logPlanned=false;logType='Call';logReminderDays=3;
   document.getElementById('planned-track').classList.remove('on');
-  const rw=document.getElementById('reminder-wrap');
-  if(rw)rw.style.display='';
-  // Default chip to 3 days
   selectReminderDefault(3);
   document.getElementById('log-date').value=today();
   document.getElementById('log-notes').value='';
-  buildTypeGrid();
+  buildTypeScroll();
 
-  // Populate broker dropdown
+  // Show/hide contact picker
+  const pickerWrap=document.getElementById('log-contact-picker-wrap');
+  const nameEl=document.getElementById('log-sheet-broker-name');
   const sel=document.getElementById('log-broker');
-  sel.innerHTML=brokers.map(b=>`<option value="${b.id}"${b.id===brokerId?' selected':''}>${esc(b.name)} (${esc(b.agency)})</option>`).join('');
+  sel.innerHTML=brokers.map(b=>`<option value="${b.id}"${b.id===brokerId?' selected':''}>${esc(b.name)}${b.agency?' ('+esc(b.agency)+')':''}</option>`).join('');
+
   if(brokerId){
     const b=brokers.find(x=>x.id===brokerId);
-    document.getElementById('log-sheet-broker-name').textContent=b?b.name+(b.agency?' · '+b.agency:''):'';
+    nameEl.textContent=b?b.name:'';
+    if(pickerWrap)pickerWrap.style.display='none';
   } else {
-    document.getElementById('log-sheet-broker-name').textContent='';
-    sel.onchange=function(){const b=brokers.find(x=>x.id===parseInt(this.value));document.getElementById('log-sheet-broker-name').textContent=b?b.name+(b.agency?' · '+b.agency:''):'';};
+    nameEl.textContent='Select contact';
+    if(pickerWrap)pickerWrap.style.display='';
+    sel.onchange=function(){
+      const b=brokers.find(x=>x.id===parseInt(this.value));
+      nameEl.textContent=b?b.name:'Select contact';
+    };
   }
   document.getElementById('log-sheet').classList.add('open');
+  // Scroll type row to selected
+  setTimeout(()=>{
+    const sel=document.querySelector('.type-chip.on');
+    if(sel)sel.scrollIntoView({block:'nearest',inline:'center'});
+  },50);
 }
 function closeLogSheet(){
   document.getElementById('log-sheet').classList.remove('open');
-  if(curTab==='log')switchTab('today');
 }
 
 async function submitLog(){
@@ -1464,7 +1541,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   loadData();
   document.getElementById('view-today').style.display='block';
   document.getElementById('view-brokers').style.display='none';
-  document.getElementById('view-log').style.display='none';
   document.getElementById('view-cal').style.display='none';
 });
 </script>
