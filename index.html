@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PAMob</title>
+<title>PAMob v2</title>
 <!-- PWA / home screen meta -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -422,6 +422,12 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
         </div>
       </div>
 
+      <!-- Optional dossier tag -->
+      <div class="fg" id="dossier-wrap">
+        <div class="fg-l">Linked dossier (optional)</div>
+        <select class="fi" id="log-dossier" style="font-size:14px"></select>
+      </div>
+
       <!-- Reminder chips — compact single row -->
       <div class="fg" id="reminder-wrap">
         <div class="fg-l">Follow-up reminder</div>
@@ -463,7 +469,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Add contact</div>
-    <div class="sheet-sub">Will appear in CRM immediately</div>
+    <div class="sheet-sub">Will appear in app immediately</div>
     <div class="sheet-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="fg" style="margin:0 0 10px">
@@ -503,6 +509,10 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
           <option value="Developer">Developer</option>
           <option value="Other">Other</option>
         </select>
+      </div>
+      <div class="fg">
+        <div class="fg-l">Region</div>
+        <select class="fi" id="nb-region"></select>
       </div>
       <div class="fg">
         <div class="fg-l">Assigned to</div>
@@ -583,10 +593,12 @@ const ACT_TYPES=[
 ];
 
 // ── STATE ──────────────────────────────────────────────────
+let regions=[], curRegion=null;
 let auctions=[], curAuction=null, brokers=[], activities=[], clients=[];
 let curTab='today', selBroker=null, logPlanned=false, logType='Call', logReminderDays=3;
 let filterQ='', filterStage=null, filterBdStage=null, filterAssigned=null;
 const savedUser=localStorage.getItem('pa_field_user')||TEAM[0];
+const savedRegionId=localStorage.getItem('pa_region_id');
 let curUser=savedUser;
 let userIdx=TEAM.indexOf(curUser);if(userIdx<0)userIdx=0;
 
@@ -670,15 +682,23 @@ async function loadData(){
   const btn=document.getElementById('sync-btn');
   btn.classList.add('spinning');loading(true);
   try{
-    // ── Fetch auctions + ALL brokers/activities/clients in parallel ──
-    const [aRows,bRows,actRows,cRows]=await Promise.all([
+    const [regRows,aRows,bRows,actRows,cRows]=await Promise.all([
+      dbGet('regions','order=name'),
       dbGet('auctions','order=id'),
       dbGet('brokers','order=name'),
       dbGet('broker_activities','order=acted_at.desc'),
       dbGet('clients','select=id,broker_id,name,interest,status,origin'),
     ]);
 
-    // Resolve auctions (for write context + calendar marker)
+    // Regions
+    regions=regRows.map(r=>({id:r.id,name:r.name}));
+    // Restore saved region
+    if(!curRegion&&savedRegionId){
+      curRegion=regions.find(r=>r.id===parseInt(savedRegionId))||null;
+    }
+    buildRegionSelector();
+
+    // Auctions — kept for optional dossier tagging on activities
     const prev=curAuction?.id;
     auctions=aRows.map(r=>({id:r.id,name:r.name||'',location:r.location||'',date:r.date||'',
       status:r.status||'upcoming',team:(r.team||'').split(',').map(x=>x.trim()).filter(Boolean)}));
@@ -687,18 +707,18 @@ async function loadData(){
     } else {
       curAuction=auctions.find(a=>a.status==='active')||auctions[0]||null;
     }
-    buildAuctionSelector();
 
-    // Build broker map — ALL contacts, no auction filter
+    // Brokers — all contacts, no filter at load time
     const bMap={};
     brokers=bRows.map(r=>({
-      id:r.id,auction_id:r.auction_id,
-      name:r.name||'',agency:r.agency||'',type:r.type||'RE Agency',
-      area:r.area||'',country:r.country||'',phone:r.phone||'',email:r.email||'',
-      assigned:r.assigned||'',stage:r.stage!=null?Number(r.stage):1,bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
-      notes:r.notes||'',activities:[],clients:[],
-      bd_property:r.bd_property||'',bd_value:r.bd_value||'',
-      bd_addendum:r.bd_addendum||'',bd_ref:r.bd_ref||''
+      id:r.id, auction_id:r.auction_id, region_id:r.region_id||null,
+      name:r.name||'', agency:r.agency||'', type:r.type||'RE Agency',
+      area:r.area||'', country:r.country||'', phone:r.phone||'', email:r.email||'',
+      assigned:r.assigned||'', stage:r.stage!=null?Number(r.stage):1,
+      bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
+      notes:r.notes||'', activities:[], clients:[],
+      bd_property:r.bd_property||'', bd_value:r.bd_value||'',
+      bd_addendum:r.bd_addendum||'', bd_ref:r.bd_ref||''
     }));
     brokers.forEach(b=>bMap[b.id]=b);
     actRows.forEach(a=>{
@@ -720,25 +740,37 @@ async function loadData(){
   finally{btn.classList.remove('spinning');loading(false);}
 }
 
-function buildAuctionSelector(){
-  // Update chip label
+function buildRegionSelector(){
   const chip=document.getElementById('auction-chip-label');
   const dot=document.getElementById('a-dot');
   if(chip){
-    chip.textContent=curAuction?curAuction.name:'Select auction';
-    dot.className='auction-dot'+(curAuction?' dot-'+curAuction.status:'');
+    chip.textContent=curRegion?curRegion.name:'All regions';
+    dot.className='auction-dot '+(curRegion?'dot-active':'dot-upcoming');
   }
-  // Build picker list
   const list=document.getElementById('auction-picker-list');
-  if(list){
-    list.innerHTML=auctions.map(a=>`
-      <div class="auction-picker-item${curAuction&&a.id===curAuction.id?' active':''}" onclick="selectAuction(${a.id})">
-        <div class="auction-dot dot-${a.status||'upcoming'}"></div>
-        <span style="flex:1">${esc(a.name)}</span>
-        ${a.status==='active'?'<span style="font-size:11px;font-weight:600;color:var(--green)">ACTIVE</span>':''}
-      </div>`).join('');
-    if(!auctions.length)list.innerHTML='<div style="padding:12px;color:var(--t4);font-size:14px">No auctions found</div>';
-  }
+  if(!list)return;
+  const allCount=brokers.length;
+  list.innerHTML=`
+    <div style="padding:8px 16px 4px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:600">Region</div>
+    <div class="auction-picker-item${!curRegion?' active':''}" onclick="selectRegion(null)">
+      <div class="auction-dot dot-upcoming"></div>
+      <span style="flex:1">All regions</span>
+      <span style="font-size:11px;color:var(--t3)">${allCount} contacts</span>
+    </div>
+    ${regions.map(r=>{
+      const count=brokers.filter(b=>b.region_id===r.id).length;
+      return`<div class="auction-picker-item${curRegion&&curRegion.id===r.id?' active':''}" onclick="selectRegion(${r.id})">
+        <div class="auction-dot dot-active"></div>
+        <span style="flex:1">${esc(r.name)}</span>
+        <span style="font-size:11px;color:var(--t3)">${count}</span>
+      </div>`;
+    }).join('')}
+    <div style="padding:4px 16px 4px;margin-top:4px;border-top:1px solid var(--bd)">
+      <div class="auction-picker-item" onclick="openNewRegion()" style="border-style:dashed;color:var(--t3)">
+        <div style="width:7px;height:7px;border-radius:50%;border:1.5px solid var(--t4);flex-shrink:0"></div>
+        <span style="flex:1">+ New region</span>
+      </div>
+    </div>`;
 }
 function toggleAuctionPicker(){
   const p=document.getElementById('auction-picker');
@@ -748,11 +780,36 @@ function closeAuctionPicker(){
   const p=document.getElementById('auction-picker');
   if(p)p.classList.remove('open');
 }
-function selectAuction(id){
-  curAuction=auctions.find(a=>a.id===id)||null;
-  buildAuctionSelector();
+function selectRegion(id){
+  curRegion=id?regions.find(r=>r.id===id)||null:null;
+  if(curRegion)localStorage.setItem('pa_region_id',curRegion.id);
+  else localStorage.removeItem('pa_region_id');
+  buildRegionSelector();
   closeAuctionPicker();
   renderCurrentTab();
+}
+function openNewRegion(){
+  closeAuctionPicker();
+  const name=prompt('New region name:');
+  if(!name||!name.trim())return;
+  createRegion(name.trim());
+}
+async function createRegion(name){
+  try{
+    loading(true);
+    const rows=await dbPost('regions',{name});
+    const newR=rows[0];
+    regions.push({id:newR.id,name:newR.name});
+    regions.sort((a,b)=>a.name.localeCompare(b.name));
+    toast('Region "'+name+'" created ✓',true);
+    buildRegionSelector();
+  }catch(e){toast('Error: '+e.message);}
+  finally{loading(false);}
+}
+// kept for backwards compat — not used in new UI
+function selectAuction(id){
+  curAuction=auctions.find(a=>a.id===id)||null;
+  closeAuctionPicker();
 }
 
 
@@ -773,7 +830,6 @@ function onUserChange(val){
 
 // ── ADD BROKER ────────────────────────────────────────────
 function openAddBroker(){
-  if(!curAuction){toast('Select an auction context above to add a contact');return;}
   document.getElementById('nb-name').value='';
   document.getElementById('nb-agency').value='';
   document.getElementById('nb-phone').value='';
@@ -784,6 +840,12 @@ function openAddBroker(){
   document.getElementById('nb-property').value='';
   document.getElementById('nb-ref').value='';
   document.getElementById('nb-notes').value='';
+  // Region selector
+  const regSel=document.getElementById('nb-region');
+  if(regSel){
+    regSel.innerHTML='<option value="">— No region —</option>'
+      +regions.map(r=>`<option value="${r.id}"${curRegion&&curRegion.id===r.id?' selected':''}>${esc(r.name)}</option>`).join('');
+  }
   const asgn=document.getElementById('nb-assigned');
   asgn.innerHTML=TEAM.map(m=>`<option value="${m}"${m===curUser?' selected':''}>${m}</option>`).join('');
   document.getElementById('add-broker-sheet').classList.add('open');
@@ -794,12 +856,13 @@ function closeAddBroker(){
 async function submitNewBroker(){
   const name=document.getElementById('nb-name').value.trim();
   if(!name){toast('Name is required');return;}
-  if(!curAuction){toast('Select an auction context to add a contact');return;}
   const bd_property=document.getElementById('nb-property').value.trim();
   const bd_ref=document.getElementById('nb-ref').value.trim();
   const notes=document.getElementById('nb-notes').value.trim();
+  const regionId=document.getElementById('nb-region')?.value;
   const body={
-    auction_id:curAuction.id,
+    auction_id:curAuction?curAuction.id:null,
+    region_id:regionId?parseInt(regionId):null,
     name,
     agency:document.getElementById('nb-agency').value.trim(),
     phone:document.getElementById('nb-phone').value.trim(),
@@ -816,6 +879,7 @@ async function submitNewBroker(){
     loading(true);
     const rows=await dbPostQueued('brokers',body);
     const newB={...rows[0],activities:[],clients:[],
+      region_id:body.region_id,
       bd_property,bd_value:'',bd_addendum:'',bd_ref,
       notes};
     brokers.push(newB);
@@ -862,16 +926,17 @@ function renderToday(){
     v.innerHTML='<div class="empty-state" style="padding-top:80px"><div class="empty-icon">◇</div><div class="empty-msg">Loading contacts…</div></div>';
     return;
   }
-  const overdue=brokers.filter(b=>naStatus(b)==='overdue').length;
+  const pool=curRegion?brokers.filter(b=>b.region_id===curRegion.id):brokers;
+  const overdue=pool.filter(b=>naStatus(b)==='overdue').length;
   const weekAgo=new Date();weekAgo.setDate(weekAgo.getDate()-7);
-  const metThisWeek=brokers.filter(b=>(b.activities||[]).some(a=>!a.planned&&['Meeting','Property visit','Property pitch'].includes(a.type)&&new Date(a.acted_at)>=weekAgo)).length;
-  const addendumActive=brokers.filter(b=>b.bd_addendum&&!['','signed','blocked'].includes(b.bd_addendum)).length;
+  const metThisWeek=pool.filter(b=>(b.activities||[]).some(a=>!a.planned&&['Meeting','Property visit','Property pitch'].includes(a.type)&&new Date(a.acted_at)>=weekAgo)).length;
+  const addendumActive=pool.filter(b=>b.bd_addendum&&!['','signed','blocked'].includes(b.bd_addendum)).length;
 
-  const myBrokers=brokers.filter(b=>!b.assigned||b.assigned===curUser);
+  const myBrokers=pool.filter(b=>!b.assigned||b.assigned===curUser);
   const withActions=myBrokers.filter(b=>['overdue','today','soon'].includes(naStatus(b)));
   withActions.sort((a,b)=>{const ord={overdue:0,today:1,soon:2};return ord[naStatus(a)]-ord[naStatus(b)];});
 
-  const myActs=brokers.flatMap(b=>(b.activities||[]).filter(a=>!a.planned).map(a=>({...a,brokerName:b.name,brokerId:b.id}))).sort((a,b)=>new Date(b.acted_at)-new Date(a.acted_at)).slice(0,5);
+  const myActs=pool.flatMap(b=>(b.activities||[]).filter(a=>!a.planned).map(a=>({...a,brokerName:b.name,brokerId:b.id}))).sort((a,b)=>new Date(b.acted_at)-new Date(a.acted_at)).slice(0,5);
 
 
   let actionsHtml='';
@@ -893,7 +958,7 @@ function renderToday(){
         +'</div>';
     });
   } else {
-    actionsHtml='<div class="empty-state" style="padding:30px 24px"><div class="empty-msg">No pending actions — all clear</div></div>';
+    actionsHtml='<div class="empty-state" style="padding:30px 24px"><div class="empty-msg">No pending actions — all clear ✓</div></div>';
   }
 
   let recentHtml='';
@@ -912,18 +977,19 @@ function renderToday(){
         +'</div>';
     });
   } else {
-    recentHtml='<div style="padding:16px 16px;color:var(--t4);font-size:14px">No activity yet</div>';
+    recentHtml='<div style="padding:16px 16px;color:var(--t4);font-size:14px">No recent activity</div>';
   }
 
   v.innerHTML=''
+    +(curRegion?`<div style="padding:10px 16px 0;font-size:11px;color:var(--gold);font-weight:600;letter-spacing:1px;text-transform:uppercase">◉ ${esc(curRegion.name)}</div>`:'')
     +'<div class="kpi-row">'
     +'<div class="kpi-card kpi-red"><div class="kpi-n">'+overdue+'</div><div class="kpi-l">Overdue</div></div>'
     +'<div class="kpi-card kpi-blue"><div class="kpi-n">'+metThisWeek+'</div><div class="kpi-l">Met this week</div></div>'
-    +'<div class="kpi-card kpi-amber"><div class="kpi-n">'+addendumActive+'</div><div class="kpi-l">Addendum active</div></div>'
+    +'<div class="kpi-card kpi-amber"><div class="kpi-n">'+addendumActive+'</div><div class="kpi-l">Addendum actif</div></div>'
     +'</div>'
-    +'<div class="sec-hd">My actions'+(withActions.length?' ('+withActions.length+')':'')+'</div>'
+    +'<div class="sec-hd">Mes actions'+(withActions.length?' ('+withActions.length+')':'')+'</div>'
     +actionsHtml
-    +'<div class="sec-hd">Recent activity</div>'
+    +'<div class="sec-hd">Activité récente</div>'
     +recentHtml;
 }
 
@@ -958,11 +1024,12 @@ function renderBrokers(){
 
 function updateFilterChips(){
   const myCount=brokers.filter(b=>b.assigned===curUser).length;
+  const visibleBrokers=curRegion?brokers.filter(b=>b.region_id===curRegion.id):brokers;
   const fr=document.getElementById('broker-filter-row');
   if(!fr)return;
   fr.innerHTML=''
-    +'<span class="fchip'+(!filterAssigned&&filterBdStage===null?' on':'')+'" onclick="filterAssigned=null;filterBdStage=null;renderBrokerCards();updateFilterChips()">All ('+brokers.length+')</span>'
-    +'<span class="fchip'+(filterAssigned===curUser?' on':'')+'" onclick="filterAssigned=filterAssigned===curUser?null:curUser;renderBrokerCards();updateFilterChips()">Mine ('+myCount+')</span>'
+    +'<span class="fchip'+(!filterAssigned&&filterBdStage===null?' on':'')+'" onclick="filterAssigned=null;filterBdStage=null;renderBrokerCards();updateFilterChips()">All ('+visibleBrokers.length+')</span>'
+    +'<span class="fchip'+(filterAssigned===curUser?' on':'')+'" onclick="filterAssigned=filterAssigned===curUser?null:curUser;renderBrokerCards();updateFilterChips()">Mine ('+visibleBrokers.filter(b=>b.assigned===curUser).length+')</span>'
     +'<span class="fchip'+(filterBdStage===4?' on':'')+'" onclick="filterBdStage=filterBdStage===4?null:4;renderBrokerCards();updateFilterChips()">Pitched</span>'
     +'<span class="fchip'+(filterBdStage===6?' on':'')+'" onclick="filterBdStage=filterBdStage===6?null:6;renderBrokerCards();updateFilterChips()">Mandate confirmed</span>'
     +'<span class="fchip'+(filterBdStage===8?' on':'')+'" onclick="filterBdStage=filterBdStage===8?null:8;renderBrokerCards();updateFilterChips()">Addendum sent</span>'
@@ -974,6 +1041,7 @@ function renderBrokerCards(){
   if(!el)return;
 
   let filtered=brokers.filter(b=>{
+    if(curRegion&&b.region_id!==curRegion.id)return false;
     if(filterAssigned&&b.assigned!==filterAssigned)return false;
     if(filterBdStage!==null&&b.bd_stage!==filterBdStage)return false;
     if(filterQ){const q=filterQ.toLowerCase();if(!(b.name+b.agency+(b.area||'')).toLowerCase().includes(q))return false;}
@@ -1041,6 +1109,7 @@ function openDetail(brokerId){
     </div>
     <div class="hero-row">
       <span class="hero-stage ${SCLS[b.bd_stage]||'s1'}">${STAGES[b.bd_stage]}</span>
+      ${b.region_id?`<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold-bd)">◉ ${esc(regions.find(r=>r.id===b.region_id)?.name||'')}</span>`:''}
       ${b.assigned?`<span style="font-size:11px;color:var(--t3)">${esc(b.assigned)}</span>`:''}
       ${b.bd_addendum&&b.bd_addendum!==''?`<span style="font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;background:${b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)'};color:${b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)'}">${ADDENDUM_STATUS[b.bd_addendum]||''}</span>`:''}
     </div>
@@ -1055,10 +1124,17 @@ function openDetail(brokerId){
       <div class="detail-sec-title">Contact</div>
       ${b.phone?`<div class="detail-row" style="align-items:center"><span class="detail-label">Phone</span><span class="detail-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><a href="tel:${esc(b.phone)}" style="color:var(--green);font-weight:500">${esc(b.phone)}</a><button data-copy-phone="1" style="flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3)" title="Copy phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></div>`:''}
       ${b.email?`<div class="detail-row" style="align-items:center"><span class="detail-label">Email</span><span class="detail-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap"><a href="mailto:${esc(b.email)}" style="color:var(--blue);word-break:break-all">${esc(b.email)}</a><button data-copy-email="1" style="flex-shrink:0;width:26px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3)" title="Copy email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button></span></div>`:''}
-      <div class="detail-row"><span class="detail-label">Agency / Property</span><span class="detail-val">${esc(b.agency)||'—'}</span></div>
+      <div class="detail-row"><span class="detail-label">Agency</span><span class="detail-val">${esc(b.agency)||'—'}</span></div>
       ${b.area?`<div class="detail-row"><span class="detail-label">Area</span><span class="detail-val">${esc(b.area)}</span></div>`:''}
       <div class="detail-row"><span class="detail-label">Country</span><span class="detail-val">${esc(b.country)||'—'}</span></div>
       <div class="detail-row"><span class="detail-label">Type</span><span class="detail-val">${esc(b.type)}</span></div>
+      <div class="detail-row" style="align-items:center">
+        <span class="detail-label">Region</span>
+        <select id="detail-region" style="font-size:13px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:4px 8px;color:var(--t1);outline:none" onchange="updateBrokerRegion(${b.id},this.value)">
+          <option value="">— None —</option>
+          ${regions.map(r=>`<option value="${r.id}"${b.region_id===r.id?' selected':''}>${esc(r.name)}</option>`).join('')}
+        </select>
+      </div>
     </div>
 
     <!-- BD Sourcing block -->
@@ -1184,6 +1260,17 @@ async function saveBdMeta(brokerId){
   }catch(e){toast('Error: '+e.message);}
 }
 
+async function updateBrokerRegion(brokerId, regionIdStr){
+  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
+  const regionId=regionIdStr?parseInt(regionIdStr):null;
+  b.region_id=regionId;
+  try{
+    await dbPatchQueued('brokers',brokerId,{region_id:regionId});
+    toast('Region updated ✓',true);
+    buildRegionSelector();
+  }catch(e){toast('Error: '+e.message);}
+}
+
 function openLogForBroker(){
   openLogSheet(selBroker?.id);
 }
@@ -1236,7 +1323,6 @@ function selectReminderDefault(days){
 }
 
 function openLogSheet(brokerId=null){
-  if(!curAuction){toast('Select an auction context above before logging');return;}
   logPlanned=false;logType='Call';logReminderDays=3;
   document.getElementById('planned-track').classList.remove('on');
   selectReminderDefault(3);
@@ -1244,11 +1330,19 @@ function openLogSheet(brokerId=null){
   document.getElementById('log-notes').value='';
   buildTypeScroll();
 
+  // Build dossier tag selector (optional)
+  const dossierSel=document.getElementById('log-dossier');
+  if(dossierSel){
+    dossierSel.innerHTML='<option value="">No dossier (optional)</option>'
+      +auctions.map(a=>`<option value="${a.id}"${curAuction&&curAuction.id===a.id?' selected':''}>${esc(a.name)}</option>`).join('');
+  }
+
   // Show/hide contact picker
   const pickerWrap=document.getElementById('log-contact-picker-wrap');
   const nameEl=document.getElementById('log-sheet-broker-name');
   const sel=document.getElementById('log-broker');
-  sel.innerHTML=brokers.map(b=>`<option value="${b.id}"${b.id===brokerId?' selected':''}>${esc(b.name)}${b.agency?' ('+esc(b.agency)+')':''}</option>`).join('');
+  const poolBrokers=curRegion?brokers.filter(b=>b.region_id===curRegion.id):brokers;
+  sel.innerHTML=poolBrokers.map(b=>`<option value="${b.id}"${b.id===brokerId?' selected':''}>${esc(b.name)}${b.agency?' ('+esc(b.agency)+')':''}</option>`).join('');
 
   if(brokerId){
     const b=brokers.find(x=>x.id===brokerId);
@@ -1263,7 +1357,6 @@ function openLogSheet(brokerId=null){
     };
   }
   document.getElementById('log-sheet').classList.add('open');
-  // Scroll type row to selected
   setTimeout(()=>{
     const sel=document.querySelector('.type-chip.on');
     if(sel)sel.scrollIntoView({block:'nearest',inline:'center'});
@@ -1277,10 +1370,12 @@ async function submitLog(){
   const brokerId=parseInt(document.getElementById('log-broker').value);
   const date=document.getElementById('log-date').value;
   const notes=document.getElementById('log-notes').value;
-  if(!brokerId||!date){toast('Please select a contact and date');return;}
-  if(!curAuction){toast('Select an auction context to log activity');return;}
+  if(!brokerId||!date){toast('Select contact et une date');return;}
 
-  const body={broker_id:brokerId,auction_id:curAuction.id,type:logType,notes,planned:logPlanned,acted_at:date};
+  const dossierSel=document.getElementById('log-dossier');
+  const auctionId=dossierSel&&dossierSel.value?parseInt(dossierSel.value):null;
+
+  const body={broker_id:brokerId,auction_id:auctionId,type:logType,notes,planned:logPlanned,acted_at:date};
   try{
     loading(true);
     const rows=await dbPostQueued('broker_activities',body);
@@ -1293,7 +1388,7 @@ async function submitLog(){
       const remDate=new Date(date);
       remDate.setDate(remDate.getDate()+logReminderDays);
       const remDateStr=remDate.toISOString().slice(0,10);
-      const remBody={broker_id:brokerId,auction_id:curAuction.id,type:'Call',notes:'Follow-up',planned:true,acted_at:remDateStr};
+      const remBody={broker_id:brokerId,auction_id:auctionId,type:'Call',notes:'Follow-up',planned:true,acted_at:remDateStr};
       try{
         const remRows=await dbPostQueued('broker_activities',remBody);
         if(b&&remRows[0])b.activities.unshift({...remRows[0]});
