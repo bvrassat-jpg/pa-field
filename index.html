@@ -455,6 +455,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   <div class="detail-topbar">
     <div class="back-btn" onclick="closeDetail()">←</div>
     <div class="detail-title" id="detail-title">Contact</div>
+    <button onclick="openEditContact()" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:6px" title="Edit contact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
     <button class="log-fab" onclick="openLogForBroker()">+ Log</button>
   </div>
   <div class="detail-hero" id="detail-hero"></div>
@@ -534,6 +535,68 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="closeAddBroker()">Cancel</button>
       <button class="btn-save" onclick="submitNewBroker()">Add contact</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT CONTACT SHEET -->
+<div class="sheet-overlay" id="edit-contact-sheet" onclick="if(event.target===this)closeEditContact()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Edit contact</div>
+    <div class="sheet-sub" id="edit-contact-sub">—</div>
+    <div class="sheet-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Name *</div>
+          <input class="fi" id="ec-name" placeholder="Full name">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Agency</div>
+          <input class="fi" id="ec-agency" placeholder="Agency name">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Phone</div>
+          <input class="fi" id="ec-phone" type="tel" placeholder="+33 6...">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Email</div>
+          <input class="fi" id="ec-email" type="email" placeholder="...@...">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Area</div>
+          <input class="fi" id="ec-area" placeholder="e.g. Cannes">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Country</div>
+          <input class="fi" id="ec-country" placeholder="France">
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fg-l">Type</div>
+        <select class="fi" id="ec-type">
+          <option value="RE Agency">RE Agency</option>
+          <option value="Buyer's Agent">Buyer's Agent</option>
+          <option value="Notaire">Notaire</option>
+          <option value="Wealth Manager">Wealth Manager</option>
+          <option value="Family Office">Family Office</option>
+          <option value="Owner">Owner</option>
+          <option value="Developer">Developer</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="fg">
+        <div class="fg-l">Assigned to</div>
+        <select class="fi" id="ec-assigned"></select>
+      </div>
+      <div class="fg">
+        <div class="fg-l">Region</div>
+        <select class="fi" id="ec-region"></select>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeEditContact()">Cancel</button>
+      <button class="btn-save" onclick="submitEditContact()">Save changes</button>
     </div>
   </div>
 </div>
@@ -1225,6 +1288,58 @@ function openDetail(brokerId){
 function closeDetail(){
   document.getElementById('detail-sheet').classList.remove('open');
   selBroker=null;
+}
+
+function openEditContact(){
+  const b=selBroker;if(!b)return;
+  document.getElementById('edit-contact-sub').textContent=b.name;
+  document.getElementById('ec-name').value=b.name||'';
+  document.getElementById('ec-agency').value=b.agency||'';
+  document.getElementById('ec-phone').value=b.phone||'';
+  document.getElementById('ec-email').value=b.email||'';
+  document.getElementById('ec-area').value=b.area||'';
+  document.getElementById('ec-country').value=b.country||'France';
+  document.getElementById('ec-type').value=b.type||'RE Agency';
+  // Assigned
+  const asgn=document.getElementById('ec-assigned');
+  asgn.innerHTML=TEAM.map(m=>`<option value="${m}"${m===b.assigned?' selected':''}>${m}</option>`).join('');
+  // Region
+  const regSel=document.getElementById('ec-region');
+  regSel.innerHTML='<option value="">— No region —</option>'
+    +regions.map(r=>`<option value="${r.id}"${b.region_id===r.id?' selected':''}>${esc(r.name)}</option>`).join('');
+  document.getElementById('edit-contact-sheet').classList.add('open');
+}
+
+function closeEditContact(){
+  document.getElementById('edit-contact-sheet').classList.remove('open');
+}
+
+async function submitEditContact(){
+  const b=selBroker;if(!b)return;
+  const name=document.getElementById('ec-name').value.trim();
+  if(!name){toast('Name is required');return;}
+  const patch={
+    name,
+    agency:document.getElementById('ec-agency').value.trim(),
+    phone:document.getElementById('ec-phone').value.trim(),
+    email:document.getElementById('ec-email').value.trim(),
+    area:document.getElementById('ec-area').value.trim(),
+    country:document.getElementById('ec-country').value.trim(),
+    type:document.getElementById('ec-type').value,
+    assigned:document.getElementById('ec-assigned').value,
+    region_id:document.getElementById('ec-region').value?parseInt(document.getElementById('ec-region').value):null
+  };
+  // Update local state
+  Object.assign(b,patch);
+  closeEditContact();
+  // Refresh detail view
+  openDetail(b.id);
+  try{
+    await dbPatchQueued('brokers',b.id,patch);
+    toast('Contact updated ✓',true);
+    renderBrokerCards();
+    buildRegionSelector();
+  }catch(e){toast('Error: '+e.message);}
 }
 
 async function setStage(brokerId,stage){
