@@ -8,8 +8,8 @@
 <!-- PWA / home screen meta -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PAMob">
-<meta name="application-name" content="PAMob">
+<meta name="apple-mobile-web-app-title" content="PAMob v3">
+<meta name="application-name" content="PAMob v3">
 <meta name="theme-color" content="#0A0A0A">
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUEEgRmllbGQiLCJzaG9ydF9uYW1lIjoiUEEgRmllbGQiLCJzdGFydF91cmwiOiIuLyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwQTBBMEEiLCJ0aGVtZV9jb2xvciI6IiMwQTBBMEEiLCJpY29ucyI6W3sic3JjIjoiZGF0YTppbWFnZS9zdmcreG1sLCUzQ3N2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxOTIgMTkyJyUzRSUzQ3JlY3Qgd2lkdGg9JzE5MicgaGVpZ2h0PScxOTInIHJ4PSczMicgZmlsbD0nJTIzMEEwQTBBJy8lM0UlM0N0ZXh0IHg9Jzk2JyB5PScxMjAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjaycgZm9udC1zaXplPSc3MicgZm9udC13ZWlnaHQ9JzkwMCcgZmlsbD0nJTIzQTg4MzJBJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyUzRUJEJTNDL3RleHQlM0UlM0Mvc3ZnJTNFIiwic2l6ZXMiOiIxOTJ4MTkyIiwidHlwZSI6ImltYWdlL3N2Zyt4bWwifV19">
 
@@ -341,7 +341,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="logo">PA<span>&middot;</span>Mob</div>
+  <div class="logo">PA<span>&middot;</span>Mob<span style="font-size:9px;letter-spacing:1px;font-weight:500;color:var(--gold);margin-left:6px">v3</span></div>
   <div style="margin-left:8px;display:flex;align-items:center;gap:6px;min-width:0;flex:1;justify-content:flex-end">
     <select id="user-select" class="user-select" onchange="onUserChange(this.value)">
       <option value="">— Who are you? —</option>
@@ -455,7 +455,6 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   <div class="detail-topbar">
     <div class="back-btn" onclick="closeDetail()">←</div>
     <div class="detail-title" id="detail-title">Contact</div>
-    <button onclick="deleteBroker()" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--red-bd);background:var(--red-bg);color:var(--red);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:6px" title="Delete contact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
     <button onclick="openEditContact()" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:6px" title="Edit contact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
     <button class="log-fab" onclick="openLogForBroker()">+ Log</button>
   </div>
@@ -602,30 +601,6 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   </div>
 </div>
 
-<!-- BULK REASSIGN SHEET -->
-<div class="sheet-overlay" id="bulk-reassign-sheet" onclick="if(event.target===this)closeBulkReassign()">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Bulk reassign</div>
-    <div class="sheet-sub">Move every contact in a region to a different team member</div>
-    <div class="sheet-body">
-      <div class="fg">
-        <div class="fg-l">Region</div>
-        <select class="fi" id="bulk-region" onchange="updateBulkReassignCount()"></select>
-      </div>
-      <div class="fg">
-        <div class="fg-l">Assign to</div>
-        <select class="fi" id="bulk-member" onchange="updateBulkReassignCount()"></select>
-      </div>
-      <div id="bulk-reassign-count" style="font-size:12px;color:var(--t3);margin-top:-6px"></div>
-    </div>
-    <div class="sheet-actions">
-      <button class="btn-cancel" onclick="closeBulkReassign()">Cancel</button>
-      <button class="btn-save" onclick="submitBulkReassign()">Reassign</button>
-    </div>
-  </div>
-</div>
-
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -684,7 +659,7 @@ const ACT_TYPES=[
 let regions=[], curRegion=null;
 let auctions=[], curAuction=null, brokers=[], activities=[], clients=[];
 let curTab='today', selBroker=null, logPlanned=false, logType='Call', logReminderDays=3;
-let filterQ='', filterStage=null, filterBdStage=null, filterAssigned=null;
+let filterQ='', filterStage=null, filterBdStage=null, filterAssigned=null, filterNoRegion=false;
 const savedUser=localStorage.getItem('pa_field_user')||TEAM[0];
 const savedRegionId=localStorage.getItem('pa_region_id');
 let curUser=savedUser;
@@ -738,7 +713,7 @@ function brokerScore(b){
   if(c.some(x=>['pre-auction-bid','contract-signed','bidding'].includes(x.status)))s+=3;
   else if(c.some(x=>['pre-auction-registration','registered'].includes(x.status)))s+=2;
   if(c.some(x=>x.interest==='ready'||x.interest==='serious'))s+=2;
-  if(b.stage>=7)s+=3;else if(b.stage>=5)s+=2;else if(b.stage>=3)s+=1;
+  if(b.bd_stage>=7)s+=3;else if(b.bd_stage>=5)s+=2;else if(b.bd_stage>=3)s+=1;
   const now=Date.now(),wk=7*86400000;
   if(acts.filter(a=>new Date(a.acted_at).getTime()>now-wk).length>=3)s+=1;
   return Math.min(9,s);
@@ -763,18 +738,6 @@ async function dbPost(table,body){
 }
 async function dbPatch(table,id,body){
   const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?id=eq.'+id,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
-  if(!r.ok)throw new Error(await r.text());
-}
-async function dbDelete(table,id){
-  const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?id=eq.'+id,{method:'DELETE',headers:H});
-  if(!r.ok)throw new Error(await r.text());
-}
-async function dbDeleteWhere(table,column,value){
-  const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?'+column+'=eq.'+value,{method:'DELETE',headers:H});
-  if(!r.ok)throw new Error(await r.text());
-}
-async function dbPatchWhere(table,column,value,body){
-  const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?'+column+'=eq.'+value,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
   if(!r.ok)throw new Error(await r.text());
 }
 
@@ -961,7 +924,7 @@ async function submitNewBroker(){
   const notes=document.getElementById('nb-notes').value.trim();
   const regionId=document.getElementById('nb-region')?.value;
   const body={
-    auction_id:curAuction?curAuction.id:null,
+    auction_id:null, // BD Field brokers are region-scoped, not auction-scoped
     region_id:regionId?parseInt(regionId):null,
     name,
     agency:document.getElementById('nb-agency').value.trim(),
@@ -1107,8 +1070,7 @@ function renderBrokers(){
         +'</div>'
       +'</div>'
       +'<div class="filter-row" id="broker-filter-row"></div>'
-      +'<div style="padding:10px 16px 0;display:flex;justify-content:flex-end;gap:8px">'
-        +'<button onclick="openBulkReassign()" style="height:40px;padding:0 14px;background:var(--s2);border:1px solid var(--bd);color:var(--t2);font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer">Reassign</button>'
+      +'<div style="padding:10px 16px 0;display:flex;justify-content:flex-end">'
         +'<button onclick="openAddBroker()" style="height:40px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer">+ Add contact</button>'
       +'</div>'
       +'<div id="broker-cards"></div>'
@@ -1129,12 +1091,13 @@ function updateFilterChips(){
   const fr=document.getElementById('broker-filter-row');
   if(!fr)return;
   fr.innerHTML=''
-    +'<span class="fchip'+(!filterAssigned&&filterBdStage===null?' on':'')+'" onclick="filterAssigned=null;filterBdStage=null;renderBrokerCards();updateFilterChips()">All ('+visibleBrokers.length+')</span>'
-    +'<span class="fchip'+(filterAssigned===curUser?' on':'')+'" onclick="filterAssigned=filterAssigned===curUser?null:curUser;renderBrokerCards();updateFilterChips()">Mine ('+visibleBrokers.filter(b=>b.assigned===curUser).length+')</span>'
-    +'<span class="fchip'+(filterBdStage===4?' on':'')+'" onclick="filterBdStage=filterBdStage===4?null:4;renderBrokerCards();updateFilterChips()">Pitched</span>'
-    +'<span class="fchip'+(filterBdStage===6?' on':'')+'" onclick="filterBdStage=filterBdStage===6?null:6;renderBrokerCards();updateFilterChips()">Mandate confirmed</span>'
-    +'<span class="fchip'+(filterBdStage===8?' on':'')+'" onclick="filterBdStage=filterBdStage===8?null:8;renderBrokerCards();updateFilterChips()">Addendum sent</span>'
-    +'<span class="fchip'+(filterBdStage===9?' on':'')+'" onclick="filterBdStage=filterBdStage===9?null:9;renderBrokerCards();updateFilterChips()">Signed</span>';
+    +'<span class="fchip'+(!filterAssigned&&filterBdStage===null&&!filterNoRegion?' on':'')+'" onclick="filterAssigned=null;filterBdStage=null;filterNoRegion=false;renderBrokerCards();updateFilterChips()">All ('+visibleBrokers.length+')</span>'
+    +'<span class="fchip'+(filterAssigned===curUser?' on':'')+'" onclick="filterAssigned=filterAssigned===curUser?null:curUser;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Mine ('+visibleBrokers.filter(b=>b.assigned===curUser).length+')</span>'
+    +'<span class="fchip'+(filterBdStage===4?' on':'')+'" onclick="filterBdStage=filterBdStage===4?null:4;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Pitched</span>'
+    +'<span class="fchip'+(filterBdStage===6?' on':'')+'" onclick="filterBdStage=filterBdStage===6?null:6;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Mandate confirmed</span>'
+    +'<span class="fchip'+(filterBdStage===8?' on':'')+'" onclick="filterBdStage=filterBdStage===8?null:8;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Addendum sent</span>'
+    +'<span class="fchip'+(filterBdStage===9?' on':'')+'" onclick="filterBdStage=filterBdStage===9?null:9;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Signed</span>'
+    +(visibleBrokers.filter(b=>!b.region_id).length>0?'<span class="fchip'+(filterNoRegion?' on':'')+'" style="'+(filterNoRegion?'':'border-color:var(--red-bd);color:var(--red);')+'" onclick="filterNoRegion=!filterNoRegion;filterAssigned=null;filterBdStage=null;renderBrokerCards();updateFilterChips()">⚠ No region ('+visibleBrokers.filter(b=>!b.region_id).length+')</span>':'');
 }
 
 function renderBrokerCards(){
@@ -1145,6 +1108,7 @@ function renderBrokerCards(){
     if(curRegion&&b.region_id!==curRegion.id)return false;
     if(filterAssigned&&b.assigned!==filterAssigned)return false;
     if(filterBdStage!==null&&b.bd_stage!==filterBdStage)return false;
+    if(filterNoRegion&&b.region_id)return false;
     if(filterQ){const q=filterQ.toLowerCase();if(!(b.name+b.agency+(b.area||'')).toLowerCase().includes(q))return false;}
     return true;
   });
@@ -1162,6 +1126,9 @@ function renderBrokerCards(){
       const mom=momentum(b),na=naStatus(b),nxt=nextAct(b);
       const addBadge=b.bd_addendum&&b.bd_addendum!==''
         ?'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:4px;background:'+(b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)')+';color:'+(b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)')+'">'+ADDENDUM_STATUS[b.bd_addendum]+'</span>'
+        :'';
+      const noRegionBadge=!b.region_id
+        ?'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:4px;background:var(--red-bg);color:var(--red)">⚠ No region</span>'
         :'';
       const propLine=b.bd_property
         ?'<div style="font-size:13px;color:var(--gold);font-weight:500;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">&#x2302; '+esc(b.bd_property)+(b.bd_value?' &middot; '+esc(b.bd_value):'')+'</div>'
@@ -1181,6 +1148,7 @@ function renderBrokerCards(){
         +'<div class="broker-right">'
           +'<span class="stg-pill '+(SCLS[b.bd_stage]||'s1')+'">'+(STAGES[b.bd_stage]||'--')+'</span>'
           +addBadge
+          +noRegionBadge
           +naLine
         +'</div>'
         +'</div>';
@@ -1328,25 +1296,6 @@ function closeDetail(){
   selBroker=null;
 }
 
-async function deleteBroker(){
-  const b=selBroker;if(!b)return;
-  if(!isOnline){toast('Connect to the internet to delete a contact');return;}
-  const ok=confirm('Delete '+b.name+'?\n\nThis permanently removes the contact along with its activity history and linked clients. This cannot be undone.');
-  if(!ok)return;
-  try{
-    await dbDeleteWhere('broker_activities','broker_id',b.id);
-    await dbDeleteWhere('clients','broker_id',b.id);
-    await dbDelete('brokers',b.id);
-    brokers=brokers.filter(x=>x.id!==b.id);
-    closeDetail();
-    renderBrokerCards();
-    if(curTab==='today')renderToday();
-    renderCal();
-    updateOverdueDot();
-    toast('Contact deleted',true);
-  }catch(e){toast('Error: '+e.message);}
-}
-
 function openEditContact(){
   const b=selBroker;if(!b)return;
   document.getElementById('edit-contact-sub').textContent=b.name;
@@ -1396,47 +1345,6 @@ async function submitEditContact(){
     toast('Contact updated ✓',true);
     renderBrokerCards();
     buildRegionSelector();
-  }catch(e){toast('Error: '+e.message);}
-}
-
-function openBulkReassign(){
-  if(!regions.length){toast('No regions set up yet');return;}
-  const regSel=document.getElementById('bulk-region');
-  regSel.innerHTML=regions.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
-  if(curRegion)regSel.value=curRegion.id;
-  const memSel=document.getElementById('bulk-member');
-  memSel.innerHTML=TEAM.map(m=>`<option value="${m}">${m}</option>`).join('');
-  updateBulkReassignCount();
-  document.getElementById('bulk-reassign-sheet').classList.add('open');
-}
-
-function closeBulkReassign(){
-  document.getElementById('bulk-reassign-sheet').classList.remove('open');
-}
-
-function updateBulkReassignCount(){
-  const regionId=parseInt(document.getElementById('bulk-region').value);
-  const count=brokers.filter(b=>b.region_id===regionId).length;
-  document.getElementById('bulk-reassign-count').textContent=count+' contact'+(count!==1?'s':'')+' in this region right now';
-}
-
-async function submitBulkReassign(){
-  const regionId=parseInt(document.getElementById('bulk-region').value);
-  const member=document.getElementById('bulk-member').value;
-  if(!regionId||!member)return;
-  if(!isOnline){toast('Connect to the internet to do a bulk reassign');return;}
-  const targets=brokers.filter(b=>b.region_id===regionId);
-  if(!targets.length){toast('No contacts in that region');return;}
-  const regionName=regions.find(r=>r.id===regionId)?.name||'this region';
-  const ok=confirm('Reassign '+targets.length+' contact'+(targets.length!==1?'s':'')+' in '+regionName+' to '+member+'?');
-  if(!ok)return;
-  try{
-    await dbPatchWhere('brokers','region_id',regionId,{assigned:member});
-    targets.forEach(b=>b.assigned=member);
-    closeBulkReassign();
-    renderBrokerCards();
-    if(curTab==='today')renderToday();
-    toast('Reassigned '+targets.length+' contact'+(targets.length!==1?'s':'')+' to '+member,true);
   }catch(e){toast('Error: '+e.message);}
 }
 
