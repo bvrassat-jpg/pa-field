@@ -751,6 +751,71 @@ async function dbPatch(table,id,body){
   if(!r.ok)throw new Error(await r.text());
 }
 
+// ── BACKUP / RESTORE — mirrors the CRM's exact format (same table list,
+// same JSON shape) so a backup taken from either app can be restored
+// through either app. Whole-database snapshot, not BD-specific — these
+// apps share one Supabase project, so "backup" means the same thing here
+// as it does on the CRM side.
+const BACKUP_TABLES=['regions','auctions','agencies','brokers','broker_auction_activations','auction_activities','broker_interactions','clients','client_milestones'];
+async function dbUpsert(table,rows){
+  const r=await fetch(SUPA_URL+'/rest/v1/'+table,{method:'POST',headers:{...H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)});
+  if(!r.ok)throw new Error(await r.text());
+}
+async function fetchAllForBackup(){
+  const data={};
+  for(const t of BACKUP_TABLES){
+    try{data[t]=await dbGet(t,'select=*')||[];}catch(e){data[t]=[];}
+  }
+  return data;
+}
+async function exportBackup(){
+  toast('Preparing backup…');
+  try{
+    const data=await fetchAllForBackup();
+    const snapshot={ts:new Date().toISOString(),version:'v4',data};
+    const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const ts=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+    a.href=url;a.download='primecrm_v4_backup_'+ts+'.json';
+    document.body.appendChild(a);a.click();a.remove();
+    URL.revokeObjectURL(url);
+    toast('Backup downloaded',true);
+  }catch(e){toast('Backup failed: '+e.message);}
+}
+function restoreBackup(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    let snapshot;
+    try{snapshot=JSON.parse(e.target.result);}catch(err){toast('Invalid backup file');input.value='';return;}
+    if(!snapshot.data){toast('Invalid backup file: no data found');input.value='';return;}
+    const order=BACKUP_TABLES;
+    const counts=order.map(t=>t+': '+(snapshot.data[t]||[]).length).join('\n');
+    const ok=confirm(
+      'RESTORE FROM BACKUP\n\n'+
+      'Backup date: '+(snapshot.ts||'unknown')+'\n\n'+
+      'This will insert or overwrite (by ID) every row below into your live database. Rows that exist now but are not in this backup will NOT be deleted.\n\n'+
+      counts+'\n\n'+
+      'This cannot be undone. Continue?'
+    );
+    if(!ok){input.value='';return;}
+    toast('Restoring…');
+    const errors=[];
+    for(const t of order){
+      const rows=snapshot.data[t];
+      if(!rows||!rows.length)continue;
+      try{await dbUpsert(t,rows);}catch(err){errors.push(t+': '+err.message);}
+    }
+    input.value='';
+    if(errors.length){toast('Restore finished with errors — see console');console.error('Restore errors:',errors);}
+    else toast('Restore complete',true);
+    await loadData();
+  };
+  reader.readAsText(file);
+}
+
 // Resolves BD's free-text agency name into a real agencies row, creating
 // one if it doesn't exist yet. Returns the agency id, or null if no name
 // was given (broker with no known agency). Note: this no longer takes a
@@ -861,6 +926,11 @@ function buildRegionSelector(){
         <div style="width:7px;height:7px;border-radius:50%;border:1.5px solid var(--t4);flex-shrink:0"></div>
         <span style="flex:1">+ New region</span>
       </div>
+    </div>
+    <div style="padding:8px 16px 4px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:600">Data</div>
+    <div style="padding:0 16px 4px;display:flex;gap:8px">
+      <button onclick="exportBackup()" style="flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer">⬇ Download backup</button>
+      <label style="flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬆ Restore<input type="file" accept=".json" style="display:none" onchange="restoreBackup(this)"></label>
     </div>`;
 }
 function toggleAuctionPicker(){
