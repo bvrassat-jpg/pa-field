@@ -677,7 +677,7 @@ let userIdx=TEAM.indexOf(curUser);if(userIdx<0)userIdx=0;
 // ── HELPERS ───────────────────────────────────────────────
 function fmt(d){if(!d)return'';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
 function today(){return new Date().toISOString().slice(0,10);}
-function esc(s){return(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/`/g,'&#96;');}
+function esc(s){return(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/`/g,'&#96;');}
 function toast(msg,gold=false){
   const el=document.getElementById('toast');
   el.textContent=msg;el.className='toast'+(gold?' gold':'')+' show';
@@ -750,15 +750,19 @@ async function dbPatch(table,id,body){
   if(!r.ok)throw new Error(await r.text());
 }
 
-// Resolves BD's free-text agency name + type into a real agencies row,
-// creating one if it doesn't exist yet. Returns the agency id, or null
-// if no name was given (broker with no known agency).
-async function findOrCreateAgency(name, type){
+// Resolves BD's free-text agency name into a real agencies row, creating
+// one if it doesn't exist yet. Returns the agency id, or null if no name
+// was given (broker with no known agency). Note: this no longer takes a
+// 'type' param — BD's contact-type dropdown (RE Agency, Notaire, etc.)
+// describes the PERSON's profession, not the agency's business structure
+// (Independent/Network/Franchise/...), so it's stored on brokers.profession
+// instead — writing it here would have silently corrupted agencies.type.
+async function findOrCreateAgency(name){
   const n=(name||'').trim();
   if(!n)return null;
-  const existing=await dbGet('agencies','name=eq.'+encodeURIComponent(n)+'&select=id&limit=1');
+  const existing=await dbGet('agencies','name=eq.'+encodeURIComponent(n)+'&deleted=is.false&select=id&limit=1');
   if(existing&&existing.length)return existing[0].id;
-  const created=await dbPost('agencies',{name:n,type:type||'RE Agency',country:'',area:'',created_by:curUser});
+  const created=await dbPost('agencies',{name:n,type:'Independent',country:'',area:'',created_by:curUser});
   return created[0].id;
 }
 
@@ -768,9 +772,9 @@ async function loadData(){
   try{
     const [regRows,aRows,bRows,actRows]=await Promise.all([
       dbGet('regions','order=name'),
-      dbGet('auctions','order=id'),
-      dbGet('brokers','select=*,agency:agencies(id,name,type)&order=last_name'),
-      dbGet('broker_interactions','order=logged_at.desc'),
+      dbGet('auctions','deleted=is.false&order=id'),
+      dbGet('brokers','select=*,agency:agencies(id,name)&deleted=is.false&order=last_name'),
+      dbGet('broker_interactions','deleted=is.false&order=logged_at.desc'),
     ]);
 
     // Regions
@@ -800,7 +804,7 @@ async function loadData(){
       id:r.id, region_id:r.region_id||null,
       name:((r.first_name||'')+' '+(r.last_name||'')).trim(),
       agency:r.agency?r.agency.name:'', _agency_id:r.agency?r.agency.id:null,
-      type:r.agency?(r.agency.type||'RE Agency'):'RE Agency',
+      type:r.profession||'RE Agency',
       area:r.area||'', country:r.country||'', phone:r.phone||'', email:r.email||'',
       assigned:r.created_by||'', stage:1, // old desktop 1-10 field, retired — never displayed
       bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
@@ -954,7 +958,7 @@ async function submitNewBroker(){
   const last_name=nameParts.slice(1).join(' ');
   try{
     loading(true);
-    const agency_id=await findOrCreateAgency(agencyName,typeVal);
+    const agency_id=await findOrCreateAgency(agencyName);
     const body={
       region_id:regionId?parseInt(regionId):null,
       first_name,last_name,
@@ -964,6 +968,8 @@ async function submitNewBroker(){
       area:document.getElementById('nb-area').value.trim(),
       country:document.getElementById('nb-country').value.trim()||'France',
       created_by:assignedVal,
+      source:'PAMob',
+      profession:typeVal,
       bd_stage:1,
       bd_property,bd_value:'',bd_addendum:'',bd_ref,
       notes
@@ -1374,7 +1380,7 @@ async function submitEditContact(){
   openDetail(b.id);
   try{
     const nameParts=name.split(' ');
-    const agency_id=await findOrCreateAgency(agencyName,typeVal);
+    const agency_id=await findOrCreateAgency(agencyName);
     b._agency_id=agency_id;
     const dbPatchBody={
       first_name:nameParts[0],
@@ -1382,6 +1388,7 @@ async function submitEditContact(){
       agency_id,
       phone:localPatch.phone, email:localPatch.email, area:localPatch.area,
       country:localPatch.country, created_by:assignedVal,
+      profession:typeVal,
       region_id:localPatch.region_id
     };
     await dbPatchQueued('brokers',b.id,dbPatchBody);
@@ -1807,18 +1814,19 @@ async function submitAuth(){
   const errEl=document.getElementById('auth-error');
   errEl.textContent='';
   if(!pw){errEl.textContent='Enter a password';return;}
+  let real='prime2026'; // fallback — matches the CRM's existing behavior exactly
   try{
-    const cfg=await dbGet('app_config','key=eq.password&select=value&limit=1');
-    const real=cfg&&cfg[0]?cfg[0].value:null;
-    if(real&&pw===real){
-      localStorage.setItem('pa_field_auth','1');
-      document.getElementById('auth-gate').style.display='none';
-      initApp();
-    } else {
-      errEl.textContent='Incorrect password';
-      document.getElementById('auth-pw').value='';
-    }
-  }catch(e){errEl.textContent='Connection error — try again';}
+    const cfg=await dbGet('app_config','key=eq.app_password&select=value&limit=1');
+    if(cfg&&cfg[0])real=cfg[0].value;
+  }catch(e){/* fall back to default, same as CRM */}
+  if(pw===real){
+    localStorage.setItem('pa_field_auth','1');
+    document.getElementById('auth-gate').style.display='none';
+    initApp();
+  } else {
+    errEl.textContent='Incorrect password';
+    document.getElementById('auth-pw').value='';
+  }
 }
 function logoutField(){
   localStorage.removeItem('pa_field_auth');
