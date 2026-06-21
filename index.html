@@ -618,9 +618,10 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22" height="22"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 </button>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ── CONFIG (same Supabase as CRM) ─────────────────────────
+// Note: no supabase-js SDK loaded — this app talks to Supabase via plain
+// fetch() against the REST API directly, the SDK was never actually used.
 const SUPA_URL='https://hzbwlqyhklwfxjbcramx.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6YndscXloa2x3ZnhqYmNyYW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDI5MjMsImV4cCI6MjA5MjUxODkyM30.3x1I5Rkz9nJYcqd6kBpAKth6hXKeBLVYQAz1qDPoTL8';
 const H={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
