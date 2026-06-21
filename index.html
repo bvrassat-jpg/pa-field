@@ -335,6 +335,14 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 </head>
 <body>
 
+<!-- AUTH GATE — shown until correct password entered, then stays hidden forever on this device -->
+<div id="auth-gate" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+  <div style="font-size:13px;font-weight:700;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:24px;">PA&middot;Mob</div>
+  <input type="password" id="auth-pw" placeholder="Password" style="width:100%;max-width:280px;padding:14px 16px;border:1px solid var(--bd);border-radius:8px;font-size:16px;font-family:'DM Sans',sans-serif;margin-bottom:12px;outline:none;" onkeydown="if(event.key==='Enter')submitAuth()">
+  <button onclick="submitAuth()" style="width:100%;max-width:280px;padding:14px;border:none;border-radius:8px;background:var(--gold);color:#fff;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Enter</button>
+  <div id="auth-error" style="color:var(--red);font-size:13px;margin-top:12px;min-height:18px;"></div>
+</div>
+
 <!-- LOADING BAR -->
 <div class="loading-bar" id="loading-bar"></div>
 <div class="offline-banner" id="offline-banner">No connection — changes will sync when back online</div>
@@ -346,6 +354,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <select id="user-select" class="user-select" onchange="onUserChange(this.value)">
       <option value="">— Who are you? —</option>
     </select>
+    <div onclick="logoutField()" title="Log out" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);font-size:13px;flex-shrink:0;">⎋</div>
     <div class="auction-chip" id="auction-chip" onclick="toggleAuctionPicker()">
       <div class="auction-dot" id="a-dot"></div>
       <span id="auction-chip-label">Loading…</span>
@@ -741,16 +750,27 @@ async function dbPatch(table,id,body){
   if(!r.ok)throw new Error(await r.text());
 }
 
+// Resolves BD's free-text agency name + type into a real agencies row,
+// creating one if it doesn't exist yet. Returns the agency id, or null
+// if no name was given (broker with no known agency).
+async function findOrCreateAgency(name, type){
+  const n=(name||'').trim();
+  if(!n)return null;
+  const existing=await dbGet('agencies','name=eq.'+encodeURIComponent(n)+'&select=id&limit=1');
+  if(existing&&existing.length)return existing[0].id;
+  const created=await dbPost('agencies',{name:n,type:type||'RE Agency',country:'',area:'',created_by:curUser});
+  return created[0].id;
+}
+
 async function loadData(){
   const btn=document.getElementById('sync-btn');
   btn.classList.add('spinning');loading(true);
   try{
-    const [regRows,aRows,bRows,actRows,cRows]=await Promise.all([
+    const [regRows,aRows,bRows,actRows]=await Promise.all([
       dbGet('regions','order=name'),
       dbGet('auctions','order=id'),
-      dbGet('brokers','order=name'),
-      dbGet('broker_activities','order=acted_at.desc'),
-      dbGet('clients','select=id,broker_id,name,interest,status,origin'),
+      dbGet('brokers','select=*,agency:agencies(id,name,type)&order=last_name'),
+      dbGet('broker_interactions','order=logged_at.desc'),
     ]);
 
     // Regions
@@ -772,14 +792,19 @@ async function loadData(){
     }
 
     // Brokers — all contacts, no filter at load time
+    // Boundary conversion: current schema uses first_name/last_name, agency_id (FK),
+    // created_by — BD's internal model keeps its original shape (name, agency, assigned)
+    // unchanged everywhere else in this file. Translation happens only here and at save time.
     const bMap={};
     brokers=bRows.map(r=>({
-      id:r.id, auction_id:r.auction_id, region_id:r.region_id||null,
-      name:r.name||'', agency:r.agency||'', type:r.type||'RE Agency',
+      id:r.id, region_id:r.region_id||null,
+      name:((r.first_name||'')+' '+(r.last_name||'')).trim(),
+      agency:r.agency?r.agency.name:'', _agency_id:r.agency?r.agency.id:null,
+      type:r.agency?(r.agency.type||'RE Agency'):'RE Agency',
       area:r.area||'', country:r.country||'', phone:r.phone||'', email:r.email||'',
-      assigned:r.assigned||'', stage:r.stage!=null?Number(r.stage):1,
+      assigned:r.created_by||'', stage:1, // old desktop 1-10 field, retired — never displayed
       bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
-      notes:r.notes||'', activities:[], clients:[],
+      notes:r.notes||'', activities:[], clients:Array.isArray(r.bd_prospects)?r.bd_prospects:[],
       bd_property:r.bd_property||'', bd_value:r.bd_value||'',
       bd_addendum:r.bd_addendum||'', bd_ref:r.bd_ref||''
     }));
@@ -787,14 +812,12 @@ async function loadData(){
     actRows.forEach(a=>{
       if(bMap[a.broker_id])bMap[a.broker_id].activities.push({
         id:a.id,type:a.type||'',notes:a.notes||'',planned:!!a.planned,
-        acted_at:a.acted_at||'',auction_id:a.auction_id
+        acted_at:a.logged_at||'',auction_id:a.auction_id
       });
     });
-    cRows.forEach(c=>{
-      if(c.broker_id&&bMap[c.broker_id])bMap[c.broker_id].clients.push({
-        id:c.id,name:c.name||'',interest:c.interest||'',status:c.status||'aware',origin:c.origin||''
-      });
-    });
+    // Note: broker.clients (BD's lightweight prospect mentions) is populated
+    // directly from each broker row's bd_prospects field above — no separate
+    // query needed, and deliberately not joined to the CRM's clients table.
 
     renderCurrentTab();
     updateOverdueDot();
@@ -923,25 +946,32 @@ async function submitNewBroker(){
   const bd_ref=document.getElementById('nb-ref').value.trim();
   const notes=document.getElementById('nb-notes').value.trim();
   const regionId=document.getElementById('nb-region')?.value;
-  const body={
-    auction_id:null, // BD Field brokers are region-scoped, not auction-scoped
-    region_id:regionId?parseInt(regionId):null,
-    name,
-    agency:document.getElementById('nb-agency').value.trim(),
-    phone:document.getElementById('nb-phone').value.trim(),
-    email:document.getElementById('nb-email').value.trim(),
-    area:document.getElementById('nb-area').value.trim(),
-    country:document.getElementById('nb-country').value.trim()||'France',
-    type:document.getElementById('nb-type').value,
-    assigned:document.getElementById('nb-assigned').value,
-    stage:1,bd_stage:1,
-    bd_property,bd_value:'',bd_addendum:'',bd_ref,
-    notes
-  };
+  const agencyName=document.getElementById('nb-agency').value.trim();
+  const typeVal=document.getElementById('nb-type').value;
+  const assignedVal=document.getElementById('nb-assigned').value;
+  const nameParts=name.split(' ');
+  const first_name=nameParts[0];
+  const last_name=nameParts.slice(1).join(' ');
   try{
     loading(true);
+    const agency_id=await findOrCreateAgency(agencyName,typeVal);
+    const body={
+      region_id:regionId?parseInt(regionId):null,
+      first_name,last_name,
+      agency_id,
+      phone:document.getElementById('nb-phone').value.trim(),
+      email:document.getElementById('nb-email').value.trim(),
+      area:document.getElementById('nb-area').value.trim(),
+      country:document.getElementById('nb-country').value.trim()||'France',
+      created_by:assignedVal,
+      bd_stage:1,
+      bd_property,bd_value:'',bd_addendum:'',bd_ref,
+      notes
+    };
     const rows=await dbPostQueued('brokers',body);
     const newB={...rows[0],activities:[],clients:[],
+      name, agency:agencyName, _agency_id:agency_id, type:typeVal,
+      assigned:assignedVal, stage:1,
       region_id:body.region_id,
       bd_property,bd_value:'',bd_addendum:'',bd_ref,
       notes};
@@ -1324,24 +1354,37 @@ async function submitEditContact(){
   const b=selBroker;if(!b)return;
   const name=document.getElementById('ec-name').value.trim();
   if(!name){toast('Name is required');return;}
-  const patch={
-    name,
-    agency:document.getElementById('ec-agency').value.trim(),
+  const agencyName=document.getElementById('ec-agency').value.trim();
+  const typeVal=document.getElementById('ec-type').value;
+  const assignedVal=document.getElementById('ec-assigned').value;
+  const regionVal=document.getElementById('ec-region').value;
+  const localPatch={
+    name, agency:agencyName, type:typeVal,
     phone:document.getElementById('ec-phone').value.trim(),
     email:document.getElementById('ec-email').value.trim(),
     area:document.getElementById('ec-area').value.trim(),
     country:document.getElementById('ec-country').value.trim(),
-    type:document.getElementById('ec-type').value,
-    assigned:document.getElementById('ec-assigned').value,
-    region_id:document.getElementById('ec-region').value?parseInt(document.getElementById('ec-region').value):null
+    assigned:assignedVal,
+    region_id:regionVal?parseInt(regionVal):null
   };
-  // Update local state
-  Object.assign(b,patch);
+  // Update local state immediately (optimistic)
+  Object.assign(b,localPatch);
   closeEditContact();
   // Refresh detail view
   openDetail(b.id);
   try{
-    await dbPatchQueued('brokers',b.id,patch);
+    const nameParts=name.split(' ');
+    const agency_id=await findOrCreateAgency(agencyName,typeVal);
+    b._agency_id=agency_id;
+    const dbPatchBody={
+      first_name:nameParts[0],
+      last_name:nameParts.slice(1).join(' '),
+      agency_id,
+      phone:localPatch.phone, email:localPatch.email, area:localPatch.area,
+      country:localPatch.country, created_by:assignedVal,
+      region_id:localPatch.region_id
+    };
+    await dbPatchQueued('brokers',b.id,dbPatchBody);
     toast('Contact updated ✓',true);
     renderBrokerCards();
     buildRegionSelector();
@@ -1494,25 +1537,25 @@ async function submitLog(){
   if(!brokerId||!date){toast('Select contact et une date');return;}
 
   const dossierSel=document.getElementById('log-dossier');
-  const auctionId=dossierSel&&dossierSel.value?parseInt(dossierSel.value):null;
+  const auctionId=dossierSel&&dossierSel.value?dossierSel.value:null; // uuid string, not parsed
 
-  const body={broker_id:brokerId,auction_id:auctionId,type:logType,notes,planned:logPlanned,acted_at:date};
+  const body={broker_id:brokerId,auction_id:auctionId,type:logType,notes,planned:logPlanned,logged_at:date};
   try{
     loading(true);
-    const rows=await dbPostQueued('broker_activities',body);
+    const rows=await dbPostQueued('broker_interactions',body);
     const newAct=rows[0];
     const b=brokers.find(x=>x.id===brokerId);
-    if(b&&newAct)b.activities.unshift({...newAct});
+    if(b&&newAct)b.activities.unshift({...newAct,acted_at:newAct.logged_at});
 
     // Create follow-up reminder if requested
     if(logReminderDays>0){
       const remDate=new Date(date);
       remDate.setDate(remDate.getDate()+logReminderDays);
       const remDateStr=remDate.toISOString().slice(0,10);
-      const remBody={broker_id:brokerId,auction_id:auctionId,type:'Call',notes:'Follow-up',planned:true,acted_at:remDateStr};
+      const remBody={broker_id:brokerId,auction_id:auctionId,type:'Call',notes:'Follow-up',planned:true,logged_at:remDateStr};
       try{
-        const remRows=await dbPostQueued('broker_activities',remBody);
-        if(b&&remRows[0])b.activities.unshift({...remRows[0]});
+        const remRows=await dbPostQueued('broker_interactions',remBody);
+        if(b&&remRows[0])b.activities.unshift({...remRows[0],acted_at:remRows[0].logged_at});
       }catch(e){/* non-fatal */}
     }
 
@@ -1680,7 +1723,7 @@ async function markActDone(actId,brokerId){
   const act=b.activities.find(a=>a.id===actId);if(!act)return;
   act.planned=false;
   try{
-    await dbPatchQueued('broker_activities',actId,{planned:false});
+    await dbPatchQueued('broker_interactions',actId,{planned:false});
     toast('Marked done ✓',true);
     updateOverdueDot();
     renderCal();
@@ -1752,12 +1795,41 @@ async function dbPatchQueued(table, id, body){
 }
 
 // ── INIT ─────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded',()=>{
+function initApp(){
   buildUserSelect();
   loadData();
   document.getElementById('view-today').style.display='block';
   document.getElementById('view-brokers').style.display='none';
   document.getElementById('view-cal').style.display='none';
+}
+async function submitAuth(){
+  const pw=document.getElementById('auth-pw').value;
+  const errEl=document.getElementById('auth-error');
+  errEl.textContent='';
+  if(!pw){errEl.textContent='Enter a password';return;}
+  try{
+    const cfg=await dbGet('app_config','key=eq.password&select=value&limit=1');
+    const real=cfg&&cfg[0]?cfg[0].value:null;
+    if(real&&pw===real){
+      localStorage.setItem('pa_field_auth','1');
+      document.getElementById('auth-gate').style.display='none';
+      initApp();
+    } else {
+      errEl.textContent='Incorrect password';
+      document.getElementById('auth-pw').value='';
+    }
+  }catch(e){errEl.textContent='Connection error — try again';}
+}
+function logoutField(){
+  localStorage.removeItem('pa_field_auth');
+  location.reload();
+}
+window.addEventListener('DOMContentLoaded',()=>{
+  if(localStorage.getItem('pa_field_auth')==='1'){
+    document.getElementById('auth-gate').style.display='none';
+    initApp();
+  }
+  // else: gate stays visible (default), waiting for submitAuth()
 });
 </script>
 </body>
