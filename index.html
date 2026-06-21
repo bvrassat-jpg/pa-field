@@ -850,7 +850,7 @@ function buildRegionSelector(){
     </div>
     ${regions.map(r=>{
       const count=brokers.filter(b=>b.region_id===r.id).length;
-      return`<div class="auction-picker-item${curRegion&&curRegion.id===r.id?' active':''}" onclick="selectRegion(${r.id})">
+      return`<div class="auction-picker-item${curRegion&&curRegion.id===r.id?' active':''}" onclick="selectRegion('${r.id}')">
         <div class="auction-dot dot-active"></div>
         <span style="flex:1">${esc(r.name)}</span>
         <span style="font-size:11px;color:var(--t3)">${count}</span>
@@ -872,7 +872,7 @@ function closeAuctionPicker(){
   if(p)p.classList.remove('open');
 }
 function selectRegion(id){
-  curRegion=id?regions.find(r=>r.id===id)||null:null;
+  curRegion=id?regions.find(r=>String(r.id)===String(id))||null:null;
   if(curRegion)localStorage.setItem('pa_region_id',curRegion.id);
   else localStorage.removeItem('pa_region_id');
   buildRegionSelector();
@@ -1044,7 +1044,7 @@ function renderToday(){
     withActions.forEach(b=>{
       const na=nextAct(b),s=naStatus(b);
       const aType=ACT_TYPES.find(t=>t.key===(na&&na.type?na.type:''))||ACT_TYPES[8];
-      actionsHtml+='<div class="act-card '+(s==='overdue'?'overdue':s==='today'?'today':'')+'" onclick="openDetail('+b.id+')">'
+      actionsHtml+='<div class="act-card '+(s==='overdue'?'overdue':s==='today'?'today':'')+'" onclick="openDetail(\''+b.id+'\')">'
         +'<div class="act-icon '+aType.css+'">'+actIcon(na&&na.type?na.type:'Other')+'</div>'
         +'<div class="act-info">'
           +'<div class="act-broker">'+esc(b.name)+'</div>'
@@ -1064,7 +1064,7 @@ function renderToday(){
   let recentHtml='';
   if(myActs.length){
     myActs.forEach(a=>{
-      recentHtml+='<div class="act-card done" onclick="openDetail('+a.brokerId+')">'
+      recentHtml+='<div class="act-card done" onclick="openDetail(\''+a.brokerId+'\')">'
         +'<div class="act-icon '+((ACT_TYPES.find(t=>t.key===a.type)||ACT_TYPES[8]).css)+'">'+actIcon(a.type)+'</div>'
         +'<div class="act-info">'
           +'<div class="act-broker">'+esc(a.brokerName)+'</div>'
@@ -1175,7 +1175,7 @@ function renderBrokerCards(){
         :'';
       const sc=b.bd_addendum==='signed'?'sc-h':b.bd_addendum&&b.bd_addendum!==''?'sc-w':'sc-c';
       const sl=b.bd_addendum==='signed'?'Sgnd':b.bd_addendum==='sent'?'Sent':b.bd_addendum==='draft'?'Drft':b.bd_addendum==='vendor_review'?'Vndr':b.bd_addendum==='blocked'?'Blkd':'New';
-      html+='<div class="broker-card '+(mom==='hot'?'hot':mom==='warm'?'warm':'')+'" onclick="openDetail('+b.id+')">'
+      html+='<div class="broker-card '+(mom==='hot'?'hot':mom==='warm'?'warm':'')+'" onclick="openDetail(\''+b.id+'\')">'
         +'<div class="broker-score '+sc+'" style="font-size:11px;text-align:center;line-height:1.2">'+sl+'</div>'
         +'<div class="broker-info">'
           +'<div class="broker-name">'+esc(b.name)+'</div>'
@@ -1198,7 +1198,7 @@ function renderBrokerCards(){
 
 
 function openDetail(brokerId){
-  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
+  const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
   selBroker=b;
   document.getElementById('detail-title').textContent=b.name;
   document.getElementById('detail-hero').innerHTML=`
@@ -1236,7 +1236,7 @@ function openDetail(brokerId){
       <div class="detail-row"><span class="detail-label">Type</span><span class="detail-val">${esc(b.type)}</span></div>
       <div class="detail-row" style="align-items:center">
         <span class="detail-label">Region</span>
-        <select id="detail-region" style="font-size:13px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:4px 8px;color:var(--t1);outline:none" onchange="updateBrokerRegion(${b.id},this.value)">
+        <select id="detail-region" style="font-size:13px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:4px 8px;color:var(--t1);outline:none" onchange="updateBrokerRegion('${b.id}',this.value)">
           <option value="">— None —</option>
           ${regions.map(r=>`<option value="${r.id}"${b.region_id===r.id?' selected':''}>${esc(r.name)}</option>`).join('')}
         </select>
@@ -1272,7 +1272,7 @@ function openDetail(brokerId){
     <div class="detail-section">
       <div class="detail-sec-title">BD pipeline stage</div>
       <div class="stage-grid" id="stage-grid" style="grid-template-columns:repeat(3,1fr)">
-        ${[1,2,3,4,5,6,7,8,9].map(s=>`<div class="stage-btn ${b.bd_stage===s?'on':''}" data-stage="${s}" onclick="setStage(${b.id},${s})" style="font-size:12px;padding:10px 6px">${STAGES[s]}</div>`).join('')}
+        ${[1,2,3,4,5,6,7,8,9].map(s=>`<div class="stage-btn ${b.bd_stage===s?'on':''}" data-stage="${s}" onclick="setStage('${b.id}',${s})" style="font-size:12px;padding:10px 6px">${STAGES[s]}</div>`).join('')}
       </div>
     </div>
 
@@ -1312,7 +1312,7 @@ function openDetail(brokerId){
     <div class="detail-section">
       <div class="detail-sec-title">Field notes</div>
       <textarea class="notes-area" id="broker-notes" placeholder="Vendor situation, competition, objections...">${esc(b.notes)}</textarea>
-      <button class="save-notes-btn" onclick="saveBdMeta(${b.id})">Save</button>
+      <button class="save-notes-btn" onclick="saveBdMeta('${b.id}')">Save</button>
     </div>
     <div style="height:24px"></div>
   `;
@@ -1400,7 +1400,7 @@ async function submitEditContact(){
 }
 
 async function setStage(brokerId,stage){
-  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
+  const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
   b.bd_stage=stage;
   // Update stage grid UI immediately
   document.querySelectorAll('#stage-grid .stage-btn').forEach(el=>{el.classList.toggle('on',parseInt(el.dataset.stage)===stage);});
@@ -1414,7 +1414,7 @@ async function setStage(brokerId,stage){
 }
 
 async function saveBdMeta(brokerId){
-  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
+  const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
   b.bd_property=document.getElementById('bd-property').value.trim();
   b.bd_value=document.getElementById('bd-value').value.trim();
   b.bd_addendum=document.getElementById('bd-addendum').value;
@@ -1433,7 +1433,7 @@ async function saveBdMeta(brokerId){
 }
 
 async function updateBrokerRegion(brokerId, regionIdStr){
-  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
+  const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
   const regionId=regionIdStr?parseInt(regionIdStr):null;
   b.region_id=regionId;
   try{
@@ -1517,14 +1517,14 @@ function openLogSheet(brokerId=null){
   sel.innerHTML=poolBrokers.map(b=>`<option value="${b.id}"${b.id===brokerId?' selected':''}>${esc(b.name)}${b.agency?' ('+esc(b.agency)+')':''}</option>`).join('');
 
   if(brokerId){
-    const b=brokers.find(x=>x.id===brokerId);
+    const b=brokers.find(x=>String(x.id)===String(brokerId));
     nameEl.textContent=b?b.name:'';
     if(pickerWrap)pickerWrap.style.display='none';
   } else {
     nameEl.textContent='Select contact';
     if(pickerWrap)pickerWrap.style.display='';
     sel.onchange=function(){
-      const b=brokers.find(x=>x.id===parseInt(this.value));
+      const b=brokers.find(x=>String(x.id)===String(this.value));
       nameEl.textContent=b?b.name:'Select contact';
     };
   }
@@ -1539,7 +1539,7 @@ function closeLogSheet(){
 }
 
 async function submitLog(){
-  const brokerId=parseInt(document.getElementById('log-broker').value);
+  const brokerId=document.getElementById('log-broker').value;
   const date=document.getElementById('log-date').value;
   const notes=document.getElementById('log-notes').value;
   if(!brokerId||!date){toast('Select contact et une date');return;}
@@ -1552,7 +1552,7 @@ async function submitLog(){
     loading(true);
     const rows=await dbPostQueued('broker_interactions',body);
     const newAct=rows[0];
-    const b=brokers.find(x=>x.id===brokerId);
+    const b=brokers.find(x=>String(x.id)===String(brokerId));
     if(b&&newAct)b.activities.unshift({...newAct,acted_at:newAct.logged_at});
 
     // Create follow-up reminder if requested
@@ -1696,13 +1696,13 @@ function renderDayDetail(ds,evMap){
   const label=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
   const evHtml=evs.length?evs.map(ev=>`
-    <div class="cal-ev-item" onclick="${ev.kind==='broker'?'openDetail('+ev.broker.id+')':''}">
+    <div class="cal-ev-item" onclick="${ev.kind==='broker'?'openDetail(\''+ev.broker.id+'\')':''}">
       <div class="cal-ev-dot" style="background:${ev.color}"></div>
       <div class="cal-ev-info">
         <div class="cal-ev-title">${esc(ev.title)}</div>
         ${ev.sub?`<div class="cal-ev-sub">${esc(ev.sub)}</div>`:''}
       </div>
-      ${ev.kind==='broker'?`<span onclick="event.stopPropagation();markActDone(${ev.act.id},${ev.broker.id})" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;flex-shrink:0">✓</span>`:''}
+      ${ev.kind==='broker'?`<span onclick="event.stopPropagation();markActDone('${ev.act.id}','${ev.broker.id}')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;flex-shrink:0">✓</span>`:''}
     </div>
   `).join(''):`<div style="padding:20px 16px;font-size:12px;color:var(--t4)">Nothing scheduled</div>`;
 
@@ -1727,8 +1727,8 @@ function openLogSheetForDate(ds){
 
 async function markActDone(actId,brokerId){
   // Find activity and mark planned=false
-  const b=brokers.find(x=>x.id===brokerId);if(!b)return;
-  const act=b.activities.find(a=>a.id===actId);if(!act)return;
+  const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
+  const act=b.activities.find(a=>String(a.id)===String(actId));if(!act)return;
   act.planned=false;
   try{
     await dbPatchQueued('broker_interactions',actId,{planned:false});
