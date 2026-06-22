@@ -464,6 +464,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   <div class="detail-topbar">
     <div class="back-btn" onclick="closeDetail()">←</div>
     <div class="detail-title" id="detail-title">Contact</div>
+    <button onclick="confirmDeleteBroker()" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--red-bd);background:var(--red-bg);color:var(--red);display:flex;align-items:center;justify-content:justify-content;cursor:pointer;flex-shrink:0;margin-right:4px;align-items:center;justify-content:center" title="Delete contact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
     <button onclick="openEditContact()" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:6px" title="Edit contact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
     <button class="log-fab" onclick="openLogForBroker()">+ Log</button>
   </div>
@@ -681,7 +682,11 @@ function today(){return new Date().toISOString().slice(0,10);}
 function esc(s){return(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/`/g,'&#96;');}
 function toast(msg,gold=false){
   const el=document.getElementById('toast');
-  el.textContent=msg;el.className='toast'+(gold?' gold':'')+' show';
+  let display=String(msg);
+  if(display.startsWith('Error: {')||display.startsWith('{')){
+    try{const j=JSON.parse(display.replace(/^Error: /,''));display='Error: '+(j.message||j.hint||j.code||display.slice(0,80));}catch(e){display=display.slice(0,100);}
+  } else if(display.length>120){display=display.slice(0,117)+'…';}
+  el.textContent=display;el.className='toast'+(gold?' gold':'')+' show';
   clearTimeout(el._t);el._t=setTimeout(()=>el.className='toast',2200);
 }
 function loading(on){
@@ -1124,6 +1129,7 @@ function renderToday(){
         +'<div class="act-right">'
           +'<span class="act-tag '+(s==='overdue'?'tag-ov':s==='today'?'tag-td':'tag-pl')+'">'+(s==='overdue'?'Overdue':s==='today'?'Today':'Soon')+'</span>'
           +'<span class="act-date">'+(na?fmt(na.acted_at):'')+'</span>'
+          +(na?'<span onclick="event.stopPropagation();markActDone(\''+na.id+'\',\''+b.id+'\')" style="margin-top:4px;font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;white-space:nowrap">✓ Done</span>':'')
         +'</div>'
         +'</div>';
     });
@@ -1353,10 +1359,12 @@ function openDetail(brokerId){
     <div class="detail-section">
       <div class="detail-sec-title">Planned actions (${planned.length})</div>
       ${planned.map(a=>`
-        <div class="act-item planned-item">
+        <div class="act-item planned-item" style="position:relative">
           <div class="act-item-top">
             <span class="act-item-type">${actIcon(a.type)} ${esc(a.type)}</span>
             <span class="act-item-badge badge-planned">Planned</span>
+            <span onclick="event.stopPropagation();markActDone('${a.id}','${b.id}')" style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;flex-shrink:0">✓ Done</span>
+            <span onclick="event.stopPropagation();deleteActivity('${a.id}','${b.id}')" style="margin-left:6px;font-size:14px;color:var(--t4);cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid var(--bd);background:var(--s2)" title="Delete">×</span>
           </div>
           <div class="act-item-date">${fmt(a.acted_at)}</div>
           ${a.notes?`<div class="act-item-notes">${esc(a.notes)}</div>`:''}
@@ -1368,10 +1376,11 @@ function openDetail(brokerId){
     <div class="detail-section">
       <div class="detail-sec-title">Activity log</div>
       ${done.length?done.map(a=>`
-        <div class="act-item">
+        <div class="act-item" style="position:relative">
           <div class="act-item-top">
             <span class="act-item-type">${actIcon(a.type)} ${esc(a.type)}</span>
             <span class="act-item-date">${fmt(a.acted_at)}</span>
+            <span onclick="event.stopPropagation();deleteActivity('${a.id}','${b.id}')" style="margin-left:auto;font-size:14px;color:var(--t4);cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid var(--bd);background:var(--s2)" title="Delete">×</span>
           </div>
           ${a.notes?`<div class="act-item-notes">${esc(a.notes)}</div>`:''}
         </div>
@@ -1381,8 +1390,8 @@ function openDetail(brokerId){
     <!-- Notes + save all -->
     <div class="detail-section">
       <div class="detail-sec-title">Field notes</div>
-      <textarea class="notes-area" id="broker-notes" placeholder="Vendor situation, competition, objections...">${esc(b.notes)}</textarea>
-      <button class="save-notes-btn" onclick="saveBdMeta('${b.id}')">Save</button>
+      <textarea class="notes-area" id="broker-notes" placeholder="Vendor situation, competition, objections..." oninput="scheduleNotesSave('${b.id}')">${esc(b.notes)}</textarea>
+      <button class="save-notes-btn" onclick="saveBdMeta('${b.id}')">Save all</button>
     </div>
     <div style="height:24px"></div>
   `;
@@ -1401,6 +1410,37 @@ function openDetail(brokerId){
 function closeDetail(){
   document.getElementById('detail-sheet').classList.remove('open');
   selBroker=null;
+}
+
+async function confirmDeleteBroker(){
+  if(!selBroker)return;
+  if(!confirm('Delete "'+selBroker.name+'"?\n\nThis removes them from the contact book. Their activity history will be soft-deleted. This cannot be undone.'))return;
+  const b=selBroker;
+  try{
+    await dbPatchQueued('brokers',b.id,{deleted:true,deleted_at:new Date().toISOString()});
+    brokers=brokers.filter(x=>x.id!==b.id);
+    closeDetail();
+    toast(b.name+' deleted',false);
+    renderCurrentTab();
+    buildRegionSelector();
+  }catch(e){toast('Error: '+e.message);}
+}
+
+// Auto-save notes with debounce so navigating away never loses work
+let _notesSaveTimer=null;
+function scheduleNotesSave(brokerId){
+  clearTimeout(_notesSaveTimer);
+  _notesSaveTimer=setTimeout(async()=>{
+    const el=document.getElementById('broker-notes');
+    if(!el)return;
+    const b=brokers.find(x=>String(x.id)===String(brokerId));
+    if(!b)return;
+    b.notes=el.value;
+    try{
+      await dbPatchQueued('brokers',brokerId,{notes:b.notes});
+      // subtle success — no toast for auto-save
+    }catch(e){toast('Notes save failed: '+e.message);}
+  },1200);
 }
 
 function openEditContact(){
@@ -1668,7 +1708,8 @@ function renderCal(){
 
   const now=new Date();now.setHours(0,0,0,0);
 
-  brokers.forEach(b=>{
+  const calBrokers=curRegion?brokers.filter(b=>b.region_id===curRegion.id):brokers;
+  calBrokers.forEach(b=>{
     (b.activities||[]).filter(a=>a.planned).forEach(a=>{
       const d=new Date(a.acted_at);
       const ds=a.acted_at.slice(0,10);
@@ -1796,7 +1837,6 @@ function openLogSheetForDate(ds){
 }
 
 async function markActDone(actId,brokerId){
-  // Find activity and mark planned=false
   const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
   const act=b.activities.find(a=>String(a.id)===String(actId));if(!act)return;
   act.planned=false;
@@ -1806,6 +1846,19 @@ async function markActDone(actId,brokerId){
     updateOverdueDot();
     renderCal();
     if(curTab==='today')renderToday();
+    if(selBroker&&String(selBroker.id)===String(brokerId))openDetail(brokerId);
+  }catch(e){toast('Error: '+e.message);}
+}
+
+async function deleteActivity(actId,brokerId){
+  const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
+  b.activities=b.activities.filter(a=>String(a.id)!==String(actId));
+  try{
+    await dbPatchQueued('broker_interactions',actId,{deleted:true,deleted_at:new Date().toISOString()});
+    toast('Entry deleted',false);
+    updateOverdueDot();
+    if(curTab==='today')renderToday();
+    if(selBroker&&String(selBroker.id)===String(brokerId))openDetail(brokerId);
   }catch(e){toast('Error: '+e.message);}
 }
 
