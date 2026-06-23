@@ -1022,10 +1022,11 @@ function closeAddBroker(){
 async function submitNewBroker(){
   const name=document.getElementById('nb-name').value.trim();
   if(!name){toast('Name is required');return;}
+  const regionId=document.getElementById('nb-region')?.value;
+  if(!regionId){toast('Please select a region');return;}
   const bd_property=document.getElementById('nb-property').value.trim();
   const bd_ref=document.getElementById('nb-ref').value.trim();
   const notes=document.getElementById('nb-notes').value.trim();
-  const regionId=document.getElementById('nb-region')?.value;
   const agencyName=document.getElementById('nb-agency').value.trim();
   const typeVal=document.getElementById('nb-type').value;
   const assignedVal=document.getElementById('nb-assigned').value;
