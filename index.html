@@ -910,7 +910,7 @@ function buildRegionSelector(){
   }
   const list=document.getElementById('auction-picker-list');
   if(!list)return;
-  const allCount=brokers.length;
+  const allCount=brokers.filter(b=>b.region_id).length;
   list.innerHTML=`
     <div style="padding:8px 16px 4px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:600">Region</div>
     <div class="auction-picker-item${!curRegion?' active':''}" onclick="selectRegion(null)">
