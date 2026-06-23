@@ -484,8 +484,12 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <div class="sheet-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="fg" style="margin:0 0 10px">
-          <div class="fg-l">Name *</div>
-          <input class="fi" id="nb-name" placeholder="Full name">
+          <div class="fg-l">First name *</div>
+          <input class="fi" id="nb-firstname" placeholder="First name">
+        </div>
+        <div class="fg" style="margin:0 0 10px">
+          <div class="fg-l">Last name *</div>
+          <input class="fi" id="nb-lastname" placeholder="Last name">
         </div>
         <div class="fg" style="margin:0 0 10px">
           <div class="fg-l">Agency / Property</div>
@@ -854,7 +858,7 @@ async function loadData(){
     if(!curRegion&&savedRegionId){
       curRegion=regions.find(r=>r.id===parseInt(savedRegionId))||null;
     }
-    buildRegionSelector();
+    // buildRegionSelector called after brokers load below
 
     // Auctions — kept for optional dossier tagging on activities
     const prev=curAuction?.id;
@@ -894,6 +898,7 @@ async function loadData(){
     // directly from each broker row's bd_prospects field above — no separate
     // query needed, and deliberately not joined to the CRM's clients table.
 
+    buildRegionSelector(); // called here so brokers are available for allCount
     renderCurrentTab();
     updateOverdueDot();
     toast('Synced — '+brokers.filter(b=>b.region_id).length+' contacts',true);
@@ -996,7 +1001,8 @@ function onUserChange(val){
 
 // ── ADD BROKER ────────────────────────────────────────────
 function openAddBroker(){
-  document.getElementById('nb-name').value='';
+  document.getElementById('nb-firstname').value='';
+  document.getElementById('nb-lastname').value='';
   document.getElementById('nb-agency').value='';
   document.getElementById('nb-phone').value='';
   document.getElementById('nb-email').value='';
@@ -1020,8 +1026,10 @@ function closeAddBroker(){
   document.getElementById('add-broker-sheet').classList.remove('open');
 }
 async function submitNewBroker(){
-  const name=document.getElementById('nb-name').value.trim();
-  if(!name){toast('Name is required');return;}
+  const first_name=document.getElementById('nb-firstname').value.trim();
+  const last_name=document.getElementById('nb-lastname').value.trim();
+  const name=(first_name+' '+last_name).trim();
+  if(!first_name){toast('First name is required');return;}
   const regionId=document.getElementById('nb-region')?.value;
   if(!regionId){toast('Please select a region');return;}
   const bd_property=document.getElementById('nb-property').value.trim();
@@ -1030,9 +1038,7 @@ async function submitNewBroker(){
   const agencyName=document.getElementById('nb-agency').value.trim();
   const typeVal=document.getElementById('nb-type').value;
   const assignedVal=document.getElementById('nb-assigned').value;
-  const nameParts=name.split(' ');
-  const first_name=nameParts[0];
-  const last_name=nameParts.slice(1).join(' ');
+  // first_name and last_name already set above
   try{
     loading(true);
     const agency_id=await findOrCreateAgency(agencyName);
@@ -1054,9 +1060,11 @@ async function submitNewBroker(){
     // ── DUPLICATE CHECK ──────────────────────────────
     const emailVal=body.email.toLowerCase();
     const phoneVal=body.phone.replace(/\s/g,'');
+    const nameVal=name.toLowerCase();
     const duplicate=brokers.find(b=>{
       if(emailVal&&b.email&&b.email.toLowerCase()===emailVal)return true;
       if(phoneVal&&b.phone&&b.phone.replace(/\s/g,'')===phoneVal)return true;
+      if(nameVal&&b.name&&b.name.toLowerCase()===nameVal)return true;
       return false;
     });
     if(duplicate){
@@ -1116,13 +1124,13 @@ function renderToday(){
     v.innerHTML='<div class="empty-state" style="padding-top:80px"><div class="empty-icon">◇</div><div class="empty-msg">Loading contacts…</div></div>';
     return;
   }
-  const pool=curRegion?brokers.filter(b=>b.region_id===curRegion.id):brokers;
+  const pool=curRegion?brokers.filter(b=>Number(b.region_id)===Number(curRegion.id)):brokers.filter(b=>b.region_id);
   const overdue=pool.filter(b=>naStatus(b)==='overdue').length;
   const weekAgo=new Date();weekAgo.setDate(weekAgo.getDate()-7);
   const metThisWeek=pool.filter(b=>(b.activities||[]).some(a=>!a.planned&&['Meeting','Property visit','Property pitch'].includes(a.type)&&new Date(a.acted_at)>=weekAgo)).length;
   const addendumActive=pool.filter(b=>b.bd_addendum&&!['','signed','blocked'].includes(b.bd_addendum)).length;
 
-  const myBrokers=pool.filter(b=>!b.assigned||b.assigned===curUser);
+  const myBrokers=pool.filter(b=>!b.assigned||b.assigned===curUser||b.assigned===curUser.toLowerCase());
   const withActions=myBrokers.filter(b=>['overdue','today','soon'].includes(naStatus(b)));
   withActions.sort((a,b)=>{const ord={overdue:0,today:1,soon:2};return ord[naStatus(a)]-ord[naStatus(b)];});
 
@@ -1215,7 +1223,7 @@ function renderBrokers(){
 
 function updateFilterChips(){
   const myCount=brokers.filter(b=>b.region_id&&b.assigned===curUser).length;
-  const visibleBrokers=curRegion?brokers.filter(b=>b.region_id===curRegion.id):brokers.filter(b=>b.region_id);
+  const visibleBrokers=curRegion?brokers.filter(b=>Number(b.region_id)===Number(curRegion.id)):brokers.filter(b=>b.region_id);
   const fr=document.getElementById('broker-filter-row');
   if(!fr)return;
   fr.innerHTML=''
@@ -1233,7 +1241,7 @@ function renderBrokerCards(){
   if(!el)return;
 
   let filtered=brokers.filter(b=>b.region_id).filter(b=>{
-    if(curRegion&&b.region_id!==curRegion.id)return false;
+    if(curRegion&&Number(b.region_id)!==Number(curRegion.id))return false;
     if(filterAssigned&&b.assigned!==filterAssigned)return false;
     if(filterBdStage!==null&&b.bd_stage!==filterBdStage)return false;
     if(filterNoRegion&&b.region_id)return false;
