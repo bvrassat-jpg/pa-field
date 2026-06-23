@@ -1051,6 +1051,20 @@ async function submitNewBroker(){
       bd_property,bd_value:'',bd_addendum:'',bd_ref,
       notes
     };
+    // ── DUPLICATE CHECK ──────────────────────────────
+    const emailVal=body.email.toLowerCase();
+    const phoneVal=body.phone.replace(/\s/g,'');
+    const duplicate=brokers.find(b=>{
+      if(emailVal&&b.email&&b.email.toLowerCase()===emailVal)return true;
+      if(phoneVal&&b.phone&&b.phone.replace(/\s/g,'')===phoneVal)return true;
+      return false;
+    });
+    if(duplicate){
+      const dupName=(duplicate.first_name+' '+duplicate.last_name).trim()||duplicate.name||'Unknown';
+      const proceed=confirm('⚠️ A contact with this email or phone already exists:\n\n'+dupName+(duplicate.agency?' ('+duplicate.agency+')':'')+'\n\nAdd anyway?');
+      if(!proceed){loading(false);return;}
+    }
+    // ─────────────────────────────────────────────────
     const rows=await dbPostQueued('brokers',body);
     const newB={...rows[0],activities:[],clients:[],
       name, agency:agencyName, _agency_id:agency_id, type:typeVal,
@@ -1218,7 +1232,7 @@ function renderBrokerCards(){
   const el=document.getElementById('broker-cards');
   if(!el)return;
 
-  let filtered=brokers.filter(b=>{
+  let filtered=brokers.filter(b=>b.region_id).filter(b=>{
     if(curRegion&&b.region_id!==curRegion.id)return false;
     if(filterAssigned&&b.assigned!==filterAssigned)return false;
     if(filterBdStage!==null&&b.bd_stage!==filterBdStage)return false;
