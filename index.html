@@ -896,7 +896,7 @@ async function loadData(){
 
     renderCurrentTab();
     updateOverdueDot();
-    toast('Synced — '+brokers.length+' contacts',true);
+    toast('Synced — '+brokers.filter(b=>b.region_id).length+' contacts',true);
   }catch(e){toast('Sync error: '+e.message);}
   finally{btn.classList.remove('spinning');loading(false);}
 }
@@ -1098,7 +1098,7 @@ function updateOverdueDot(){
 // ── TODAY VIEW ────────────────────────────────────────────
 function renderToday(){
   const v=document.getElementById('view-today');
-  if(!brokers.length){
+  if(!brokers.filter(b=>b.region_id).length){
     v.innerHTML='<div class="empty-state" style="padding-top:80px"><div class="empty-icon">◇</div><div class="empty-msg">Loading contacts…</div></div>';
     return;
   }
@@ -1172,7 +1172,7 @@ function renderToday(){
 
 function renderBrokers(){
   const v=document.getElementById('view-brokers');
-  const myCount=brokers.filter(b=>b.assigned===curUser).length;
+  const myCount=brokers.filter(b=>b.region_id&&b.assigned===curUser).length;
 
   // Build static header only once (preserves search input focus on mobile)
   if(!document.getElementById('broker-search-input')){
@@ -1200,8 +1200,8 @@ function renderBrokers(){
 }
 
 function updateFilterChips(){
-  const myCount=brokers.filter(b=>b.assigned===curUser).length;
-  const visibleBrokers=curRegion?brokers.filter(b=>b.region_id===curRegion.id):brokers;
+  const myCount=brokers.filter(b=>b.region_id&&b.assigned===curUser).length;
+  const visibleBrokers=curRegion?brokers.filter(b=>b.region_id===curRegion.id):brokers.filter(b=>b.region_id);
   const fr=document.getElementById('broker-filter-row');
   if(!fr)return;
   fr.innerHTML=''
