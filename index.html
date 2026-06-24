@@ -1340,6 +1340,10 @@ function openDetail(brokerId){
           ${regions.map(r=>`<option value="${r.id}"${b.region_id===r.id?' selected':''}>${esc(r.name)}</option>`).join('')}
         </select>
       </div>
+      <div class="detail-row" id="bd-crm-clients">
+        <span class="detail-label">CRM clients</span>
+        <span class="detail-val" style="color:var(--t3);font-style:italic">Loading…</span>
+      </div>
     </div>
 
     <!-- BD Sourcing block -->
@@ -1387,7 +1391,8 @@ function openDetail(brokerId){
             <span class="act-item-type">${actIcon(a.type)} ${esc(a.type)}</span>
             <span class="act-item-badge badge-planned">Planned</span>
             <span onclick="event.stopPropagation();markActDone('${a.id}','${b.id}')" style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;flex-shrink:0">✓ Done</span>
-            <span onclick="event.stopPropagation();deleteActivity('${a.id}','${b.id}')" style="margin-left:6px;font-size:14px;color:var(--t4);cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid var(--bd);background:var(--s2)" title="Delete">×</span>
+            <span onclick="event.stopPropagation();openEditActivity(${b.activities.indexOf(a)},'${b.id}')" style="margin-left:6px;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--bd);background:var(--s2);color:var(--t2);cursor:pointer;flex-shrink:0">Edit</span>
+            <span onclick="event.stopPropagation();deleteActivity('${a.id}','${b.id}')" style="margin-left:4px;font-size:14px;color:var(--t4);cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid var(--bd);background:var(--s2)" title="Delete">×</span>
           </div>
           <div class="act-item-date">${fmt(a.acted_at)}</div>
           ${a.notes?`<div class="act-item-notes">${esc(a.notes)}</div>`:''}
@@ -1403,7 +1408,8 @@ function openDetail(brokerId){
           <div class="act-item-top">
             <span class="act-item-type">${actIcon(a.type)} ${esc(a.type)}</span>
             <span class="act-item-date">${fmt(a.acted_at)}</span>
-            <span onclick="event.stopPropagation();deleteActivity('${a.id}','${b.id}')" style="margin-left:auto;font-size:14px;color:var(--t4);cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid var(--bd);background:var(--s2)" title="Delete">×</span>
+            <span onclick="event.stopPropagation();openEditActivity(${b.activities.filter(x=>!x.planned).indexOf(a)},'${b.id}','done')" style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--bd);background:var(--s2);color:var(--t2);cursor:pointer;flex-shrink:0">Edit</span>
+            <span onclick="event.stopPropagation();deleteActivity('${a.id}','${b.id}')" style="margin-left:4px;font-size:14px;color:var(--t4);cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid var(--bd);background:var(--s2)" title="Delete">×</span>
           </div>
           ${a.notes?`<div class="act-item-notes">${esc(a.notes)}</div>`:''}
         </div>
@@ -1428,11 +1434,43 @@ function openDetail(brokerId){
     if(emailBtn&&selBroker)copyToClip(selBroker.email,'Email');
   };
   document.getElementById('detail-sheet').classList.add('open');
+  // Load CRM client count asynchronously — non-blocking
+  loadCrmClientCount(brokerId);
 }
 
 function closeDetail(){
   document.getElementById('detail-sheet').classList.remove('open');
   selBroker=null;
+}
+
+// Load registered client count from CRM clients table via broker activations
+async function loadCrmClientCount(brokerId){
+  const el=document.getElementById('bd-crm-clients');
+  if(!el)return;
+  try{
+    // Get activations for this broker
+    const acts=await dbGet('broker_auction_activations',
+      `broker_id=eq.${brokerId}&deleted=is.false&select=id`);
+    if(!acts||!acts.length){
+      el.innerHTML='<span class="detail-label">CRM clients</span><span class="detail-val" style="color:var(--t3)">None registered</span>';
+      return;
+    }
+    const actIds=acts.map(a=>a.id).join(',');
+    // Count clients linked to those activations
+    const clients=await dbGet('clients',
+      `activation_id=in.(${actIds})&deleted=is.false&select=id,first_name,last_name,stage`);
+    const count=clients?clients.length:0;
+    if(count===0){
+      el.innerHTML='<span class="detail-label">CRM clients</span><span class="detail-val" style="color:var(--t3)">None registered</span>';
+    } else {
+      const names=clients.slice(0,3).map(c=>((c.first_name||'')+' '+(c.last_name||'')).trim()).filter(Boolean);
+      const extra=count>3?` +${count-3} more`:'';
+      el.innerHTML=`<span class="detail-label">CRM clients</span><span class="detail-val" style="color:var(--green);font-weight:600">${count} registered<span style="display:block;font-size:11px;font-weight:400;color:var(--t3);margin-top:2px">${names.join(', ')}${extra}</span></span>`;
+    }
+  }catch(e){
+    // Fail silently — non-critical display
+    if(el)el.innerHTML='<span class="detail-label">CRM clients</span><span class="detail-val" style="color:var(--t4)">—</span>';
+  }
 }
 
 async function confirmDeleteBroker(){
@@ -1667,11 +1705,45 @@ function openLogSheet(brokerId=null){
     if(sel)sel.scrollIntoView({block:'nearest',inline:'center'});
   },50);
 }
+let _editingActivityId=null;
+let _editingBrokerId=null;
+
 function closeLogSheet(){
   document.getElementById('log-sheet').classList.remove('open');
+  // Reset edit mode state and button label if cancelled mid-edit
+  _editingActivityId=null;
+  _editingBrokerId=null;
+  const btn=document.querySelector('#log-sheet .btn-save');
+  if(btn)btn.textContent='Save';
 }
 
 async function submitLog(){
+  // Edit mode: PATCH existing activity instead of creating new
+  if(_editingActivityId){
+    const actId=_editingActivityId;
+    const brokerId=_editingBrokerId;
+    _editingActivityId=null;
+    _editingBrokerId=null;
+    const date=document.getElementById('log-date').value;
+    const notes=document.getElementById('log-notes').value;
+    if(!date){toast('Select a date');return;}
+    try{
+      loading(true);
+      await dbPatchQueued('broker_interactions',actId,{type:logType,notes,planned:logPlanned,logged_at:date});
+      const b=brokers.find(x=>String(x.id)===String(brokerId));
+      if(b){const act=b.activities.find(a=>String(a.id)===String(actId));
+        if(act){act.type=logType;act.notes=notes;act.planned=logPlanned;act.acted_at=date;}}
+      toast('Activity updated ✓',true);
+      closeLogSheet();
+      const btn=document.querySelector('#log-sheet .btn-save');
+      if(btn)btn.textContent='Save';
+      updateOverdueDot();renderCurrentTab();
+      if(selBroker&&String(selBroker.id)===String(brokerId))openDetail(brokerId);
+    }catch(e){toast('Error: '+e.message);}
+    finally{loading(false);}
+    return;
+  }
+  // Normal mode: create new activity
   const brokerId=document.getElementById('log-broker').value;
   const date=document.getElementById('log-date').value;
   const notes=document.getElementById('log-notes').value;
@@ -1874,6 +1946,7 @@ async function markActDone(actId,brokerId){
 }
 
 async function deleteActivity(actId,brokerId){
+  if(!confirm('Delete this activity entry? This cannot be undone.'))return;
   const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
   b.activities=b.activities.filter(a=>String(a.id)!==String(actId));
   try{
@@ -1885,6 +1958,70 @@ async function deleteActivity(actId,brokerId){
   }catch(e){toast('Error: '+e.message);}
 }
 
+
+// ── EDIT ACTIVITY ────────────────────────────────────────────────
+function openEditActivity(idx,brokerId,pool){
+  const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
+  const acts=pool==='done'?b.activities.filter(a=>!a.planned):b.activities.filter(a=>a.planned);
+  const a=acts[idx];if(!a)return;
+  _editingActivityId=a.id;
+  _editingBrokerId=brokerId;
+  openLogSheet(brokerId);
+  setTimeout(()=>{
+    logType=a.type||'Call';
+    logPlanned=!!a.planned;
+    document.getElementById('planned-track').classList.toggle('on',logPlanned);
+    document.getElementById('log-date').value=a.acted_at?a.acted_at.slice(0,10):today();
+    document.getElementById('log-notes').value=a.notes||'';
+    document.querySelectorAll('.type-chip').forEach(el=>{
+      const lbl=el.querySelector('div:last-child');
+      if(lbl)el.classList.toggle('on',lbl.textContent.trim()===logType);
+    });
+    const btn=document.querySelector('#log-sheet .btn-save');
+    if(btn)btn.textContent='Update';
+  },80);
+}
+
+// submitLog handles both new and edit mode via _editingActivityId flag
+// No override needed — the existing submitLog() is replaced below when it is defined
+// (see the real submitLog definition which checks _editingActivityId)
+
+// ── REGION EDIT / DELETE ──────────────────────────────────
+function openEditRegion(id){
+  closeAuctionPicker();
+  const r=regions.find(x=>String(x.id)===String(id));if(!r)return;
+  const name=prompt('Rename region:',r.name);
+  if(!name||!name.trim()||name.trim()===r.name)return;
+  editRegion(id,name.trim());
+}
+async function editRegion(id,name){
+  try{
+    loading(true);
+    await dbPatch('regions',id,{name});
+    const r=regions.find(x=>String(x.id)===String(id));
+    if(r)r.name=name;
+    if(curRegion&&String(curRegion.id)===String(id))curRegion.name=name;
+    toast('Region renamed ✓',true);
+    buildRegionSelector();renderCurrentTab();
+  }catch(e){toast('Error: '+e.message);}
+  finally{loading(false);}
+}
+async function deleteRegion(id){
+  const r=regions.find(x=>String(x.id)===String(id));if(!r)return;
+  const count=brokers.filter(b=>String(b.region_id)===String(id)).length;
+  if(count>0){toast('Cannot delete — '+count+' contact(s) in this region');return;}
+  closeAuctionPicker();
+  if(!confirm('Delete region "'+r.name+'"?'))return;
+  try{
+    loading(true);
+    await dbPatch('regions',id,{deleted:true,deleted_at:new Date().toISOString()});
+    regions=regions.filter(x=>String(x.id)!==String(id));
+    if(curRegion&&String(curRegion.id)===String(id)){curRegion=null;localStorage.removeItem('pa_region_id');}
+    toast('Region deleted',false);
+    buildRegionSelector();renderCurrentTab();
+  }catch(e){toast('Error: '+e.message);}
+  finally{loading(false);}
+}
 
 // ── OFFLINE QUEUE ──────────────────────────────────────────
 let isOnline = navigator.onLine;
