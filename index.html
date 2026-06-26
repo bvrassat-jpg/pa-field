@@ -475,6 +475,23 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 </div>
 
 
+<!-- DUPLICATE CONFIRM SHEET -->
+<div class="sheet-overlay" id="dup-sheet">
+  <div class="sheet" style="padding-bottom:calc(24px + var(--safe-bottom))">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" style="color:var(--amber)">⚠ Possible duplicate</div>
+    <div class="sheet-sub">A contact matching this email, phone or name already exists in the database.</div>
+    <div class="sheet-body">
+      <div id="dup-card" style="background:var(--amber-bg);border:1px solid var(--amber-bd);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:14px;line-height:1.8;color:var(--t1)"></div>
+      <p style="font-size:13px;color:var(--t3);margin-bottom:20px">Adding this contact may create a duplicate. Do you want to proceed anyway?</p>
+      <div style="display:flex;gap:10px">
+        <button id="dup-cancel-btn" style="flex:1;padding:14px;border:1px solid var(--bd2);background:var(--white);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--t2);cursor:pointer">Cancel</button>
+        <button id="dup-proceed-btn" style="flex:1;padding:14px;border:none;background:var(--amber);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:var(--white);cursor:pointer">Add anyway</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ADD BROKER SHEET -->
 <div class="sheet-overlay" id="add-broker-sheet" onclick="if(event.target===this)closeAddBroker()">
   <div class="sheet">
@@ -599,9 +616,10 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
           <option value="Other">Other</option>
         </select>
       </div>
-      <div class="fg">
+      <div class="fg" id="ec-assigned-wrapper">
         <div class="fg-l">Assigned to</div>
         <select class="fi" id="ec-assigned"></select>
+        <div id="ec-assigned-locked" style="display:none;font-size:13px;color:var(--t3);padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;font-style:italic"></div>
       </div>
       <div class="fg">
         <div class="fg-l">Region</div>
@@ -885,7 +903,8 @@ async function loadData(){
       bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
       notes:r.notes||'', activities:[], clients:Array.isArray(r.bd_prospects)?r.bd_prospects:[],
       bd_property:r.bd_property||'', bd_value:r.bd_value||'',
-      bd_addendum:r.bd_addendum||'', bd_ref:r.bd_ref||''
+      bd_addendum:r.bd_addendum||'', bd_ref:r.bd_ref||'',
+      source:r.source||null
     }));
     brokers.forEach(b=>bMap[b.id]=b);
     actRows.forEach(a=>{
@@ -1025,6 +1044,83 @@ function openAddBroker(){
 function closeAddBroker(){
   document.getElementById('add-broker-sheet').classList.remove('open');
 }
+// ── CLAIM CONTACT ────────────────────────────────────────────────────────────
+async function claimContact(brokerId) {
+  const b = brokers.find(x => String(x.id) === String(brokerId));
+  if (!b) return;
+  if (b.source !== 'PAMob') { toast('CRM contacts cannot be claimed'); return; }
+  if (b.assigned) { toast('Already assigned to ' + b.assigned); return; }
+  try {
+    await dbPatchQueued('brokers', brokerId, { created_by: curUser });
+    b.assigned = curUser;
+    toast('Contact claimed — assigned to ' + curUser, true);
+    openDetail(brokerId); // refresh detail view
+    renderBrokerCards();
+  } catch(e) { toast('Error: ' + e.message); }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── CROSS-APP DUPLICATE HELPERS ──────────────────────────────────────────────
+// Queries Supabase directly — catches contacts entered via CRM between syncs.
+async function checkDuplicateInDB(email, phone, firstName, lastName) {
+  const emailClean = (email||'').trim().toLowerCase();
+  const phoneClean = (phone||'').trim().replace(/[\s\-().]/g,'');
+  const conditions = [];
+  if (emailClean)  conditions.push('email.ilike.'+encodeURIComponent(emailClean));
+  if (phoneClean)  conditions.push('phone.ilike.'+encodeURIComponent('%'+phoneClean+'%'));
+
+  try {
+    if (conditions.length) {
+      const orFilter = conditions.join(',');
+      const rows = await dbGet('brokers',
+        'or=('+orFilter+')&deleted=is.false&select=id,first_name,last_name,email,phone,agency_id,profession&limit=3');
+      if (rows && rows.length) return rows[0];
+    }
+    // Fallback: exact first+last name match (no email/phone supplied)
+    const fn = (firstName||'').trim();
+    const ln = (lastName||'').trim();
+    if (fn.length >= 2) {
+      const rows = await dbGet('brokers',
+        'first_name=ilike.'+encodeURIComponent(fn)
+        +'&last_name=ilike.'+encodeURIComponent(ln)
+        +'&deleted=is.false&select=id,first_name,last_name,email,phone,profession&limit=3');
+      if (rows && rows.length) return rows[0];
+    }
+  } catch(e) { /* non-blocking — if DB check fails, let user proceed */ }
+  return null;
+}
+
+// Shows the dup bottom-sheet and returns Promise<boolean> (true = proceed)
+function showDupSheet(dup) {
+  return new Promise(resolve => {
+    const fullName = [dup.first_name, dup.last_name].filter(Boolean).join(' ') || 'Unknown';
+    // Try to get agency name from in-memory brokers array if available
+    const memMatch = brokers.find(b => String(b.id) === String(dup.id));
+    const agencyName = (memMatch && memMatch.agency) ? memMatch.agency : '';
+    let html = '<strong>'+escHtml(fullName)+'</strong>';
+    if (agencyName) html += '<br><span style="color:var(--t3)">'+escHtml(agencyName)+'</span>';
+    if (dup.email)  html += '<br><span style="color:var(--t3)">'+escHtml(dup.email)+'</span>';
+    if (dup.phone)  html += '<br><span style="color:var(--t3)">'+escHtml(dup.phone)+'</span>';
+    if (dup.profession) html += '<br><span style="color:var(--t3)">'+escHtml(dup.profession)+'</span>';
+    document.getElementById('dup-card').innerHTML = html;
+    document.getElementById('dup-sheet').classList.add('open');
+    const proceed = document.getElementById('dup-proceed-btn');
+    const cancel  = document.getElementById('dup-cancel-btn');
+    function cleanup() {
+      document.getElementById('dup-sheet').classList.remove('open');
+      proceed.onclick = null; cancel.onclick = null;
+    }
+    proceed.onclick = function() { cleanup(); resolve(true); };
+    cancel.onclick  = function() { cleanup(); resolve(false); };
+  });
+}
+
+// Simple HTML escaper (safe for innerHTML)
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 async function submitNewBroker(){
   const first_name=document.getElementById('nb-firstname').value.trim();
   const last_name=document.getElementById('nb-lastname').value.trim();
@@ -1057,22 +1153,16 @@ async function submitNewBroker(){
       bd_property,bd_value:'',bd_addendum:'',bd_ref,
       notes
     };
-    // ── DUPLICATE CHECK ──────────────────────────────
-    const emailVal=body.email.toLowerCase();
-    const phoneVal=body.phone.replace(/\s/g,'');
-    const nameVal=name.toLowerCase();
-    const duplicate=brokers.find(b=>{
-      if(emailVal&&b.email&&b.email.toLowerCase()===emailVal)return true;
-      if(phoneVal&&b.phone&&b.phone.replace(/\s/g,'')===phoneVal)return true;
-      if(nameVal&&b.name&&b.name.toLowerCase()===nameVal)return true;
-      return false;
-    });
-    if(duplicate){
-      const dupName=(duplicate.first_name+' '+duplicate.last_name).trim()||duplicate.name||'Unknown';
-      const proceed=confirm('⚠️ A contact with this email or phone already exists:\n\n'+dupName+(duplicate.agency?' ('+duplicate.agency+')':'')+'\n\nAdd anyway?');
-      if(!proceed){loading(false);return;}
+    // ── CROSS-APP DUPLICATE CHECK (live Supabase query) ─────────────────
+    // Catches contacts created by CRM that aren't yet in local memory.
+    const dup = await checkDuplicateInDB(body.email, body.phone, first_name, last_name);
+    if (dup) {
+      loading(false);
+      const proceed = await showDupSheet(dup);
+      if (!proceed) return;
+      loading(true);
     }
-    // ─────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────
     const rows=await dbPostQueued('brokers',body);
     const newB={...rows[0],activities:[],clients:[],
       name, agency:agencyName, _agency_id:agency_id, type:typeVal,
@@ -1281,12 +1371,7 @@ function renderBrokerCards(){
           +'<div class="broker-agency">'+esc(b.agency)+(b.area?' &middot; '+esc(b.area):'')+'</div>'
           +propLine
         +'</div>'
-        +'<div class="broker-right">'
-          +'<span class="stg-pill '+(SCLS[b.bd_stage]||'s1')+'">'+(STAGES[b.bd_stage]||'--')+'</span>'
-          +addBadge
-          +noRegionBadge
-          +naLine
-        +'</div>'
+        +'<div class="broker-right">'          +'<span class="stg-pill '+(SCLS[b.bd_stage]||'s1')+'">'+(STAGES[b.bd_stage]||'--')+'</span>'          +addBadge          +noRegionBadge          +naLine          +(b.source!=='PAMob'            ?'<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--s2);color:var(--t3);border:1px solid var(--bd2);margin-top:4px;display:inline-block">CRM</span>'            :b.assigned              ?'<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd);margin-top:4px;display:inline-block">● '+esc(b.assigned)+'</span>'              :'')        +'</div>'
         +'</div>';
     });
   } else {
@@ -1315,7 +1400,12 @@ function openDetail(brokerId){
     <div class="hero-row">
       <span class="hero-stage ${SCLS[b.bd_stage]||'s1'}">${STAGES[b.bd_stage]}</span>
       ${b.region_id?`<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold-bd)">◉ ${esc(regions.find(r=>r.id===b.region_id)?.name||'')}</span>`:''}
-      ${b.assigned?`<span style="font-size:11px;color:var(--t3)">${esc(b.assigned)}</span>`:''}
+      ${b.source!=='PAMob'
+        ? '<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--s2);color:var(--t3);border:1px solid var(--bd2)">CRM</span>'
+        : b.assigned
+          ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)">● ${esc(b.assigned)}</span>`
+          : `<button onclick="claimContact('${b.id}')" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);cursor:pointer;font-family:'DM Sans',sans-serif">+ Claim</button>`
+      }
       ${b.bd_addendum&&b.bd_addendum!==''?`<span style="font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;background:${b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)'};color:${b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)'}">${ADDENDUM_STATUS[b.bd_addendum]||''}</span>`:''}
     </div>
     ${b.bd_property?`<div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.04);border-radius:6px;font-size:12px;color:var(--t2)">&#x2302; ${esc(b.bd_property)}${b.bd_value?' · <span style="color:var(--gold);font-weight:500">'+esc(b.bd_value)+'</span>':''}</div>`:''}
@@ -1514,9 +1604,23 @@ function openEditContact(){
   document.getElementById('ec-area').value=b.area||'';
   document.getElementById('ec-country').value=b.country||'France';
   document.getElementById('ec-type').value=b.type||'RE Agency';
-  // Assigned
+  // Assigned — locked for CRM contacts
   const asgn=document.getElementById('ec-assigned');
-  asgn.innerHTML=TEAM.map(m=>`<option value="${m}"${m===b.assigned?' selected':''}>${m}</option>`).join('');
+  const asgnWrapper=document.getElementById('ec-assigned-wrapper');
+  const asgnLocked=document.getElementById('ec-assigned-locked');
+  if(b.source!=='PAMob'){
+    // CRM contact — show locked label, hide dropdown
+    asgn.style.display='none';
+    asgnLocked.style.display='block';
+    asgnLocked.textContent='Sourced via CRM — not assignable';
+    if(asgnWrapper) asgnWrapper.querySelector('.fg-l').style.color='var(--t4)';
+  } else {
+    // BD contact — show dropdown normally
+    asgn.style.display='';
+    asgnLocked.style.display='none';
+    asgn.innerHTML=TEAM.map(m=>`<option value="${m}"${m===b.assigned?' selected':''}>${m}</option>`).join('');
+    if(asgnWrapper) asgnWrapper.querySelector('.fg-l').style.color='';
+  }
   // Region
   const regSel=document.getElementById('ec-region');
   regSel.innerHTML='<option value="">— No region —</option>'
@@ -1534,7 +1638,8 @@ async function submitEditContact(){
   if(!name){toast('Name is required');return;}
   const agencyName=document.getElementById('ec-agency').value.trim();
   const typeVal=document.getElementById('ec-type').value;
-  const assignedVal=document.getElementById('ec-assigned').value;
+  // For CRM contacts, assigned is locked — don't overwrite it
+  const assignedVal = selBroker.source!=='PAMob' ? (selBroker.assigned||'') : document.getElementById('ec-assigned').value;
   const regionVal=document.getElementById('ec-region').value;
   const localPatch={
     name, agency:agencyName, type:typeVal,
