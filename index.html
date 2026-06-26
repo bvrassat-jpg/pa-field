@@ -899,7 +899,7 @@ async function loadData(){
       agency:r.agency?r.agency.name:'', _agency_id:r.agency?r.agency.id:null,
       type:r.profession||'RE Agency',
       area:r.area||'', country:r.country||'', phone:r.phone||'', email:r.email||'',
-      assigned:r.created_by||'', stage:1, // old desktop 1-10 field, retired — never displayed
+      assigned:TEAM.includes(r.created_by)?r.created_by:'', stage:1, // old desktop 1-10 field, retired — never displayed
       bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
       notes:r.notes||'', activities:[], clients:Array.isArray(r.bd_prospects)?r.bd_prospects:[],
       bd_property:r.bd_property||'', bd_value:r.bd_value||'',
