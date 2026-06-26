@@ -1093,10 +1093,14 @@ async function checkDuplicateInDB(email, phone, firstName, lastName) {
 // Shows the dup bottom-sheet and returns Promise<boolean> (true = proceed)
 function showDupSheet(dup) {
   return new Promise(resolve => {
-    const fullName = [dup.first_name, dup.last_name].filter(Boolean).join(' ') || 'Unknown';
-    // Try to get agency name from in-memory brokers array if available
+    // Prefer in-memory data (richer), fall back to DB result
     const memMatch = brokers.find(b => String(b.id) === String(dup.id));
-    const agencyName = (memMatch && memMatch.agency) ? memMatch.agency : '';
+    const fullName = (memMatch && memMatch.name)
+      ? memMatch.name
+      : [dup.first_name, dup.last_name].filter(v => v && v !== 'undefined').join(' ').trim() || 'Unknown';
+    const agencyName = (memMatch && memMatch.agency)
+      ? memMatch.agency
+      : (dup.agency && dup.agency.name ? dup.agency.name : '');
     let html = '<strong>'+escHtml(fullName)+'</strong>';
     if (agencyName) html += '<br><span style="color:var(--t3)">'+escHtml(agencyName)+'</span>';
     if (dup.email)  html += '<br><span style="color:var(--t3)">'+escHtml(dup.email)+'</span>';
@@ -1154,13 +1158,17 @@ async function submitNewBroker(){
       notes
     };
     // ── CROSS-APP DUPLICATE CHECK (live Supabase query) ─────────────────
-    // Catches contacts created by CRM that aren't yet in local memory.
-    const dup = await checkDuplicateInDB(body.email, body.phone, first_name, last_name);
-    if (dup) {
-      loading(false);
-      const proceed = await showDupSheet(dup);
-      if (!proceed) return;
-      loading(true);
+    try {
+      const dup = await checkDuplicateInDB(body.email, body.phone, first_name, last_name);
+      if (dup) {
+        loading(false);
+        const proceed = await showDupSheet(dup);
+        if (!proceed) { loading(false); return; }
+        loading(true);
+      }
+    } catch(dupErr) {
+      // Non-blocking — if duplicate check fails, proceed with save
+      console.warn('Duplicate check failed:', dupErr);
     }
     // ─────────────────────────────────────────────────────────────────────
     const rows=await dbPostQueued('brokers',body);
