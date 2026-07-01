@@ -202,6 +202,12 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 
 /* ── LOG ACTIVITY SHEET ── */
 .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
+/* Duplicate-confirm sheet must always render above any other sheet that may
+   still be open behind it (e.g. Add Contact) — this was the root cause of
+   checkDuplicateInDB appearing to silently block submitNewBroker: the sheet
+   was there and waiting for input, just invisible and unreachable underneath
+   the still-open Add Contact sheet at the same z-index. */
+#dup-sheet{z-index:600;}
 .sheet-overlay.open{opacity:1;pointer-events:all;}
 .sheet{background:var(--white);border-radius:16px 16px 0 0;padding:0 0 calc(20px + var(--safe-bottom));max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .25s ease;}
 .sheet-overlay.open .sheet{transform:translateY(0);}
@@ -1224,9 +1230,11 @@ function renderToday(){
   }
   const pool=curRegion?brokers.filter(b=>Number(b.region_id)===Number(curRegion.id)):brokers.filter(b=>b.region_id);
   const overdue=pool.filter(b=>naStatus(b)==='overdue').length;
-  const weekAgo=new Date();weekAgo.setDate(weekAgo.getDate()-7);
-  const metThisWeek=pool.filter(b=>(b.activities||[]).some(a=>!a.planned&&['Meeting','Property visit','Property pitch'].includes(a.type)&&new Date(a.acted_at)>=weekAgo)).length;
-  const addendumActive=pool.filter(b=>b.bd_addendum&&!['','signed','blocked'].includes(b.bd_addendum)).length;
+  const dueToday=pool.filter(b=>naStatus(b)==='today').length;
+  // No planned action: actively-worked contacts (Contacted..Mandate confirmed)
+  // with nothing scheduled at all — these never surface as overdue/today/soon
+  // because there's no date to compare against, so they'd otherwise be invisible.
+  const noPlannedAction=pool.filter(b=>b.bd_stage>=2&&b.bd_stage<=6&&naStatus(b)==='none').length;
 
   const myBrokers=pool.filter(b=>!b.assigned||b.assigned===curUser||b.assigned===curUser.toLowerCase());
   const withActions=myBrokers.filter(b=>['overdue','today','soon'].includes(naStatus(b)));
@@ -1281,8 +1289,8 @@ function renderToday(){
     +(curRegion?`<div style="padding:10px 16px 0;font-size:11px;color:var(--gold);font-weight:600;letter-spacing:1px;text-transform:uppercase">◉ ${esc(curRegion.name)}</div>`:'')
     +'<div class="kpi-row">'
     +'<div class="kpi-card kpi-red"><div class="kpi-n">'+overdue+'</div><div class="kpi-l">Overdue</div></div>'
-    +'<div class="kpi-card kpi-blue"><div class="kpi-n">'+metThisWeek+'</div><div class="kpi-l">Met this week</div></div>'
-    +'<div class="kpi-card kpi-amber"><div class="kpi-n">'+addendumActive+'</div><div class="kpi-l">Addendum actif</div></div>'
+    +'<div class="kpi-card kpi-blue"><div class="kpi-n">'+dueToday+'</div><div class="kpi-l">Due today</div></div>'
+    +'<div class="kpi-card kpi-amber"><div class="kpi-n">'+noPlannedAction+'</div><div class="kpi-l">No planned action</div></div>'
     +'</div>'
     +'<div class="sec-hd">Mes actions'+(withActions.length?' ('+withActions.length+')':'')+'</div>'
     +actionsHtml
@@ -1320,29 +1328,36 @@ function renderBrokers(){
 }
 
 function updateFilterChips(){
-  const myCount=brokers.filter(b=>b.region_id&&b.assigned===curUser).length;
-  const visibleBrokers=curRegion?brokers.filter(b=>Number(b.region_id)===Number(curRegion.id)):brokers.filter(b=>b.region_id);
+  // regionScoped = the normal "All" list: brokers that already have a region
+  // (scoped to the currently selected region tab, if any). This is unchanged
+  // from before — existing browsing behavior is untouched.
+  const regionScoped=curRegion?brokers.filter(b=>Number(b.region_id)===Number(curRegion.id)):brokers.filter(b=>b.region_id);
+  // unassignedCount = brokers with NO region at all (e.g. contacts created in
+  // the CRM, which has no region field). Computed from the full list, not
+  // from regionScoped, so it's never accidentally zeroed out.
+  const unassignedCount=brokers.filter(b=>!b.region_id).length;
   const fr=document.getElementById('broker-filter-row');
   if(!fr)return;
   fr.innerHTML=''
-    +'<span class="fchip'+(!filterAssigned&&filterBdStage===null&&!filterNoRegion?' on':'')+'" onclick="filterAssigned=null;filterBdStage=null;filterNoRegion=false;renderBrokerCards();updateFilterChips()">All ('+visibleBrokers.length+')</span>'
-    +'<span class="fchip'+(filterAssigned===curUser?' on':'')+'" onclick="filterAssigned=filterAssigned===curUser?null:curUser;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Mine ('+visibleBrokers.filter(b=>b.assigned===curUser).length+')</span>'
+    +'<span class="fchip'+(!filterAssigned&&filterBdStage===null&&!filterNoRegion?' on':'')+'" onclick="filterAssigned=null;filterBdStage=null;filterNoRegion=false;renderBrokerCards();updateFilterChips()">All ('+regionScoped.length+')</span>'
+    +'<span class="fchip'+(filterAssigned===curUser?' on':'')+'" onclick="filterAssigned=filterAssigned===curUser?null:curUser;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Mine ('+regionScoped.filter(b=>b.assigned===curUser).length+')</span>'
     +'<span class="fchip'+(filterBdStage===4?' on':'')+'" onclick="filterBdStage=filterBdStage===4?null:4;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Pitched</span>'
     +'<span class="fchip'+(filterBdStage===6?' on':'')+'" onclick="filterBdStage=filterBdStage===6?null:6;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Mandate confirmed</span>'
     +'<span class="fchip'+(filterBdStage===8?' on':'')+'" onclick="filterBdStage=filterBdStage===8?null:8;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Addendum sent</span>'
     +'<span class="fchip'+(filterBdStage===9?' on':'')+'" onclick="filterBdStage=filterBdStage===9?null:9;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Signed</span>'
-    +(visibleBrokers.filter(b=>!b.region_id).length>0?'<span class="fchip'+(filterNoRegion?' on':'')+'" style="'+(filterNoRegion?'':'border-color:var(--red-bd);color:var(--red);')+'" onclick="filterNoRegion=!filterNoRegion;filterAssigned=null;filterBdStage=null;renderBrokerCards();updateFilterChips()">⚠ No region ('+visibleBrokers.filter(b=>!b.region_id).length+')</span>':'');
+    +(!curRegion&&unassignedCount>0?'<span class="fchip'+(filterNoRegion?' on':'')+'" style="'+(filterNoRegion?'':'border-color:var(--red-bd);color:var(--red);')+'" onclick="filterNoRegion=!filterNoRegion;filterAssigned=null;filterBdStage=null;renderBrokerCards();updateFilterChips()">⚠ Unassigned ('+unassignedCount+')</span>':'');
 }
 
 function renderBrokerCards(){
   const el=document.getElementById('broker-cards');
   if(!el)return;
 
-  let filtered=brokers.filter(b=>b.region_id).filter(b=>{
-    if(curRegion&&Number(b.region_id)!==Number(curRegion.id))return false;
+  // When the Unassigned chip is active, show brokers with NO region.
+  // Otherwise, show brokers WITH a region — identical to prior behavior.
+  let filtered=brokers.filter(b=>filterNoRegion?!b.region_id:b.region_id).filter(b=>{
+    if(curRegion&&!filterNoRegion&&Number(b.region_id)!==Number(curRegion.id))return false;
     if(filterAssigned&&b.assigned!==filterAssigned)return false;
     if(filterBdStage!==null&&b.bd_stage!==filterBdStage)return false;
-    if(filterNoRegion&&b.region_id)return false;
     if(filterQ){const q=filterQ.toLowerCase();if(!(b.name+b.agency+(b.area||'')).toLowerCase().includes(q))return false;}
     return true;
   });
