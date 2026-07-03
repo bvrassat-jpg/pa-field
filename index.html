@@ -89,10 +89,10 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
   display:flex;align-items:stretch;flex-shrink:0;
   padding-bottom:var(--safe-bottom);box-shadow:0 -1px 3px rgba(0,0,0,.05);
 }
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--t4);transition:color .15s;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;border:none;background:none;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--t4);transition:color .15s;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;border:none;background:none;position:relative;}
 .tab svg{width:22px;height:22px;}
 .tab.on{color:var(--gold);}
-.tab .tab-dot{width:5px;height:5px;border-radius:50%;background:var(--red);display:none;margin-top:-10px;margin-left:14px;}
+.tab .tab-dot{position:absolute;top:9px;right:calc(50% - 18px);width:7px;height:7px;border-radius:50%;background:var(--red);display:none;margin:0;}
 .tab .tab-dot.show{display:block;}
 
 /* ── MAIN SCROLL ── */
@@ -185,6 +185,8 @@ body{font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);display:fle
 .search-box input{flex:1;background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--t1);}
 .search-box input::placeholder{color:var(--t4);}
 .search-icon{color:var(--t4);font-size:14px;}
+.search-clear{display:none;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--t4);color:#fff;font-size:13px;line-height:1;cursor:pointer;flex-shrink:0;}
+.search-clear.show{display:flex;}
 .filter-row{display:flex;align-items:center;gap:6px;padding:8px 16px;overflow-x:auto;background:var(--white);-webkit-overflow-scrolling:touch;}
 .filter-row::-webkit-scrollbar{display:none;}
 .fchip{height:34px;padding:0 14px;background:var(--white);border:1px solid var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:17px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;}
@@ -392,6 +394,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   <button class="tab" id="tab-brokers" onclick="switchTab('brokers')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
     Contacts
+    <div class="tab-dot" id="dot-brokers"></div>
   </button>
 
   <button class="tab" id="tab-cal" onclick="switchTab('cal')">
@@ -925,7 +928,7 @@ async function loadData(){
 
     buildRegionSelector(); // called here so brokers are available for allCount
     renderCurrentTab();
-    updateOverdueDot();
+    updateOverdueDot();updateUnassignedDot();
     toast('Synced — '+brokers.filter(b=>b.region_id).length+' contacts',true);
   }catch(e){toast('Sync error: '+e.message);}
   finally{btn.classList.remove('spinning');loading(false);}
@@ -1220,6 +1223,15 @@ function updateOverdueDot(){
   const ov=brokers.filter(b=>naStatus(b)==='overdue').length;
   document.getElementById('dot-today').classList.toggle('show',ov>0);
 }
+// ── UPDATE UNASSIGNED DOT (Contacts tab) ──────────────────
+// Global signal: fires regardless of curRegion, so nobody can miss a
+// CRM-created contact with no region just because their device is
+// scoped to a specific region.
+function updateUnassignedDot(){
+  const unassigned=brokers.filter(b=>!b.region_id).length;
+  const d=document.getElementById('dot-brokers');
+  if(d)d.classList.toggle('show',unassigned>0);
+}
 
 // ── TODAY VIEW ────────────────────────────────────────────
 function renderToday(){
@@ -1298,6 +1310,16 @@ function renderToday(){
     +recentHtml;
 }
 
+// One-click clear for the contacts search box.
+function clearBrokerSearch(){
+  filterQ='';
+  const inp=document.getElementById('broker-search-input');
+  if(inp)inp.value='';
+  const clr=document.getElementById('broker-search-clear');
+  if(clr)clr.classList.remove('show');
+  renderBrokerCards();updateFilterChips();
+  if(inp)inp.focus();
+}
 function renderBrokers(){
   const v=document.getElementById('view-brokers');
   const myCount=brokers.filter(b=>b.region_id&&b.assigned===curUser).length;
@@ -1309,6 +1331,7 @@ function renderBrokers(){
         +'<div class="search-box">'
           +'<span class="search-icon">&#x2315;</span>'
           +'<input id="broker-search-input" type="search" placeholder="Search contacts..." autocomplete="off">'
+          +'<span class="search-clear" id="broker-search-clear" onclick="clearBrokerSearch()">&times;</span>'
         +'</div>'
       +'</div>'
       +'<div class="filter-row" id="broker-filter-row"></div>'
@@ -1320,7 +1343,12 @@ function renderBrokers(){
 
     const inp=document.getElementById('broker-search-input');
     inp.value=filterQ;
-    inp.addEventListener('input',function(){filterQ=this.value;renderBrokerCards();updateFilterChips();});
+    document.getElementById('broker-search-clear').classList.toggle('show',!!filterQ);
+    inp.addEventListener('input',function(){
+      filterQ=this.value;
+      document.getElementById('broker-search-clear').classList.toggle('show',!!filterQ);
+      renderBrokerCards();updateFilterChips();
+    });
   }
 
   updateFilterChips();
@@ -1345,22 +1373,30 @@ function updateFilterChips(){
     +'<span class="fchip'+(filterBdStage===6?' on':'')+'" onclick="filterBdStage=filterBdStage===6?null:6;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Mandate confirmed</span>'
     +'<span class="fchip'+(filterBdStage===8?' on':'')+'" onclick="filterBdStage=filterBdStage===8?null:8;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Addendum sent</span>'
     +'<span class="fchip'+(filterBdStage===9?' on':'')+'" onclick="filterBdStage=filterBdStage===9?null:9;filterNoRegion=false;renderBrokerCards();updateFilterChips()">Signed</span>'
-    +(!curRegion&&unassignedCount>0?'<span class="fchip'+(filterNoRegion?' on':'')+'" style="'+(filterNoRegion?'':'border-color:var(--red-bd);color:var(--red);')+'" onclick="filterNoRegion=!filterNoRegion;filterAssigned=null;filterBdStage=null;renderBrokerCards();updateFilterChips()">⚠ Unassigned ('+unassignedCount+')</span>':'');
+    +(unassignedCount>0?'<span class="fchip'+(filterNoRegion?' on':'')+'" style="'+(filterNoRegion?'':'border-color:var(--red-bd);color:var(--red);')+'" onclick="filterNoRegion=!filterNoRegion;filterAssigned=null;filterBdStage=null;renderBrokerCards();updateFilterChips()">⚠ Unassigned ('+unassignedCount+')</span>':'');
 }
 
 function renderBrokerCards(){
   const el=document.getElementById('broker-cards');
   if(!el)return;
 
-  // When the Unassigned chip is active, show brokers with NO region.
-  // Otherwise, show brokers WITH a region — identical to prior behavior.
-  let filtered=brokers.filter(b=>filterNoRegion?!b.region_id:b.region_id).filter(b=>{
-    if(curRegion&&!filterNoRegion&&Number(b.region_id)!==Number(curRegion.id))return false;
-    if(filterAssigned&&b.assigned!==filterAssigned)return false;
-    if(filterBdStage!==null&&b.bd_stage!==filterBdStage)return false;
-    if(filterQ){const q=filterQ.toLowerCase();if(!(b.name+b.agency+(b.area||'')).toLowerCase().includes(q))return false;}
-    return true;
-  });
+  // A live search query overrides all scoping — the whole point of search is
+  // to find someone even if they're in the wrong region tab, unassigned, or
+  // hidden by a stage filter. Only non-search browsing stays region/chip-scoped.
+  let filtered;
+  if(filterQ){
+    const q=filterQ.toLowerCase();
+    filtered=brokers.filter(b=>(b.name+b.agency+(b.area||'')).toLowerCase().includes(q));
+  } else {
+    // When the Unassigned chip is active, show brokers with NO region.
+    // Otherwise, show brokers WITH a region — identical to prior behavior.
+    filtered=brokers.filter(b=>filterNoRegion?!b.region_id:b.region_id).filter(b=>{
+      if(curRegion&&!filterNoRegion&&Number(b.region_id)!==Number(curRegion.id))return false;
+      if(filterAssigned&&b.assigned!==filterAssigned)return false;
+      if(filterBdStage!==null&&b.bd_stage!==filterBdStage)return false;
+      return true;
+    });
+  }
 
   filtered.sort((a,b)=>{
     const ord={overdue:0,today:1,soon:2,upcoming:3,none:4};
@@ -1865,7 +1901,7 @@ async function submitLog(){
       closeLogSheet();
       const btn=document.querySelector('#log-sheet .btn-save');
       if(btn)btn.textContent='Save';
-      updateOverdueDot();renderCurrentTab();
+      updateOverdueDot();updateUnassignedDot();renderCurrentTab();
       if(selBroker&&String(selBroker.id)===String(brokerId))openDetail(brokerId);
     }catch(e){toast('Error: '+e.message);}
     finally{loading(false);}
@@ -1902,7 +1938,7 @@ async function submitLog(){
 
     toast(logPlanned?'Planned action saved'+(logReminderDays>0?' + reminder added':''):'Activity logged ✓'+(logReminderDays>0?' + reminder added':''),true);
     closeLogSheet();
-    updateOverdueDot();
+    updateOverdueDot();updateUnassignedDot();
     renderCurrentTab();
     // If detail sheet open for this broker, refresh it
     if(selBroker&&selBroker.id===brokerId)openDetail(brokerId);
@@ -2066,7 +2102,7 @@ async function markActDone(actId,brokerId){
   try{
     await dbPatchQueued('broker_interactions',actId,{planned:false});
     toast('Marked done ✓',true);
-    updateOverdueDot();
+    updateOverdueDot();updateUnassignedDot();
     renderCal();
     if(curTab==='today')renderToday();
     if(selBroker&&String(selBroker.id)===String(brokerId))openDetail(brokerId);
@@ -2080,7 +2116,7 @@ async function deleteActivity(actId,brokerId){
   try{
     await dbPatchQueued('broker_interactions',actId,{deleted:true,deleted_at:new Date().toISOString()});
     toast('Entry deleted',false);
-    updateOverdueDot();
+    updateOverdueDot();updateUnassignedDot();
     if(curTab==='today')renderToday();
     if(selBroker&&String(selBroker.id)===String(brokerId))openDetail(brokerId);
   }catch(e){toast('Error: '+e.message);}
