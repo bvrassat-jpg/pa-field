@@ -786,6 +786,13 @@ async function dbPatch(table,id,body){
   const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?id=eq.'+id,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
   if(!r.ok)throw new Error(await r.text());
 }
+// Cascade-style PATCH by an arbitrary filter (e.g. "broker_id=eq.X&deleted=is.false")
+// rather than a single id. Used for cleanup that touches multiple rows at once,
+// mirroring the equivalent helper on the CRM side.
+async function dbPatchByFilter(table,filterQuery,body){
+  const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?'+filterQuery,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error(await r.text());
+}
 
 // ── BACKUP / RESTORE — mirrors the CRM's exact format (same table list,
 // same JSON shape) so a backup taken from either app can be restored
@@ -1628,6 +1635,18 @@ async function confirmDeleteBroker(){
   const b=selBroker;
   try{
     await dbPatchQueued('brokers',b.id,{deleted:true,deleted_at:new Date().toISOString()});
+    // Cascade fix (July 2026): previously only the broker row was soft-deleted.
+    // Any campaign activations for that broker were left untouched, so the
+    // deleted contact could still ghost back into CRM's Campaign Board,
+    // Pipeline, or Due Actions views via the join. Mirrors the equivalent
+    // fix already applied to the CRM's deleteBroker. Best-effort — if this
+    // fails (e.g. offline), the broker delete itself still succeeds; the
+    // cascade will just need re-running once back online.
+    try{
+      await dbPatchByFilter('broker_auction_activations',
+        'broker_id=eq.'+b.id+'&deleted=is.false',
+        {deleted:true,deleted_at:new Date().toISOString()});
+    }catch(cascadeErr){ console.warn('Activation cascade failed:', cascadeErr); }
     brokers=brokers.filter(x=>x.id!==b.id);
     closeDetail();
     toast(b.name+' deleted',false);
