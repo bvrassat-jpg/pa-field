@@ -2191,6 +2191,25 @@ async function deleteRegion(id){
 let isOnline = navigator.onLine;
 let syncQueue = JSON.parse(localStorage.getItem('pa_sync_queue')||'[]');
 
+// Fix (offline ID reconciliation, July 2026): temp IDs assigned to
+// records created offline were never swapped for their real Supabase
+// UUIDs after sync, so any edit/activity logged against a temp ID
+// before sync completed silently failed forever. idMap persists the
+// tempId -> realId mapping across app sessions/reloads so it survives
+// even if the original "create" queue item has already been flushed.
+let idMap = JSON.parse(localStorage.getItem('pa_id_map')||'{}');
+function saveIdMap(){localStorage.setItem('pa_id_map',JSON.stringify(idMap));}
+// Foreign-key-ish fields that might carry a reference to a record
+// created offline (and therefore might need rewriting to a real id).
+const PA_FK_FIELDS=['broker_id','activation_id','agency_id','client_id','auction_id'];
+function paResolveId(v){ return (v!=null && idMap[v]!=null) ? idMap[v] : v; }
+function paResolveBody(body){
+  if(!body) return body;
+  const out={...body};
+  for(const k of PA_FK_FIELDS){ if(out[k]!=null) out[k]=paResolveId(out[k]); }
+  return out;
+}
+
 function saveQueue(){localStorage.setItem('pa_sync_queue',JSON.stringify(syncQueue));}
 
 function updateOnlineStatus(){
@@ -2212,8 +2231,22 @@ async function flushQueue(){
   let failed = [];
   for(const op of toFlush){
     try{
-      if(op.method==='POST') await dbPost(op.table, op.body);
-      else if(op.method==='PATCH') await dbPatch(op.table, op.id, op.body);
+      if(op.method==='POST'){
+        const body = paResolveBody(op.body);
+        const rows = await dbPost(op.table, body);
+        // If this create had a temp id attached (assigned while offline),
+        // remember what real id it resolved to so any later queued item
+        // (or a future flush attempt) that still references the temp id
+        // gets rewritten to the real one.
+        if(op.tempId!=null && rows && rows[0] && rows[0].id!=null){
+          idMap[op.tempId]=rows[0].id;
+          saveIdMap();
+        }
+      } else if(op.method==='PATCH'){
+        const realId = paResolveId(op.id);
+        const body = paResolveBody(op.body);
+        await dbPatch(op.table, realId, body);
+      }
     } catch(e){
       failed.push(op);
     }
@@ -2231,22 +2264,29 @@ async function flushQueue(){
 // Wrap dbPost and dbPatch to queue when offline
 async function dbPostQueued(table, body){
   if(!isOnline){
-    syncQueue.push({method:'POST', table, body, ts:Date.now()});
+    // Unambiguous string tag (not a plain timestamp) so it can never be
+    // mistaken for — or collide with — a real UUID or bigint id.
+    const tempId = 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    syncQueue.push({method:'POST', table, body, ts:Date.now(), tempId});
     saveQueue();
     toast('Saved offline — will sync when connected', false);
-    return [{...body, id: Date.now()}]; // fake id for local use
+    return [{...body, id: tempId}];
   }
-  return dbPost(table, body);
+  return dbPost(table, paResolveBody(body));
 }
 
 async function dbPatchQueued(table, id, body){
+  // Resolve in case `id` (or a field in body) refers to a temp id that
+  // has already been reconciled to a real one by a previous flush.
+  const resolvedId = paResolveId(id);
+  const resolvedBody = paResolveBody(body);
   if(!isOnline){
-    syncQueue.push({method:'PATCH', table, id, body, ts:Date.now()});
+    syncQueue.push({method:'PATCH', table, id: resolvedId, body: resolvedBody, ts:Date.now()});
     saveQueue();
     toast('Saved offline — will sync when connected', false);
     return;
   }
-  return dbPatch(table, id, body);
+  return dbPatch(table, resolvedId, resolvedBody);
 }
 
 // ── INIT ─────────────────────────────────────────────────
