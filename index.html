@@ -801,8 +801,65 @@ async function dbPatchByFilter(table,filterQuery,body){
 // as it does on the CRM side.
 const BACKUP_TABLES=['regions','auctions','agencies','brokers','broker_auction_activations','auction_activities','broker_interactions','clients','client_milestones'];
 async function dbUpsert(table,rows){
+  // SAFE FOR NEW ROWS ONLY — see safeRestoreTable() below. merge-duplicates
+  // blindly overwrites every column on a matching row, including with
+  // blanks. This was the root cause of the June 26 2026 data-loss incident
+  // (Alejandro Prandi's phone silently wiped by an old backup restore).
   const r=await fetch(SUPA_URL+'/rest/v1/'+table,{method:'POST',headers:{...H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)});
   if(!r.ok)throw new Error(await r.text());
+}
+
+function isEmptyVal(v){
+  return v===null||v===undefined||v===''||(Array.isArray(v)&&v.length===0);
+}
+async function fetchExistingRowsById(table,ids){
+  const map={};
+  const chunkSize=150;
+  for(let i=0;i<ids.length;i+=chunkSize){
+    const chunk=ids.slice(i,i+chunkSize);
+    if(!chunk.length)continue;
+    const idList=chunk.map(id=>String(id)).join(',');
+    try{
+      const rows=await dbGet(table,'id=in.('+idList+')&select=*')||[];
+      rows.forEach(r=>{map[r.id]=r;});
+    }catch(e){ console.warn('fetchExistingRowsById chunk failed for',table,e); }
+  }
+  return map;
+}
+// Splits a backup's rows into brand-new inserts (safe) and existing-row
+// gap-fills (only writes fields that are currently empty; a populated
+// field is never overwritten, no matter what the backup says). Any field
+// where both sides have data and disagree is recorded as a conflict for
+// the user to review, rather than silently resolved either way.
+async function safeRestoreTable(table,rows){
+  const result={inserted:0,patched:0,skipped:0,conflicts:[]};
+  if(!rows||!rows.length)return result;
+  const ids=rows.map(r=>r.id).filter(id=>id!=null);
+  const existingMap=await fetchExistingRowsById(table,ids);
+  const toInsert=[];
+  const patches=[];
+  for(const row of rows){
+    const existing=row.id!=null?existingMap[row.id]:null;
+    if(!existing){ toInsert.push(row); continue; }
+    const patchBody={};
+    for(const key of Object.keys(row)){
+      if(key==='id')continue;
+      const liveVal=existing[key], backupVal=row[key];
+      const liveEmpty=isEmptyVal(liveVal), backupEmpty=isEmptyVal(backupVal);
+      if(liveEmpty&&!backupEmpty){ patchBody[key]=backupVal; }
+      else if(!liveEmpty&&!backupEmpty&&JSON.stringify(liveVal)!==JSON.stringify(backupVal)){
+        result.conflicts.push({table,id:row.id,field:key,live:liveVal,backup:backupVal});
+      }
+    }
+    if(Object.keys(patchBody).length) patches.push({id:row.id,body:patchBody});
+    else result.skipped++;
+  }
+  if(toInsert.length){ await dbUpsert(table,toInsert); result.inserted=toInsert.length; }
+  for(const p of patches){
+    try{ await dbPatch(table,p.id,p.body); result.patched++; }
+    catch(e){ console.warn('safeRestoreTable patch failed',table,p.id,e); }
+  }
+  return result;
 }
 async function fetchAllForBackup(){
   const data={};
@@ -826,6 +883,15 @@ async function exportBackup(){
     toast('Backup downloaded',true);
   }catch(e){toast('Backup failed: '+e.message);}
 }
+function downloadConflictReport(conflicts,ts){
+  const blob=new Blob([JSON.stringify({generated:new Date().toISOString(),backup_date:ts,conflicts},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const stamp=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+  a.href=url;a.download='restore_conflicts_'+stamp+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  URL.revokeObjectURL(url);
+}
 function restoreBackup(input){
   const file=input.files[0];
   if(!file)return;
@@ -837,23 +903,37 @@ function restoreBackup(input){
     const order=BACKUP_TABLES;
     const counts=order.map(t=>t+': '+(snapshot.data[t]||[]).length).join('\n');
     const ok=confirm(
-      'RESTORE FROM BACKUP\n\n'+
+      'RESTORE FROM BACKUP (safe mode)\n\n'+
       'Backup date: '+(snapshot.ts||'unknown')+'\n\n'+
-      'This will insert or overwrite (by ID) every row below into your live database. Rows that exist now but are not in this backup will NOT be deleted.\n\n'+
+      'This will fill in MISSING data only. Rows that don\'t exist yet will be added in full. '+
+      'For rows that already exist, only empty fields will be filled from the backup — anything already '+
+      'filled in live will be left untouched, never overwritten.\n\n'+
       counts+'\n\n'+
-      'This cannot be undone. Continue?'
+      'Continue?'
     );
     if(!ok){input.value='';return;}
     toast('Restoring…');
     const errors=[];
+    let totalInserted=0,totalPatched=0,totalSkipped=0;
+    const allConflicts=[];
     for(const t of order){
       const rows=snapshot.data[t];
       if(!rows||!rows.length)continue;
-      try{await dbUpsert(t,rows);}catch(err){errors.push(t+': '+err.message);}
+      try{
+        const r=await safeRestoreTable(t,rows);
+        totalInserted+=r.inserted; totalPatched+=r.patched; totalSkipped+=r.skipped;
+        allConflicts.push(...r.conflicts);
+      }catch(err){errors.push(t+': '+err.message);}
     }
     input.value='';
     if(errors.length){toast('Restore finished with errors — see console');console.error('Restore errors:',errors);}
-    else toast('Restore complete',true);
+    else toast('Restore complete — '+totalInserted+' added, '+totalPatched+' gaps filled, '+totalSkipped+' already complete'+(allConflicts.length?', '+allConflicts.length+' conflicts skipped':''),true);
+    if(allConflicts.length){
+      console.warn('Restore conflicts (live data kept, backup value ignored):',allConflicts);
+      if(confirm(allConflicts.length+' field(s) differed between this backup and your live data. In every case the LIVE value was kept. Download a report to review manually?')){
+        downloadConflictReport(allConflicts,snapshot.ts);
+      }
+    }
     await loadData();
   };
   reader.readAsText(file);
@@ -975,7 +1055,7 @@ function buildRegionSelector(){
     <div style="padding:8px 16px 4px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:600">Data</div>
     <div style="padding:0 16px 4px;display:flex;gap:8px">
       <button onclick="exportBackup()" style="flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer">⬇ Download backup</button>
-      <label style="flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬆ Restore<input type="file" accept=".json" style="display:none" onchange="restoreBackup(this)"></label>
+      <label style="flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬆ Restore missing data<input type="file" accept=".json" style="display:none" onchange="restoreBackup(this)"></label>
     </div>`;
 }
 function toggleAuctionPicker(){
