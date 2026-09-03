@@ -290,6 +290,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .cal-nav-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--bd);background:var(--s2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-size:14px;}
 .cal-dow-row{display:grid;grid-template-columns:repeat(7,1fr);background:var(--white);border-bottom:1px solid var(--bd);}
 .cal-dow{text-align:center;padding:6px 0;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--t4);font-weight:600;}
+.cal-wrap{display:flex;flex-direction:column;min-height:100%;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);background:var(--white);}
 .cal-cell{min-height:58px;border-right:1px solid var(--bd);border-bottom:1px solid var(--bd);padding:3px;position:relative;cursor:pointer;}
 .cal-cell:nth-child(7n){border-right:none;}
@@ -303,15 +304,29 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .dot-td{background:var(--amber);}
 .dot-soon{background:var(--blue);}
 .dot-up{background:var(--bd2);}
-.cal-day-detail{background:var(--white);border-top:2px solid var(--gold-lt);flex:1;overflow-y:auto;}
-.cal-detail-hd{padding:14px 16px 10px;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--t1);border-bottom:1px solid var(--bd);}
+.cal-more-n{font-size:9px;font-family:'DM Mono',monospace;font-weight:600;color:var(--t3);line-height:5px;margin-left:1px;}
+/* The calendar scrolls as one page: the month grid scrolls away as you go down
+   the day's list, and the day header stays pinned so you always know which day
+   you are in and how many items it holds. Deliberately NOT a nested scroller —
+   on a phone a scrollable panel inside a scrollable page steals the gesture at
+   the boundary and events end up unreachable. */
+.cal-day-detail{background:var(--white);border-top:2px solid var(--gold-lt);flex:1;min-height:45vh;}
+.cal-detail-hd{position:sticky;top:0;z-index:3;background:var(--white);display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:14px 16px 10px;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--t1);border-bottom:1px solid var(--bd);box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.cal-detail-count{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);flex-shrink:0;}
+/* Person + region filter. Without it the month grid carries every team
+   member's actions at once, which saturates on a phone within a week. */
+.cal-scope-bar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--white);border-bottom:1px solid var(--bd);}
+.cal-scope-seg{display:flex;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:2px;flex-shrink:0;}
+.cal-scope-btn{height:28px;padding:0 12px;border:none;background:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;white-space:nowrap;}
+.cal-scope-btn.on{background:var(--white);color:var(--t1);box-shadow:0 1px 2px rgba(0,0,0,.08);}
+.cal-scope-region{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 .cal-ev-item{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-bottom:1px solid var(--bd);cursor:pointer;}
 .cal-ev-item:active{background:var(--s2);}
 .cal-ev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
 .cal-ev-info{flex:1;min-width:0;}
 .cal-ev-title{font-size:15px;font-weight:600;color:var(--t1);}
 .cal-ev-sub{font-size:13px;color:var(--t3);margin-top:2px;}
-.cal-ev-time{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);flex-shrink:0;}
+.cal-ev-time{font-size:13px;font-family:'DM Mono',monospace;font-weight:500;color:var(--gold);flex-shrink:0;}
 
 /* ── REMINDER CHIPS ── */
 .reminder-chip{height:34px;padding:0 14px;background:var(--white);border:1px solid var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:17px;cursor:pointer;white-space:nowrap;transition:all .15s;}
@@ -433,10 +448,21 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 
       <!-- Date + Planned row -->
       <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
-        <input type="date" class="fi" id="log-date" style="flex:1;font-size:15px">
+        <input type="date" class="fi" id="log-date" style="flex:1;font-size:15px" onchange="refreshReminderPreview()">
         <div onclick="togglePlanned()" style="display:flex;align-items:center;gap:8px;padding:0 12px;height:50px;background:var(--s2);border:1px solid var(--bd);border-radius:10px;cursor:pointer;flex-shrink:0">
           <div class="toggle-track" id="planned-track"><div class="toggle-thumb"></div></div>
           <div style="font-size:13px;color:var(--t2);white-space:nowrap">Planned</div>
+        </div>
+      </div>
+
+      <!-- Optional time of day. Left blank the entry stays all-day, exactly as
+           before this field existed — nothing downstream changes. -->
+      <div class="fg">
+        <div class="fg-l">Time (optional)</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="time" class="fi" id="log-time" style="width:132px;flex-shrink:0;font-size:15px" onchange="refreshReminderPreview()">
+          <button type="button" onclick="clearLogTime()" style="height:34px;padding:0 12px;background:var(--s2);border:1px solid var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:12px;border-radius:8px;cursor:pointer;flex-shrink:0">Clear</button>
+          <span style="font-size:11px;color:var(--t4);font-style:italic;min-width:0">Blank = all day</span>
         </div>
       </div>
 
@@ -709,7 +735,52 @@ let userIdx=TEAM.indexOf(curUser);if(userIdx<0)userIdx=0;
 
 // ── HELPERS ───────────────────────────────────────────────
 function fmt(d){if(!d)return'';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
-function today(){return new Date().toISOString().slice(0,10);}
+// Local calendar date as YYYY-MM-DD. Deliberately NOT toISOString(), which
+// converts to UTC first: at UTC+2 local midnight is 22:00 the previous day, so
+// the old version returned YESTERDAY for the whole Paris working day. That is
+// what made the calendar highlight and pre-select the wrong cell, and made the
+// log sheet default to yesterday's date after 22:00 local.
+function today(d){
+  const x=d?new Date(d):new Date();
+  return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+}
+
+// ── TIME-OF-DAY ON ACTIONS ────────────────────────────────
+// logged_at (a plain date) remains the single source of truth for WHICH DAY an
+// action falls on — its meaning is unchanged, and every existing date/overdue
+// comparison still runs off it. due_at is an additive, nullable timestamptz
+// that carries only the TIME OF DAY.
+//
+// We deliberately never read the DATE part of due_at. The CRM shares this table
+// and its "edit interaction" modal patches logged_at on its own, so if the two
+// ever disagree the day from logged_at wins and the time simply rides along to
+// the new day. That is what makes the CRM safe to leave exactly as it is.
+//
+// A null due_at means "no time set" and renders identically to today's build.
+function actTime(a){
+  if(!a||!a.due_at)return'';
+  const d=new Date(a.due_at);
+  if(isNaN(d.getTime()))return'';
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+// " · 14:30" for appending to an existing date label; '' when no time is set.
+function fmtT(a){const t=actTime(a);return t?' · '+t:'';}
+// Sort key within a single day: timed items chronologically, untimed ones last.
+function timeKey(a){return actTime(a)||'99:99';}
+// Date-then-time comparator for lists that mix timed and untimed actions.
+function byDateThenTime(x,y){
+  const dx=(x.acted_at||'').slice(0,10),dy=(y.acted_at||'').slice(0,10);
+  if(dx!==dy)return dx<dy?-1:1;
+  const tx=timeKey(x),ty=timeKey(y);
+  return tx<ty?-1:tx>ty?1:0;
+}
+// Builds the value stored in due_at. Returns null when no time was entered,
+// which is what keeps untimed rows behaving exactly as they do today.
+function composeDueAt(dateStr,timeStr){
+  if(!dateStr||!timeStr)return null;
+  const d=new Date(dateStr+'T'+timeStr+':00');
+  return isNaN(d.getTime())?null:d.toISOString();
+}
 function esc(s){return(s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/`/g,'&#96;');}
 function toast(msg,gold=false){
   const el=document.getElementById('toast');
@@ -736,7 +807,9 @@ function copyToClip(text,label){
 function naStatus(b){
   const planned=(b.activities||[]).filter(a=>a.planned);
   if(!planned.length)return'none';
-  const sorted=planned.slice().sort((a,b)=>new Date(a.acted_at)-new Date(b.acted_at));
+  // Same day ordering as before; time of day now breaks ties within a day, so
+  // "next action" on a day with several planned items is the earliest one.
+  const sorted=planned.slice().sort(byDateThenTime);
   const now=new Date();now.setHours(0,0,0,0);
   const up=sorted.filter(a=>{const d=new Date(a.acted_at);d.setHours(0,0,0,0);return d>=now;});
   const next=up.length?up[0]:sorted[sorted.length-1];
@@ -747,7 +820,9 @@ function naStatus(b){
 function nextAct(b){
   const planned=(b.activities||[]).filter(a=>a.planned);
   if(!planned.length)return null;
-  const sorted=planned.slice().sort((a,b)=>new Date(a.acted_at)-new Date(b.acted_at));
+  // Same day ordering as before; time of day now breaks ties within a day, so
+  // "next action" on a day with several planned items is the earliest one.
+  const sorted=planned.slice().sort(byDateThenTime);
   const now=new Date();now.setHours(0,0,0,0);
   const up=sorted.filter(a=>{const d=new Date(a.acted_at);d.setHours(0,0,0,0);return d>=now;});
   return up.length?up[0]:sorted[sorted.length-1];
@@ -800,15 +875,31 @@ async function dbPatchByFilter(table,filterQuery,body){
 // apps share one Supabase project, so "backup" means the same thing here
 // as it does on the CRM side.
 const BACKUP_TABLES=['regions','auctions','agencies','brokers','broker_auction_activations','auction_activities','broker_interactions','clients','client_milestones'];
+// SAFE FOR BRAND-NEW ROWS ONLY. This is a raw insert with
+// resolution=merge-duplicates: if a row with this id already exists, Postgres
+// silently overwrites EVERY column on it with whatever is in `rows`, blanks
+// included. Never call this with rows that may already exist — use
+// safeRestoreTable() below, which separates new rows (safe to insert here)
+// from existing ones (field-level gap fill, never a blind overwrite).
 async function dbUpsert(table,rows){
-  // SAFE FOR NEW ROWS ONLY — see safeRestoreTable() below. merge-duplicates
-  // blindly overwrites every column on a matching row, including with
-  // blanks. This was the root cause of the June 26 2026 data-loss incident
-  // (Alejandro Prandi's phone silently wiped by an old backup restore).
   const r=await fetch(SUPA_URL+'/rest/v1/'+table,{method:'POST',headers:{...H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)});
   if(!r.ok)throw new Error(await r.text());
 }
 
+// ── Safe restore machinery — ported from the CRM so both apps behave
+// identically. Root cause of the June 26 2026 data-loss incident: restore
+// called dbUpsert() on every row in the backup, for every table,
+// unconditionally. Any row matching an EXISTING row by id had its entire
+// contents replaced — including fields correctly filled in since the backup
+// was taken. That silently destroyed newer, correct data whenever an older
+// backup was restored, with no warning and no way to tell afterwards.
+//
+// The fix: never blindly overwrite a populated field. Rows that don't exist
+// live are inserted in full (nothing to lose). Rows that do exist only get
+// their CURRENTLY EMPTY fields filled — the backup is treated purely as a
+// source of missing data, never of replacement data. Every field where the
+// backup disagrees with a non-empty live value is recorded as a conflict and
+// reported, so nothing is silently dropped in either direction.
 function isEmptyVal(v){
   return v===null||v===undefined||v===''||(Array.isArray(v)&&v.length===0);
 }
@@ -822,44 +913,68 @@ async function fetchExistingRowsById(table,ids){
     try{
       const rows=await dbGet(table,'id=in.('+idList+')&select=*')||[];
       rows.forEach(r=>{map[r.id]=r;});
-    }catch(e){ console.warn('fetchExistingRowsById chunk failed for',table,e); }
+    }catch(e){
+      // A chunk we could not read is a chunk we cannot reason about. Mark it
+      // so the caller skips those rows entirely rather than guessing they are
+      // new and inserting over live data.
+      console.warn('fetchExistingRowsById chunk failed for',table,e);
+      chunk.forEach(id=>{map[id]='__unknown__';});
+    }
   }
   return map;
 }
-// Splits a backup's rows into brand-new inserts (safe) and existing-row
-// gap-fills (only writes fields that are currently empty; a populated
-// field is never overwritten, no matter what the backup says). Any field
-// where both sides have data and disagree is recorded as a conflict for
-// the user to review, rather than silently resolved either way.
+// Returns { inserted, patched, skipped, unknown, conflicts }
 async function safeRestoreTable(table,rows){
-  const result={inserted:0,patched:0,skipped:0,conflicts:[]};
+  const result={inserted:0,patched:0,skipped:0,unknown:0,conflicts:[]};
   if(!rows||!rows.length)return result;
-  const ids=rows.map(r=>r.id).filter(id=>id!=null);
+  const ids=rows.map(r=>r.id).filter(id=>id!==undefined&&id!==null);
   const existingMap=await fetchExistingRowsById(table,ids);
+
   const toInsert=[];
   const patches=[];
+
   for(const row of rows){
     const existing=row.id!=null?existingMap[row.id]:null;
-    if(!existing){ toInsert.push(row); continue; }
+    if(existing==='__unknown__'){result.unknown++;continue;}
+    if(!existing){
+      // Brand-new row (or missing id) — nothing live to damage.
+      toInsert.push(row);
+      continue;
+    }
     const patchBody={};
     for(const key of Object.keys(row)){
       if(key==='id')continue;
-      const liveVal=existing[key], backupVal=row[key];
-      const liveEmpty=isEmptyVal(liveVal), backupEmpty=isEmptyVal(backupVal);
-      if(liveEmpty&&!backupEmpty){ patchBody[key]=backupVal; }
-      else if(!liveEmpty&&!backupEmpty&&JSON.stringify(liveVal)!==JSON.stringify(backupVal)){
+      const liveVal=existing[key],backupVal=row[key];
+      const liveEmpty=isEmptyVal(liveVal),backupEmpty=isEmptyVal(backupVal);
+      if(liveEmpty&&!backupEmpty){
+        patchBody[key]=backupVal;                     // gap fill
+      } else if(!liveEmpty&&!backupEmpty&&JSON.stringify(liveVal)!==JSON.stringify(backupVal)){
         result.conflicts.push({table,id:row.id,field:key,live:liveVal,backup:backupVal});
       }
+      // both empty, or equal: nothing to do.
     }
-    if(Object.keys(patchBody).length) patches.push({id:row.id,body:patchBody});
+    if(Object.keys(patchBody).length)patches.push({id:row.id,body:patchBody});
     else result.skipped++;
   }
-  if(toInsert.length){ await dbUpsert(table,toInsert); result.inserted=toInsert.length; }
+
+  if(toInsert.length){
+    await dbUpsert(table,toInsert);                   // safe: none of these ids exist live
+    result.inserted=toInsert.length;
+  }
   for(const p of patches){
     try{ await dbPatch(table,p.id,p.body); result.patched++; }
     catch(e){ console.warn('safeRestoreTable patch failed',table,p.id,e); }
   }
   return result;
+}
+function downloadConflictReport(conflicts,ts){
+  const blob=new Blob([JSON.stringify({generated:new Date().toISOString(),backup_date:ts,conflicts},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const stamp=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+  a.href=url;a.download='restore_conflicts_'+stamp+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  URL.revokeObjectURL(url);
 }
 async function fetchAllForBackup(){
   const data={};
@@ -883,15 +998,6 @@ async function exportBackup(){
     toast('Backup downloaded',true);
   }catch(e){toast('Backup failed: '+e.message);}
 }
-function downloadConflictReport(conflicts,ts){
-  const blob=new Blob([JSON.stringify({generated:new Date().toISOString(),backup_date:ts,conflicts},null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const stamp=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
-  a.href=url;a.download='restore_conflicts_'+stamp+'.json';
-  document.body.appendChild(a);a.click();a.remove();
-  URL.revokeObjectURL(url);
-}
 function restoreBackup(input){
   const file=input.files[0];
   if(!file)return;
@@ -907,32 +1013,38 @@ function restoreBackup(input){
       'Backup date: '+(snapshot.ts||'unknown')+'\n\n'+
       'This will fill in MISSING data only. Rows that don\'t exist yet will be added in full. '+
       'For rows that already exist, only empty fields will be filled from the backup — anything already '+
-      'filled in live will be left untouched, never overwritten.\n\n'+
+      'filled in live will be left untouched, never overwritten. Rows in this backup that are not in the '+
+      'live database will NOT be deleted from it.\n\n'+
       counts+'\n\n'+
       'Continue?'
     );
     if(!ok){input.value='';return;}
     toast('Restoring…');
     const errors=[];
-    let totalInserted=0,totalPatched=0,totalSkipped=0;
+    let totalInserted=0,totalPatched=0,totalSkipped=0,totalUnknown=0;
     const allConflicts=[];
     for(const t of order){
       const rows=snapshot.data[t];
       if(!rows||!rows.length)continue;
       try{
         const r=await safeRestoreTable(t,rows);
-        totalInserted+=r.inserted; totalPatched+=r.patched; totalSkipped+=r.skipped;
+        totalInserted+=r.inserted;totalPatched+=r.patched;totalSkipped+=r.skipped;totalUnknown+=r.unknown;
         allConflicts.push(...r.conflicts);
       }catch(err){errors.push(t+': '+err.message);}
     }
     input.value='';
     if(errors.length){toast('Restore finished with errors — see console');console.error('Restore errors:',errors);}
-    else toast('Restore complete — '+totalInserted+' added, '+totalPatched+' gaps filled, '+totalSkipped+' already complete'+(allConflicts.length?', '+allConflicts.length+' conflicts skipped':''),true);
+    else toast(totalInserted+' added, '+totalPatched+' gaps filled, '+totalSkipped+' already complete'
+      +(allConflicts.length?', '+allConflicts.length+' conflicts skipped':'')
+      +(totalUnknown?', '+totalUnknown+' unreadable and left alone':''),true);
     if(allConflicts.length){
       console.warn('Restore conflicts (live data kept, backup value ignored):',allConflicts);
-      if(confirm(allConflicts.length+' field(s) differed between this backup and your live data. In every case the LIVE value was kept. Download a report to review manually?')){
-        downloadConflictReport(allConflicts,snapshot.ts);
-      }
+      const dl=confirm(
+        allConflicts.length+' field(s) differed between this backup and your live data. '+
+        'In every case the LIVE value was kept and the backup value was ignored — nothing was overwritten. '+
+        'Download a report of these differences to review manually?'
+      );
+      if(dl)downloadConflictReport(allConflicts,snapshot.ts);
     }
     await loadData();
   };
@@ -1006,7 +1118,7 @@ async function loadData(){
     actRows.forEach(a=>{
       if(bMap[a.broker_id])bMap[a.broker_id].activities.push({
         id:a.id,type:a.type||'',notes:a.notes||'',planned:!!a.planned,
-        acted_at:a.logged_at||'',auction_id:a.auction_id
+        acted_at:a.logged_at||'',due_at:a.due_at||null,auction_id:a.auction_id
       });
     });
     // Note: broker.clients (BD's lightweight prospect mentions) is populated
@@ -1055,7 +1167,7 @@ function buildRegionSelector(){
     <div style="padding:8px 16px 4px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:600">Data</div>
     <div style="padding:0 16px 4px;display:flex;gap:8px">
       <button onclick="exportBackup()" style="flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer">⬇ Download backup</button>
-      <label style="flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬆ Restore missing data<input type="file" accept=".json" style="display:none" onchange="restoreBackup(this)"></label>
+      <label style="flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬆ Restore<input type="file" accept=".json" style="display:none" onchange="restoreBackup(this)"></label>
     </div>`;
 }
 function toggleAuctionPicker(){
@@ -1337,7 +1449,16 @@ function renderToday(){
 
   const myBrokers=pool.filter(b=>!b.assigned||b.assigned===curUser||b.assigned===curUser.toLowerCase());
   const withActions=myBrokers.filter(b=>['overdue','today','soon'].includes(naStatus(b)));
-  withActions.sort((a,b)=>{const ord={overdue:0,today:1,soon:2};return ord[naStatus(a)]-ord[naStatus(b)];});
+  withActions.sort((a,b)=>{
+    const ord={overdue:0,today:1,soon:2};
+    const d=ord[naStatus(a)]-ord[naStatus(b)];
+    if(d!==0)return d;
+    // Within a bucket, order by when the action is actually due: date first,
+    // then time of day, untimed actions after timed ones on the same day.
+    const na=nextAct(a),nb=nextAct(b);
+    if(!na||!nb)return 0;
+    return byDateThenTime(na,nb);
+  });
 
   const myActs=pool.flatMap(b=>(b.activities||[]).filter(a=>!a.planned).map(a=>({...a,brokerName:b.name,brokerId:b.id}))).sort((a,b)=>new Date(b.acted_at)-new Date(a.acted_at)).slice(0,5);
 
@@ -1356,7 +1477,7 @@ function renderToday(){
         +'</div>'
         +'<div class="act-right">'
           +'<span class="act-tag '+(s==='overdue'?'tag-ov':s==='today'?'tag-td':'tag-pl')+'">'+(s==='overdue'?'Overdue':s==='today'?'Today':'Soon')+'</span>'
-          +'<span class="act-date">'+(na?fmt(na.acted_at):'')+'</span>'
+          +'<span class="act-date">'+(na?fmt(na.acted_at)+fmtT(na):'')+'</span>'
           +(na?'<span onclick="event.stopPropagation();markActDone(\''+na.id+'\',\''+b.id+'\')" style="margin-top:4px;font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;white-space:nowrap">✓ Done</span>':'')
         +'</div>'
         +'</div>';
@@ -1376,7 +1497,7 @@ function renderToday(){
         +'</div>'
         +'<div class="act-right">'
           +'<span class="act-tag tag-dn">Done</span>'
-          +'<span class="act-date">'+fmt(a.acted_at)+'</span>'
+          +'<span class="act-date">'+fmt(a.acted_at)+fmtT(a)+'</span>'
         +'</div>'
         +'</div>';
     });
@@ -1506,7 +1627,7 @@ function renderBrokerCards(){
         ?'<div style="font-size:13px;color:var(--gold);font-weight:500;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">&#x2302; '+esc(b.bd_property)+(b.bd_value?' &middot; '+esc(b.bd_value):'')+'</div>'
         :'<div style="font-size:12px;color:var(--t4);margin-top:3px;font-style:italic">No property yet</div>';
       const naLine=na!=='none'
-        ?'<span class="next-action '+(na==='overdue'?'ov':na==='today'?'td':'')+'">'+(na==='overdue'?'! Overdue':na==='today'?'Today':nxt?fmt(nxt.acted_at):'')+'</span>'
+        ?'<span class="next-action '+(na==='overdue'?'ov':na==='today'?'td':'')+'">'+(na==='overdue'?'! Overdue':na==='today'?'Today'+(nxt?fmtT(nxt):''):nxt?fmt(nxt.acted_at)+fmtT(nxt):'')+'</span>'
         :'';
       const sc=b.bd_addendum==='signed'?'sc-h':b.bd_addendum&&b.bd_addendum!==''?'sc-w':'sc-c';
       const sl=b.bd_addendum==='signed'?'Sgnd':b.bd_addendum==='sent'?'Sent':b.bd_addendum==='draft'?'Drft':b.bd_addendum==='vendor_review'?'Vndr':b.bd_addendum==='blocked'?'Blkd':'New';
@@ -1557,7 +1678,8 @@ function openDetail(brokerId){
     ${b.bd_property?`<div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.04);border-radius:6px;font-size:12px;color:var(--t2)">&#x2302; ${esc(b.bd_property)}${b.bd_value?' · <span style="color:var(--gold);font-weight:500">'+esc(b.bd_value)+'</span>':''}</div>`:''}
   `;
 
-  const planned=(b.activities||[]).filter(a=>a.planned).sort((a,b)=>new Date(a.acted_at)-new Date(b.acted_at));
+  // Same day ordering as before, with time of day breaking ties within a day.
+  const planned=(b.activities||[]).filter(a=>a.planned).slice().sort(byDateThenTime);
   const done=(b.activities||[]).filter(a=>!a.planned);
   document.getElementById('detail-body').innerHTML=`
     <!-- Quick contact -->
@@ -1627,10 +1749,10 @@ function openDetail(brokerId){
             <span class="act-item-type">${actIcon(a.type)} ${esc(a.type)}</span>
             <span class="act-item-badge badge-planned">Planned</span>
             <span onclick="event.stopPropagation();markActDone('${a.id}','${b.id}')" style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;flex-shrink:0">✓ Done</span>
-            <span onclick="event.stopPropagation();openEditActivity(${b.activities.indexOf(a)},'${b.id}')" style="margin-left:6px;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--bd);background:var(--s2);color:var(--t2);cursor:pointer;flex-shrink:0">Edit</span>
+            <span onclick="event.stopPropagation();openEditActivity('${a.id}','${b.id}')" style="margin-left:6px;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--bd);background:var(--s2);color:var(--t2);cursor:pointer;flex-shrink:0">Edit</span>
             <span onclick="event.stopPropagation();deleteActivity('${a.id}','${b.id}')" style="margin-left:4px;font-size:14px;color:var(--t4);cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid var(--bd);background:var(--s2)" title="Delete">×</span>
           </div>
-          <div class="act-item-date">${fmt(a.acted_at)}</div>
+          <div class="act-item-date">${fmt(a.acted_at)}${fmtT(a)}</div>
           ${a.notes?`<div class="act-item-notes">${esc(a.notes)}</div>`:''}
         </div>
       `).join('')}
@@ -1643,8 +1765,8 @@ function openDetail(brokerId){
         <div class="act-item" style="position:relative">
           <div class="act-item-top">
             <span class="act-item-type">${actIcon(a.type)} ${esc(a.type)}</span>
-            <span class="act-item-date">${fmt(a.acted_at)}</span>
-            <span onclick="event.stopPropagation();openEditActivity(${b.activities.filter(x=>!x.planned).indexOf(a)},'${b.id}','done')" style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--bd);background:var(--s2);color:var(--t2);cursor:pointer;flex-shrink:0">Edit</span>
+            <span class="act-item-date">${fmt(a.acted_at)}${fmtT(a)}</span>
+            <span onclick="event.stopPropagation();openEditActivity('${a.id}','${b.id}')" style="margin-left:auto;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--bd);background:var(--s2);color:var(--t2);cursor:pointer;flex-shrink:0">Edit</span>
             <span onclick="event.stopPropagation();deleteActivity('${a.id}','${b.id}')" style="margin-left:4px;font-size:14px;color:var(--t4);cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid var(--bd);background:var(--s2)" title="Delete">×</span>
           </div>
           ${a.notes?`<div class="act-item-notes">${esc(a.notes)}</div>`:''}
@@ -1902,18 +2024,34 @@ function togglePlanned(){
   logPlanned=!logPlanned;
   document.getElementById('planned-track').classList.toggle('on',logPlanned);
 }
+function clearLogTime(){
+  const el=document.getElementById('log-time');
+  if(el)el.value='';
+  refreshReminderPreview();
+}
+// Single source for the reminder preview line, called by both chip handlers and
+// by the date/time inputs. Two corrections over the previous inline versions:
+// it counts the offset from the entry's own date (submitLog always did, the
+// preview used to count from today and disagreed as soon as the date was
+// changed), and it clears the line when "None" is picked from the default path.
+function refreshReminderPreview(){
+  const prev=document.getElementById('reminder-preview');
+  if(!prev)return;
+  if(!logReminderDays){prev.textContent='No follow-up reminder';return;}
+  const base=(document.getElementById('log-date')||{}).value||today();
+  const d=new Date(base+'T12:00:00');
+  if(isNaN(d.getTime())){prev.textContent='';return;}
+  d.setDate(d.getDate()+logReminderDays);
+  const t=(document.getElementById('log-time')||{}).value||'';
+  prev.textContent='Will add a follow-up reminder for '
+    +d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})
+    +(t?' at '+t:'');
+}
 function selectReminder(el,days){
   logReminderDays=days;
   document.querySelectorAll('.reminder-chip').forEach(c=>c.classList.remove('on'));
   el.classList.add('on');
-  const prev=document.getElementById('reminder-preview');
-  if(prev){
-    if(days===0){prev.textContent='No follow-up reminder';}
-    else{
-      const d=new Date();d.setDate(d.getDate()+days);
-      prev.textContent='Will add a follow-up reminder for '+d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-    }
-  }
+  refreshReminderPreview();
 }
 function selectReminderDefault(days){
   logReminderDays=days;
@@ -1921,18 +2059,21 @@ function selectReminderDefault(days){
     const cd=parseInt(c.dataset.days);
     c.classList.toggle('on',cd===days);
   });
-  const prev=document.getElementById('reminder-preview');
-  if(prev&&days>0){
-    const d=new Date();d.setDate(d.getDate()+days);
-    prev.textContent='Will add a follow-up reminder for '+d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-  }
+  refreshReminderPreview();
 }
 
 function openLogSheet(brokerId=null){
   logPlanned=false;logType='Call';logReminderDays=3;
   document.getElementById('planned-track').classList.remove('on');
-  selectReminderDefault(3);
+  // Date and time are set BEFORE the reminder default, because the preview line
+  // is now derived from the date field rather than from today's date.
   document.getElementById('log-date').value=today();
+  document.getElementById('log-time').value='';
+  // Restored here so a sheet previously opened in edit mode (which hides it)
+  // comes back with the reminder chips visible.
+  const remWrap=document.getElementById('reminder-wrap');
+  if(remWrap)remWrap.style.display='';
+  selectReminderDefault(3);
   document.getElementById('log-notes').value='';
   buildTypeScroll();
 
@@ -1990,12 +2131,15 @@ async function submitLog(){
     const date=document.getElementById('log-date').value;
     const notes=document.getElementById('log-notes').value;
     if(!date){toast('Select a date');return;}
+    // Always sent, so clearing the time field genuinely clears the stored time
+    // rather than leaving a stale one behind.
+    const dueAt=composeDueAt(date,document.getElementById('log-time').value);
     try{
       loading(true);
-      await dbPatchQueued('broker_interactions',actId,{type:logType,notes,planned:logPlanned,logged_at:date});
+      await dbPatchQueued('broker_interactions',actId,{type:logType,notes,planned:logPlanned,logged_at:date,due_at:dueAt});
       const b=brokers.find(x=>String(x.id)===String(brokerId));
       if(b){const act=b.activities.find(a=>String(a.id)===String(actId));
-        if(act){act.type=logType;act.notes=notes;act.planned=logPlanned;act.acted_at=date;}}
+        if(act){act.type=logType;act.notes=notes;act.planned=logPlanned;act.acted_at=date;act.due_at=dueAt;}}
       toast('Activity updated ✓',true);
       closeLogSheet();
       const btn=document.querySelector('#log-sheet .btn-save');
@@ -2015,7 +2159,8 @@ async function submitLog(){
   const dossierSel=document.getElementById('log-dossier');
   const auctionId=dossierSel&&dossierSel.value?dossierSel.value:null; // uuid string, not parsed
 
-  const body={broker_id:brokerId,auction_id:auctionId,type:logType,notes,planned:logPlanned,logged_at:date};
+  const time=document.getElementById('log-time').value;
+  const body={broker_id:brokerId,auction_id:auctionId,type:logType,notes,planned:logPlanned,logged_at:date,due_at:composeDueAt(date,time)};
   try{
     loading(true);
     const rows=await dbPostQueued('broker_interactions',body);
@@ -2028,7 +2173,10 @@ async function submitLog(){
       const remDate=new Date(date);
       remDate.setDate(remDate.getDate()+logReminderDays);
       const remDateStr=remDate.toISOString().slice(0,10);
-      const remBody={broker_id:brokerId,auction_id:auctionId,type:'Call',notes:'Follow-up',planned:true,logged_at:remDateStr};
+      // The follow-up inherits the time of the entry it came from. No time on
+      // the entry means no time on the reminder — an all-day item, exactly as
+      // reminders have always been created.
+      const remBody={broker_id:brokerId,auction_id:auctionId,type:'Call',notes:'Follow-up',planned:true,logged_at:remDateStr,due_at:composeDueAt(remDateStr,time)};
       try{
         const remRows=await dbPostQueued('broker_interactions',remBody);
         if(b&&remRows[0])b.activities.unshift({...remRows[0],acted_at:remRows[0].logged_at});
@@ -2053,43 +2201,68 @@ let calSelDate=null; // "YYYY-MM-DD" string
 function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCal();}
 function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCal();}
 
-function renderCal(){
-  const v=document.getElementById('view-cal');
-  // Calendar shows all planned activities; auction selector only adds the auction-day marker
-
-  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-
-  // Build event index: date string → array of events
+// Who the calendar is for. 'mine' is the default because a shared month grid
+// with the whole team's actions on it saturates immediately on a phone.
+// Persisted so it survives a reload mid-day in the field.
+let calScope=localStorage.getItem('pa_cal_scope')||'mine';
+function setCalScope(s){
+  calScope=s;
+  localStorage.setItem('pa_cal_scope',s);
+  renderCal();
+}
+// "Mine" follows the same rule as the Today tab: assigned to me, or not
+// assigned to anyone yet. Deliberately NOT a strict `assigned===curUser` —
+// that would make a planned action on an unclaimed contact invisible here
+// while it is still listed under My actions on Today, and an action nobody
+// can see is worse than a slightly fuller calendar.
+function calBrokerPool(){
+  let pool=brokers;
+  if(curRegion)pool=pool.filter(b=>Number(b.region_id)===Number(curRegion.id));
+  if(calScope==='mine')pool=pool.filter(b=>!b.assigned||b.assigned===curUser||b.assigned===String(curUser).toLowerCase());
+  return pool;
+}
+// ONE event index, used by both the month grid and the day list. These were
+// two separate copies before, and they had drifted: the grid filtered by
+// region while the day list did not, so tapping a day could list contacts from
+// a region you had filtered out. Building it once removes that whole class of
+// disagreement.
+function buildCalEvents(){
   const evMap={};
-  function addEv(dateStr,ev){if(!evMap[dateStr])evMap[dateStr]=[];evMap[dateStr].push(ev);}
-
+  const add=(ds,ev)=>{(evMap[ds]=evMap[ds]||[]).push(ev);};
   const now=new Date();now.setHours(0,0,0,0);
-
-  const calBrokers=curRegion?brokers.filter(b=>b.region_id===curRegion.id):brokers;
-  calBrokers.forEach(b=>{
+  calBrokerPool().forEach(b=>{
     (b.activities||[]).filter(a=>a.planned).forEach(a=>{
-      const d=new Date(a.acted_at);
+      if(!a.acted_at)return;
       const ds=a.acted_at.slice(0,10);
-      d.setHours(0,0,0,0);
+      const d=new Date(a.acted_at);d.setHours(0,0,0,0);
       const df=Math.round((d-now)/86400000);
       const urgency=df<0?'ov':df===0?'td':df<=7?'soon':'up';
-      addEv(ds,{kind:'broker',broker:b,act:a,urgency,
+      add(ds,{kind:'broker',broker:b,act:a,urgency,time:actTime(a),
         title:b.name.split(' ')[0]+' · '+a.type,
         sub:b.agency+(a.notes?' — '+a.notes:''),
         color:urgency==='ov'?'var(--red)':urgency==='td'?'var(--amber)':urgency==='soon'?'var(--blue)':'var(--bd2)'});
     });
   });
   if(curAuction&&curAuction.date){
-    addEv(curAuction.date,{kind:'auction',title:'◆ Auction day',sub:curAuction.name,color:'var(--gold)'});
+    add(curAuction.date,{kind:'auction',title:'◆ Auction day',sub:curAuction.name,color:'var(--gold)',time:''});
   }
+  return evMap;
+}
+
+function renderCal(){
+  const v=document.getElementById('view-cal');
+
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  const evMap=buildCalEvents();
 
   // Grid
   const firstDay=new Date(calYear,calMonth,1);
   let startDow=firstDay.getDay();startDow=(startDow+6)%7;
   const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
   const daysInPrev=new Date(calYear,calMonth,0).getDate();
-  const todayStr=now.toISOString().slice(0,10);
+  const todayStr=today();
 
   let cells=[];
   for(let i=startDow-1;i>=0;i--)cells.push({day:daysInPrev-i,cur:false});
@@ -2102,10 +2275,15 @@ function renderCal(){
     const evs=evMap[ds]||[];
     const isToday=ds===todayStr;
     const isSel=ds===calSelDate;
-    const dots=evs.slice(0,4).map(e=>`<div class="cal-dot dot-${e.urgency||'up'}" style="background:${e.color}"></div>`).join('');
+    // Three dots plus a count. The old version drew up to four dots and then
+    // stopped silently, so a day with four events and a day with eleven looked
+    // identical — the exact case where you most need to know.
+    const MAXDOTS=3;
+    const dots=evs.slice(0,MAXDOTS).map(e=>`<div class="cal-dot dot-${e.urgency||'up'}" style="background:${e.color}"></div>`).join('');
+    const more=evs.length>MAXDOTS?`<span class="cal-more-n">+${evs.length-MAXDOTS}</span>`:'';
     return`<div class="cal-cell${isToday?' today':''}${isSel?' selected':''}" onclick="selectCalDay('${ds}')">
       <div class="cal-day-num">${cell.day}</div>
-      ${dots?`<div class="cal-dot-row">${dots}</div>`:''}
+      ${dots?`<div class="cal-dot-row">${dots}${more}</div>`:''}
     </div>`;
   }).join('');
 
@@ -2115,12 +2293,20 @@ function renderCal(){
     calSelDate=todayStr.startsWith(curMonStr)?todayStr:curMonStr+'-01';
   }
 
+  const scopeLabel=curRegion?esc(curRegion.name):'All regions';
   v.innerHTML=`
-    <div style="display:flex;flex-direction:column;height:100%">
+    <div class="cal-wrap">
       <div class="cal-hd">
         <button class="cal-nav-btn" onclick="calPrev()">‹</button>
         <span class="cal-month">${MONTHS[calMonth]} ${calYear}</span>
         <button class="cal-nav-btn" onclick="calNext()">›</button>
+      </div>
+      <div class="cal-scope-bar">
+        <div class="cal-scope-seg">
+          <button class="cal-scope-btn${calScope==='mine'?' on':''}" onclick="setCalScope('mine')">${esc(curUser)}</button>
+          <button class="cal-scope-btn${calScope==='all'?' on':''}" onclick="setCalScope('all')">Everyone</button>
+        </div>
+        <span class="cal-scope-region">◉ ${scopeLabel}</span>
       </div>
       <div class="cal-dow-row">${DAYS.map(d=>`<div class="cal-dow">${d}</div>`).join('')}</div>
       <div class="cal-grid" id="cal-grid-cells">${gridHtml}</div>
@@ -2138,29 +2324,29 @@ function selectCalDay(ds){
     el.classList.remove('selected');
     if(el.getAttribute('onclick')&&el.getAttribute('onclick').includes("'"+ds+"'"))el.classList.add('selected');
   });
-  const evMap={};
-  brokers.forEach(b=>{
-    (b.activities||[]).filter(a=>a.planned).forEach(a=>{
-      const d=new Date(a.acted_at);d.setHours(0,0,0,0);
-      const now=new Date();now.setHours(0,0,0,0);
-      const df=Math.round((d-now)/86400000);
-      const urgency=df<0?'ov':df===0?'td':df<=7?'soon':'up';
-      const key=a.acted_at.slice(0,10);
-      if(!evMap[key])evMap[key]=[];
-      evMap[key].push({kind:'broker',broker:b,act:a,urgency,
-        title:b.name.split(' ')[0]+' · '+a.type,
-        sub:b.agency+(a.notes?' — '+a.notes:''),
-        color:urgency==='ov'?'var(--red)':urgency==='td'?'var(--amber)':urgency==='soon'?'var(--blue)':'var(--bd2)'});
-    });
-  });
-  if(curAuction&&curAuction.date)evMap[curAuction.date]=(evMap[curAuction.date]||[]).concat([{kind:'auction',title:'◆ Auction day',sub:curAuction.name,color:'var(--gold)'}]);
-  renderDayDetail(ds,evMap);
+  // Same index the grid was drawn from, so the list can never disagree with
+  // the dots above it.
+  renderDayDetail(ds,buildCalEvents());
+  // On a phone the day list sits below the fold. Bring it up on tap so the
+  // events are under the thumb instead of waiting to be discovered by
+  // scrolling — this is what makes the calendar usable one-handed.
+  const det=document.getElementById('cal-day-detail');
+  if(det&&det.scrollIntoView){
+    try{det.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){det.scrollIntoView();}
+  }
 }
 
 function renderDayDetail(ds,evMap){
   const det=document.getElementById('cal-day-detail');
   if(!det)return;
-  const evs=evMap[ds]||[];
+  // Sorted on a copy so the caller's evMap (also used for the month dots) is
+  // left exactly as it was built. The auction-day marker stays pinned to the
+  // top; timed actions then run in clock order, untimed ones last.
+  const evs=(evMap[ds]||[]).slice().sort((x,y)=>{
+    const kx=x.kind==='auction'?'00:00':(x.time||'99:99');
+    const ky=y.kind==='auction'?'00:00':(y.time||'99:99');
+    return kx<ky?-1:kx>ky?1:0;
+  });
   const d=new Date(ds+'T12:00:00Z');
   const label=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
@@ -2168,7 +2354,7 @@ function renderDayDetail(ds,evMap){
     <div class="cal-ev-item" onclick="${ev.kind==='broker'?'openDetail(\''+ev.broker.id+'\')':''}">
       <div class="cal-ev-dot" style="background:${ev.color}"></div>
       <div class="cal-ev-info">
-        <div class="cal-ev-title">${esc(ev.title)}</div>
+        <div class="cal-ev-title">${ev.time?`<span class="cal-ev-time">${esc(ev.time)}</span> `:''}${esc(ev.title)}</div>
         ${ev.sub?`<div class="cal-ev-sub">${esc(ev.sub)}</div>`:''}
       </div>
       ${ev.kind==='broker'?`<span onclick="event.stopPropagation();markActDone('${ev.act.id}','${ev.broker.id}')" style="font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--green-bd);background:var(--green-bg);color:var(--green);cursor:pointer;flex-shrink:0">✓</span>`:''}
@@ -2179,7 +2365,17 @@ function renderDayDetail(ds,evMap){
     <button onclick="openLogSheetForDate('${ds}')" style="width:100%;height:36px;background:none;border:1.5px dashed var(--bd);color:var(--t3);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;border-radius:8px;transition:all .12s" onmouseover="this.style.borderColor='var(--gold-lt)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--bd)';this.style.color='var(--t3)'">+ Plan action for this day</button>
   </div>`;
 
-  det.innerHTML=`<div class="cal-detail-hd">${label}</div>${evHtml}${addBtn}`;
+  // The header is sticky and carries the count. On a phone a long day scrolls
+  // past the fold, and without a count there is nothing to tell you the list
+  // continues — you would have to scroll to find out. The count says so up
+  // front and stays visible the whole way down.
+  const countLabel=evs.length
+    ? evs.length+' '+(evs.length===1?'item':'items')
+    : '';
+  det.innerHTML=`<div class="cal-detail-hd">
+      <span>${label}</span>
+      ${countLabel?`<span class="cal-detail-count">${countLabel}</span>`:''}
+    </div>${evHtml}${addBtn}`;
 }
 
 function openLogSheetForDate(ds){
@@ -2191,6 +2387,8 @@ function openLogSheetForDate(ds){
     // Pre-check planned toggle
     logPlanned=true;
     document.getElementById('planned-track').classList.add('on');
+    // The date just changed under the reminder preview, which is derived from it.
+    refreshReminderPreview();
   },50);
 }
 
@@ -2223,10 +2421,15 @@ async function deleteActivity(actId,brokerId){
 
 
 // ── EDIT ACTIVITY ────────────────────────────────────────────────
-function openEditActivity(idx,brokerId,pool){
+// Takes the activity id, not a list position. The planned-actions list is
+// filtered AND sorted before rendering, so the index it used to pass
+// (b.activities.indexOf(a) — a position in the full, unsorted array) was read
+// back against the filtered planned array: any contact with a logged activity
+// sitting ahead of a planned one opened the wrong row, or none at all. An id
+// can't drift like that.
+function openEditActivity(actId,brokerId){
   const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
-  const acts=pool==='done'?b.activities.filter(a=>!a.planned):b.activities.filter(a=>a.planned);
-  const a=acts[idx];if(!a)return;
+  const a=(b.activities||[]).find(x=>String(x.id)===String(actId));if(!a)return;
   _editingActivityId=a.id;
   _editingBrokerId=brokerId;
   openLogSheet(brokerId);
@@ -2235,7 +2438,13 @@ function openEditActivity(idx,brokerId,pool){
     logPlanned=!!a.planned;
     document.getElementById('planned-track').classList.toggle('on',logPlanned);
     document.getElementById('log-date').value=a.acted_at?a.acted_at.slice(0,10):today();
+    document.getElementById('log-time').value=actTime(a);
     document.getElementById('log-notes').value=a.notes||'';
+    // No follow-up is ever created from an edit (submitLog returns before that
+    // branch), so the chips and their preview line are hidden rather than left
+    // sitting there promising a reminder that will not be created.
+    const remWrap=document.getElementById('reminder-wrap');
+    if(remWrap)remWrap.style.display='none';
     document.querySelectorAll('.type-chip').forEach(el=>{
       const lbl=el.querySelector('div:last-child');
       if(lbl)el.classList.toggle('on',lbl.textContent.trim()===logType);
