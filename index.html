@@ -233,6 +233,22 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .btn-save{flex:2;height:52px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;border-radius:10px;cursor:pointer;}
 .btn-save:active{background:var(--t2);}
 
+/* ── CARD SCAN ── */
+.scan-btn{height:40px;padding:0 14px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;}
+.scan-btn:active{background:var(--gold-bd);}
+.scan-btn svg{width:16px;height:16px;flex-shrink:0;}
+.scan-strip{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:14px;background:var(--gold-bg);border:1px solid var(--gold-bd);border-radius:10px;}
+.scan-strip-txt{font-size:13px;color:var(--t2);line-height:1.4;flex:1;}
+.scan-note{font-size:13px;line-height:1.5;padding:10px 12px;border-radius:10px;margin-bottom:14px;}
+.scan-note.ok{background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green);}
+.scan-note.warn{background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber);}
+.scan-note.err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red);}
+.scan-overlay{position:fixed;inset:0;z-index:900;background:rgba(10,10,10,.72);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff;}
+.scan-overlay.open{display:flex;}
+.scan-overlay img{max-width:74vw;max-height:40vh;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.45);}
+.scan-spinner{width:26px;height:26px;border:2px solid rgba(255,255,255,.28);border-top-color:var(--gold-lt);border-radius:50%;animation:spin .8s linear infinite;}
+.scan-overlay-txt{font-family:'Cormorant Garamond',serif;font-size:20px;letter-spacing:.3px;}
+
 /* ── BROKER DETAIL SHEET ── */
 .detail-sheet{position:fixed;inset:0;background:var(--white);z-index:400;transform:translateX(100%);transition:transform .25s ease;display:flex;flex-direction:column;}
 .detail-sheet.open{transform:translateX(0);}
@@ -527,6 +543,14 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   </div>
 </div>
 
+<!-- CARD SCAN — hidden camera input + progress overlay -->
+<input type="file" id="card-file" accept="image/*" capture="environment" style="display:none" onchange="onCardFile(this)">
+<div class="scan-overlay" id="scan-overlay">
+  <img id="scan-preview" alt="">
+  <div class="scan-spinner"></div>
+  <div class="scan-overlay-txt" id="scan-overlay-txt">Reading the card…</div>
+</div>
+
 <!-- ADD BROKER SHEET -->
 <div class="sheet-overlay" id="add-broker-sheet" onclick="if(event.target===this)closeAddBroker()">
   <div class="sheet">
@@ -534,6 +558,14 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <div class="sheet-title">Add contact</div>
     <div class="sheet-sub">Will appear in app immediately</div>
     <div class="sheet-body">
+      <div class="scan-note" id="scan-note" style="display:none"></div>
+      <div class="scan-strip" id="scan-strip">
+        <div class="scan-strip-txt">Got a business card? Photograph it and the fields below fill in. Always check them.</div>
+        <button class="scan-btn" onclick="startCardScan()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg>
+          Scan
+        </button>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="fg" style="margin:0 0 10px">
           <div class="fg-l">First name *</div>
@@ -1227,7 +1259,423 @@ function onUserChange(val){
 }
 
 // ── ADD BROKER ────────────────────────────────────────────
-function openAddBroker(){
+// ── BUSINESS CARD SCAN ───────────────────────────────────────────────────────
+// Photo → OCR in the browser (Tesseract) → field parser → the normal Add
+// contact sheet, prefilled. The image never leaves the phone.
+//
+// Nothing is written to the database here: the user reviews the form and the
+// existing submitNewBroker() insert path, with its duplicate check, is still
+// the only thing that saves.
+//
+// The parser is deliberately separate from the OCR: it takes lines of text and
+// returns the same card object the old vision API returned, so the two are
+// interchangeable if we ever want to switch back.
+const TESS_SRC = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+let tessWorker = null, tessLoading = null;
+
+function loadScript(src){
+  return new Promise((ok,err)=>{
+    const s=document.createElement('script');
+    s.src=src; s.onload=ok; s.onerror=()=>err(new Error('could not load the reader'));
+    document.head.appendChild(s);
+  });
+}
+
+// The reader and its language data (~6MB) download once and are then cached by
+// the browser, so every scan after the first works with no signal at all.
+async function getTessWorker(onProgress){
+  if(tessWorker) return tessWorker;
+  if(tessLoading) return tessLoading;
+  tessLoading = (async () => {
+    if(!window.Tesseract) await loadScript(TESS_SRC);
+    const w = await Tesseract.createWorker(['fra','eng'],1,{
+      logger: m => { if(m.status==='recognizing text' && onProgress) onProgress(m.progress); }
+    });
+    // Page segmentation 3 (automatic). A card is several scattered blocks, not
+    // one column, and this is the mode the parser was tuned against.
+    await w.setParameters({ tessedit_pageseg_mode: '3' });
+    tessWorker = w;
+    return w;
+  })();
+  try { return await tessLoading; } finally { tessLoading = null; }
+}
+
+function startCardScan(){
+  const inp = document.getElementById('card-file');
+  inp.value = '';            // so re-picking the same photo still fires onchange
+  inp.click();
+}
+
+// Tesseract wants big, flat, high-contrast text. Phone photos are none of those,
+// so the card is upscaled to ~2000px, desaturated, and contrast-stretched
+// against its own histogram before it goes anywhere near the reader.
+function preprocessCard(file, targetEdge = 2000){
+  return new Promise((resolve, reject) => {
+    const draw = img => {
+      const scale = targetEdge / Math.max(img.width, img.height);
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * scale);
+      cv.height = Math.round(img.height * scale);
+      const ctx = cv.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+
+      const im = ctx.getImageData(0,0,cv.width,cv.height);
+      const d = im.data, hist = new Uint32Array(256);
+      for(let i=0;i<d.length;i+=4){
+        const g = (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114)|0;
+        d[i]=d[i+1]=d[i+2]=g;
+        hist[g]++;
+      }
+      // Clip the darkest and lightest 2%, then stretch what is left to 0..255.
+      const total = (d.length/4)|0, cut = total*0.02;
+      let acc=0, lo=0, hi=255;
+      for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>cut){ lo=v; break; } }
+      acc=0;
+      for(let v=255;v>=0;v--){ acc+=hist[v]; if(acc>cut){ hi=v; break; } }
+      if(hi-lo>20){
+        const lut = new Uint8Array(256), span = hi-lo;
+        for(let v=0;v<256;v++){
+          lut[v] = v<=lo ? 0 : v>=hi ? 255 : Math.round((v-lo)*255/span);
+        }
+        for(let i=0;i<d.length;i+=4){ d[i]=d[i+1]=d[i+2]=lut[d[i]]; }
+      }
+      ctx.putImageData(im,0,0);
+      resolve(cv);
+    };
+    if(window.createImageBitmap){
+      createImageBitmap(file,{imageOrientation:'from-image'}).then(draw).catch(fallback);
+    } else fallback();
+    function fallback(){
+      const img=new Image(), url=URL.createObjectURL(file);
+      img.onload=()=>{ draw(img); URL.revokeObjectURL(url); };
+      img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('could not open that photo')); };
+      img.src=url;
+    }
+  });
+}
+
+// ── FIELD PARSER ─────────────────────────────────────────────────────────────
+// Input: [{text, height}] — height is the cap height of the line in pixels,
+// which is how we tell a name printed large from an address printed small.
+// Output: the card object applyScannedCard() expects.
+const CARD_RX = {
+  email:  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/,
+  url:    /(?:https?:\/\/)?(?:www\.)[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?:\/\S*)?/i,
+  phone:  /(?:\+|00)?[\d][\d\s.\-()\/]{7,}\d/g,
+  postal: /\b(\d{5}|\d{4})\b/,
+};
+const AGENCY_WORDS = ['immobilier','immobiliere','immobilière','immo','agence','realty','real estate','estate','properties','property','propriete','propriétés','proprietes','inmobiliaria','immobiliare','sotheby','christie','knight frank','barnes','engel','groupe','group','partners','& cie','et cie','conseil','patrimoine','gestion','etude','étude','notaires','residences','résidences','sarl','s.a.r.l','sas','sasu','eurl','scp','sci','gmbh','ltd','llc',' sl','s.l.','spa','a.g.','ag'];
+const TITLE_WORDS = ['directeur','directrice','gerant','gérant','gerante','président','president','pdg','fondateur','fondatrice','associe','associé','agent','agente','conseiller','conseillere','conseillère','negociateur','négociateur','courtier','chasseur','consultant','consultante','responsable','charge','chargé','chargée','assistant','assistante','manager','director','partner','broker','realtor','founder','ceo','coo','head of','sales','wealth','private banker','notaire','clerc','asesor','asesora','gerente','comercial','propietario'];
+const TYPE_RULES = [
+  { type:'Notaire',        words:['notaire','notary','notaría','notaria','clerc','étude','etude'] },
+  { type:"Buyer's Agent",  words:['chasseur','buying agent',"buyer's agent",'buyers agent','personal shopper','recherche de biens'] },
+  { type:'Family Office',  words:['family office'] },
+  { type:'Wealth Manager', words:['gestion de fortune','gestion de patrimoine','wealth','patrimoine','private bank','banque privée','banque privee','asset management','asesor financiero'] },
+  { type:'Developer',      words:['promoteur','promotion immobiliere','promotion immobilière','developer','development','promotora'] },
+  { type:'RE Agency',      words:['immobilier','immobiliere','immobilière','agence','realty','real estate','estate agent','inmobiliaria','properties'] },
+];
+const PARTICLES = ['de','du','des','la','le','van','von','di','da','del','della','el'];
+
+function fold(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function hasWord(line, words){ const f=fold(line); return words.some(w => f.includes(fold(w))); }
+function titleCaseName(s){
+  return String(s||'').toLowerCase().split(/([\s\-'])/).map(p =>
+    /^[\s\-']$/.test(p) ? p : p.charAt(0).toUpperCase()+p.slice(1)
+  ).join('');
+}
+
+// Turn a local number into international form. Country is inferred from an
+// explicit prefix first, then from the address, then France as the house default.
+function normalisePhone(raw, country){
+  let d = String(raw||'').replace(/[^\d+]/g,'');
+  if(d.startsWith('00')) d = '+' + d.slice(2);
+  if(!d.startsWith('+')){
+    const cc = country==='Switzerland' ? '41' : country==='Spain' ? '34' : country==='Monaco' ? '377' : '33';
+    d = d.replace(/^0/,'');
+    d = '+' + cc + d;
+  }
+  const body = d.slice(1);
+  // Length has to match the country, otherwise we are looking at two numbers
+  // that OCR ran together. A blank field beats a wrong number in the database.
+  const LEN = {'377':[11,11],'33':[11,11],'41':[11,11],'34':[11,11],'39':[12,13],'44':[12,12]};
+  const cc = Object.keys(LEN).find(c => body.startsWith(c));
+  if(cc && (body.length < LEN[cc][0] || body.length > LEN[cc][1])) return '';
+  if(body.length < 9 || body.length > 15) return '';
+  // Readable grouping for the three countries the team actually works in.
+  if(body.startsWith('33') && body.length===11) return '+33 '+body[2]+' '+body.slice(3).replace(/(\d{2})(?=\d)/g,'$1 ').trim();
+  if(body.startsWith('41') && body.length===11) return '+41 '+body.slice(2,4)+' '+body.slice(4,7)+' '+body.slice(7,9)+' '+body.slice(9);
+  if(body.startsWith('34') && body.length===11) return '+34 '+body.slice(2,5)+' '+body.slice(5,8)+' '+body.slice(8);
+  return '+'+body;
+}
+function isMobile(intl){
+  const d = intl.replace(/[^\d]/g,'');
+  if(d.startsWith('33')) return /^33[67]/.test(d);
+  if(d.startsWith('41')) return /^417[5-9]/.test(d);
+  if(d.startsWith('34')) return /^34[67]/.test(d);
+  if(d.startsWith('377')) return /^3774/.test(d);
+  return false;
+}
+
+function parseCardLines(lines, meanConf){
+  const raw = lines.map(l => ({ text: String(l.text||'').trim(), h: l.height||0 }))
+                   .filter(l => l.text.length > 1 && /[A-Za-zÀ-ÿ0-9]/.test(l.text));
+  const joined = raw.map(l => l.text).join('\n');
+  const used = new Set();
+  const card = { first_name:'',last_name:'',agency:'',job_title:'',phone:'',phone_other:'',
+                 email:'',website:'',area:'',country:'',address:'',type:'',confidence:'low',
+                 raw_text: joined };
+
+  // 1. Email and website — the only fields OCR gets right by construction.
+  for(const l of raw){
+    const m = l.text.replace(/\s+/g,'').match(CARD_RX.email);
+    if(m && !card.email){ card.email = m[0].toLowerCase().replace(/^[.,;:]+|[.,;:]+$/g,''); used.add(l); }
+  }
+  for(const l of raw){
+    if(used.has(l)) continue;
+    const m = l.text.match(CARD_RX.url);
+    if(m && !card.website && !m[0].includes('@')){ card.website = m[0]; used.add(l); }
+  }
+
+  // 2. Country, from a dialling prefix or a country word, before phones are
+  //    normalised — a French mobile and a Spanish one are formatted differently.
+  const f = fold(joined);
+  if(/\+\s*41|\bsuisse\b|\bswitzerland\b|\bgene[vb]e\b|\bzurich\b|\blausanne\b/.test(f)) card.country='Switzerland';
+  else if(/\+\s*34|\bespa|\bspain\b|\bmarbella\b|\bmalaga\b|\bmadrid\b|\bbarcelona\b/.test(f)) card.country='Spain';
+  else if(/\+\s*377|\bmonaco\b|\bmonte[\s-]?carlo\b/.test(f)) card.country='Monaco';
+  else if(/\+\s*39|\bitalia\b|\bitaly\b/.test(f)) card.country='Italy';
+  else card.country='France';
+
+  // 3. Phones. A line labelled mobile wins; otherwise the number pattern decides.
+  const found = [];
+  for(const l of raw){
+    if(used.has(l) || CARD_RX.email.test(l.text)) continue;
+    const digits = (l.text.match(/\d/g)||[]).length;
+    if(digits < 8) continue;
+    const labelled = hasWord(l.text,['mob','port','gsm','cell','m.','m :']);
+    for(const m of (l.text.match(CARD_RX.phone)||[])){
+      const n = normalisePhone(m, card.country);
+      if(n && !found.some(x => x.n === n)) found.push({ n, labelled, line: l });
+    }
+  }
+  found.sort((a,b) => (b.labelled?2:0)+(isMobile(b.n)?1:0) - ((a.labelled?2:0)+(isMobile(a.n)?1:0)));
+  if(found[0]){ card.phone = found[0].n; used.add(found[0].line); }
+  if(found[1]){ card.phone_other = found[1].n; used.add(found[1].line); }
+
+  // 4. Address and town. A postal code is the anchor: the town is what follows it.
+  for(const l of raw){
+    if(used.has(l)) continue;
+    const pc = l.text.match(CARD_RX.postal);
+    if(pc && /[A-Za-zÀ-ÿ]/.test(l.text)){
+      card.address = l.text;
+      const after = l.text.slice(l.text.indexOf(pc[0])+pc[0].length).replace(/[^A-Za-zÀ-ÿ\s'-]/g,'').trim();
+      if(after.length > 1) card.area = titleCaseName(after.split(/\s{2,}|,/)[0].trim());
+      used.add(l);
+      break;
+    }
+  }
+
+  // 5. Agency, before the job title, because "Etude Notariale Arnaud & Associes"
+  //    contains a title word and would otherwise be eaten as the role. Among the
+  //    lines carrying a company word, the one printed largest is the company:
+  //    on "FAVRE & CIE / gestion de fortune" that is the first, not the second.
+  const agCands = raw.filter(l => !used.has(l) && hasWord(l.text, AGENCY_WORDS));
+  agCands.sort((a,b) => b.h - a.h);
+  if(agCands[0]){ card.agency = agCands[0].text.replace(/\s{2,}/g,' ').trim(); used.add(agCands[0]); }
+
+  // 6. Name. The email local part is the strongest signal on a blurry card:
+  //    if a line contains a chunk of it, that line is the person. Company lines
+  //    are excluded, since "jm.favre@" also matches "FAVRE & CIE".
+  let nameLine = null;
+  const localTokens = (card.email.split('@')[0]||'').split(/[._\-0-9]+/).filter(t => t.length >= 3);
+  if(localTokens.length){
+    for(const l of raw){
+      if(used.has(l) || hasWord(l.text, AGENCY_WORDS)) continue;
+      if(localTokens.some(t => fold(l.text).includes(fold(t)))){ nameLine = l; break; }
+    }
+  }
+  if(!nameLine){
+    // Otherwise the largest unclaimed line that reads like a name.
+    const cands = raw.filter(l => !used.has(l)
+      && !/\d/.test(l.text)
+      && l.text.length <= 40
+      && l.text.split(/\s+/).length <= 4
+      && !hasWord(l.text, AGENCY_WORDS)
+      && !hasWord(l.text, TITLE_WORDS));
+    cands.sort((a,b) => b.h - a.h);
+    nameLine = cands[0] || null;
+  }
+  if(nameLine) used.add(nameLine);
+
+  // 7. Job title, by vocabulary, from what is left.
+  for(const l of raw){
+    if(used.has(l)) continue;
+    if(hasWord(l.text, TITLE_WORDS) && l.text.length < 60){ card.job_title = l.text; used.add(l); break; }
+  }
+  if(nameLine){
+    const tokens = nameLine.text.replace(/[^A-Za-zÀ-ÿ\s'-]/g,'').split(/\s+/).filter(Boolean);
+    const upper = tokens.filter(t => t.length>1 && t===t.toUpperCase());
+    if(upper.length && upper.length < tokens.length){
+      // "Marie-Claire DESCHAMPS" — the shouted word is the surname.
+      card.last_name  = titleCaseName(upper.join(' '));
+      card.first_name = titleCaseName(tokens.filter(t => !upper.includes(t)).join(' '));
+    } else if(tokens.length >= 2){
+      let split = 1;
+      while(split < tokens.length-1 && PARTICLES.includes(fold(tokens[split]))) split++;
+      card.first_name = titleCaseName(tokens.slice(0,split).join(' '));
+      card.last_name  = titleCaseName(tokens.slice(split).join(' '));
+    } else if(tokens.length === 1){
+      card.first_name = titleCaseName(tokens[0]);
+    }
+  }
+
+  // 8. Agency fallbacks: the email domain when it is not a webmail, then simply
+  //    the largest line nobody has claimed, which on a card with no company
+  //    word ("MAISON VASSEUR") is the company by elimination.
+  if(!card.agency && card.email){
+    const dom = card.email.split('@')[1]||'';
+    const host = dom.split('.')[0];
+    if(host && !['gmail','hotmail','outlook','yahoo','orange','wanadoo','free','icloud','me','sfr','laposte','bbox'].includes(host)){
+      card.agency = titleCaseName(host.replace(/[-_]+/g,' '));
+    }
+  }
+  if(!card.agency){
+    const left = raw.filter(l => !used.has(l) && !/\d/.test(l.text) && l.text.length <= 45);
+    left.sort((a,b) => b.h - a.h);
+    if(left[0]){ card.agency = left[0].text.replace(/\s{2,}/g,' ').trim(); used.add(left[0]); }
+  }
+  if(!card.job_title){
+    // A leftover short line above the address is usually the role.
+    const l = raw.find(x => !used.has(x) && x.text.length<45 && !/\d/.test(x.text));
+    if(l){ card.job_title = l.text; used.add(l); }
+  }
+
+  // 9. Type, from everything we read.
+  for(const rule of TYPE_RULES){
+    if(hasWord(joined, rule.words)){ card.type = rule.type; break; }
+  }
+  if(!card.type) card.type = 'RE Agency';
+
+  const core = ['first_name','last_name','agency','phone','email'].filter(k => card[k]).length;
+  card.confidence = (core >= 4 && meanConf >= 75) ? 'high'
+                  : (core >= 3 && meanConf >= 55) ? 'medium' : 'low';
+  return card;
+}
+
+// ── DRIVER ───────────────────────────────────────────────────────────────────
+async function onCardFile(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const overlay = document.getElementById('scan-overlay');
+  const preview = document.getElementById('scan-preview');
+  const label   = document.getElementById('scan-overlay-txt');
+  const setLabel = t => { if(label) label.textContent = t; };
+  try{
+    const canvas = await preprocessCard(file);
+    preview.src = canvas.toDataURL('image/jpeg', 0.7);
+    overlay.classList.add('open');
+    setLabel(window.Tesseract ? 'Reading the card…' : 'Getting the reader ready…');
+
+    const worker = await getTessWorker(p => setLabel('Reading the card… ' + Math.round(p*100) + '%'));
+    const { data } = await worker.recognize(canvas);
+
+    // Line boxes give each line's height, which is how the parser tells a name
+    // printed large from a phone number printed small.
+    let lines = data.lines || [];
+    if(!lines.length && data.blocks){
+      lines = data.blocks.flatMap(b => (b.paragraphs||[]).flatMap(p => p.lines||[]));
+    }
+    const shaped = lines.length
+      ? lines.map(l => ({ text: l.text, height: (l.bbox ? l.bbox.y1-l.bbox.y0 : 0) }))
+      : String(data.text||'').split('\n').map(t => ({ text: t, height: 0 }));
+
+    overlay.classList.remove('open');
+    applyScannedCard(parseCardLines(shaped, data.confidence || 0));
+  }catch(e){
+    overlay.classList.remove('open');
+    openAddBroker();
+    const offline = !navigator.onLine && !window.Tesseract;
+    setScanNote('err', offline
+      ? 'The card reader has not been downloaded yet and there is no connection. Scan once on wifi and it works offline after that.'
+      : 'Scan failed: ' + escHtml(e.message) + '. Fill the fields in by hand.');
+  }finally{
+    preview.src = '';
+    input.value = '';
+  }
+}
+
+function setScanNote(kind, html){
+  const el = document.getElementById('scan-note');
+  if(!el) return;
+  if(!kind){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.className = 'scan-note ' + kind;
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+
+// Snap a scanned agency name onto the spelling already in the database, so
+// "SOTHEBY'S" doesn't create a second agency row next to "Sotheby's".
+function matchKnownAgency(name){
+  const n = (name||'').trim();
+  if(!n) return '';
+  const norm = s => fold(s).replace(/[^a-z0-9]/g,'');
+  const target = norm(n);
+  if(!target) return n;
+  for(const b of brokers){
+    if(b.agency && norm(b.agency) === target) return b.agency;
+  }
+  return n;
+}
+
+async function applyScannedCard(card){
+  const val = k => (card[k] || '').trim();
+  const agency = matchKnownAgency(val('agency'));
+
+  // Anything the card carried that has no field of its own goes to notes, so
+  // it is never silently dropped.
+  const extras = [];
+  if(val('job_title')) extras.push(val('job_title'));
+  if(val('address'))   extras.push(val('address'));
+  if(val('website'))   extras.push(val('website'));
+  if(val('phone_other')) extras.push('Other: ' + val('phone_other'));
+
+  openAddBroker({
+    firstname: val('first_name'),
+    lastname:  val('last_name'),
+    agency,
+    phone:     val('phone'),
+    email:     val('email'),
+    area:      val('area'),
+    country:   val('country') || 'France',
+    type:      val('type') || 'RE Agency',
+    notes:     extras.length ? 'From card: ' + extras.join(' · ') : ''
+  });
+
+  const filled = ['first_name','last_name','agency','phone','email'].filter(k => val(k)).length;
+  const conf = val('confidence');
+  if(filled === 0){
+    setScanNote('err','Nothing readable on that photo. Try again in better light, or fill the fields in by hand.');
+  } else if(conf === 'low' || filled < 3){
+    setScanNote('warn','Card read, but only partly. <strong>Check every field</strong> before saving.');
+  } else {
+    setScanNote('ok','Card read. <strong>Check the fields</strong> before saving, the reader runs on the phone and does make mistakes.');
+  }
+
+  // Live duplicate lookup, so a card already in the database is obvious before
+  // the form is filled rather than at save time. Skipped when offline.
+  if(!navigator.onLine) return;
+  try{
+    const dup = await checkDuplicateInDB(val('email'), val('phone'), val('first_name'), val('last_name'));
+    if(dup){
+      const who = [dup.first_name, dup.last_name].filter(Boolean).join(' ') || 'this contact';
+      setScanNote('warn','<strong>' + escHtml(who) + '</strong> already exists in the database. Saving will ask you to confirm before adding a second record.');
+    }
+  }catch(e){ /* non-blocking, same posture as the save-time check */ }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+function openAddBroker(prefill){
   document.getElementById('nb-firstname').value='';
   document.getElementById('nb-lastname').value='';
   document.getElementById('nb-agency').value='';
@@ -1247,10 +1695,26 @@ function openAddBroker(){
   }
   const asgn=document.getElementById('nb-assigned');
   asgn.innerHTML=TEAM.map(m=>`<option value="${m}"${m===curUser?' selected':''}>${m}</option>`).join('');
+  // Scanned card values, when the sheet was opened by the scanner
+  setScanNote(null);
+  if(prefill){
+    const put=(id,v)=>{ if(v) document.getElementById(id).value=v; };
+    put('nb-firstname',prefill.firstname);
+    put('nb-lastname', prefill.lastname);
+    put('nb-agency',   prefill.agency);
+    put('nb-phone',    prefill.phone);
+    put('nb-email',    prefill.email);
+    put('nb-area',     prefill.area);
+    put('nb-country',  prefill.country);
+    put('nb-notes',    prefill.notes);
+    const typeSel=document.getElementById('nb-type');
+    if(prefill.type&&[...typeSel.options].some(o=>o.value===prefill.type))typeSel.value=prefill.type;
+  }
   document.getElementById('add-broker-sheet').classList.add('open');
 }
 function closeAddBroker(){
   document.getElementById('add-broker-sheet').classList.remove('open');
+  setScanNote(null);
 }
 // ── CLAIM CONTACT ────────────────────────────────────────────────────────────
 async function claimContact(brokerId) {
@@ -1543,7 +2007,10 @@ function renderBrokers(){
         +'</div>'
       +'</div>'
       +'<div class="filter-row" id="broker-filter-row"></div>'
-      +'<div style="padding:10px 16px 0;display:flex;justify-content:flex-end">'
+      +'<div style="padding:10px 16px 0;display:flex;justify-content:flex-end;gap:8px">'
+        +'<button class="scan-btn" onclick="startCardScan()">'
+          +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg>'
+          +'Scan card</button>'
         +'<button onclick="openAddBroker()" style="height:40px;padding:0 16px;background:var(--t1);border:none;color:#fff;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer">+ Add contact</button>'
       +'</div>'
       +'<div id="broker-cards"></div>'
