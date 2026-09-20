@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Single source of truth for the running version. Kept in the first bytes of
+     the file so the update check can read it with a tiny range request. -->
+<meta name="build" content="3.1">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMob v3</title>
@@ -233,6 +236,12 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .btn-save{flex:2;height:52px;background:var(--t1);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;border-radius:10px;cursor:pointer;}
 .btn-save:active{background:var(--t2);}
 
+/* ── UPDATE BAR ── */
+.update-bar{display:none;background:var(--gold);color:#fff;font-size:13px;font-weight:600;
+  text-align:center;padding:10px 16px;cursor:pointer;flex-shrink:0;letter-spacing:.2px;}
+.update-bar.show{display:block;}
+.update-bar:active{background:var(--gold-lt);}
+
 /* ── CARD SCAN ── */
 .scan-btn{height:40px;padding:0 14px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;}
 .scan-btn:active{background:var(--gold-bd);}
@@ -402,12 +411,15 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 </div>
 
 <!-- LOADING BAR -->
+<div class="update-bar" id="update-bar" onclick="applyUpdate()">
+  <span id="update-bar-txt">New version available</span> &middot; tap to update
+</div>
 <div class="loading-bar" id="loading-bar"></div>
 <div class="offline-banner" id="offline-banner">No connection — changes will sync when back online</div>
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <div class="logo">PA<span>&middot;</span>Mob<span style="font-size:9px;letter-spacing:1px;font-weight:500;color:var(--gold);margin-left:6px">v3</span></div>
+  <div class="logo">PA<span>&middot;</span>Mob<span style="font-size:9px;letter-spacing:1px;font-weight:500;color:var(--gold);margin-left:6px;cursor:pointer" id="build-tag" onclick="manualUpdateCheck()">v3</span></div>
   <div style="margin-left:8px;display:flex;align-items:center;gap:6px;min-width:0;flex:1;justify-content:flex-end">
     <select id="user-select" class="user-select" onchange="onUserChange(this.value)">
       <option value="">— Who are you? —</option>
@@ -1351,8 +1363,14 @@ async function startCardScan(){
     layoutGuide();
     document.getElementById('cam').classList.add('open');
   }catch(e){
-    // No permission, no camera, or an insecure context: the file picker still works.
+    // No permission, no camera, or an insecure context. The file picker still
+    // works, but say why out loud: a silent fallback looks identical to the
+    // viewfinder never having shipped.
     camStream = null;
+    const why = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')
+      ? 'Camera blocked for this site — opening photos instead'
+      : 'Camera unavailable here — opening photos instead';
+    toast(why);
     fileFallback();
   }
 }
@@ -3287,10 +3305,75 @@ async function dbPatchQueued(table, id, body){
   return dbPatch(table, resolvedId, resolvedBody);
 }
 
+// ── SELF-UPDATE ──────────────────────────────────────────
+// A home screen web app happily serves a cached copy for weeks, so people run
+// old versions without any way of knowing. This compares the build meta in the
+// running page against the one on the server, read with a ~1KB range request,
+// and offers a reload that bypasses the cache. Comparing builds rather than
+// "has the file changed since last launch" matters: a stale launch is caught
+// every time instead of once.
+const BUILD = (document.querySelector('meta[name="build"]')||{}).content || '';
+let pendingBuild = null;
+
+function appBaseUrl(){ return location.href.split('?')[0].split('#')[0]; }
+
+async function fetchServerBuild(){
+  const r = await fetch(appBaseUrl(), { cache:'no-store', headers:{ 'Range':'bytes=0-999' } });
+  let head = '';
+  // Ask for the first bytes, but do not trust the server to honour it: read one
+  // chunk and hang up, so this never pulls the whole 180KB file either way.
+  if(r.body && r.body.getReader){
+    const reader = r.body.getReader();
+    try{
+      const { value } = await reader.read();
+      if(value) head = new TextDecoder().decode(value);
+    } finally { try{ reader.cancel(); }catch(e){} }
+  } else {
+    head = await r.text();
+  }
+  const m = head.match(/name="build"\s+content="([^"]+)"/);
+  return m ? m[1] : '';
+}
+
+async function checkForUpdate(){
+  if(!BUILD || !navigator.onLine) return;
+  try{
+    const server = await fetchServerBuild();
+    if(server && server !== BUILD){
+      pendingBuild = server;
+      document.getElementById('update-bar-txt').textContent = 'New version available (v'+server+')';
+      document.getElementById('update-bar').classList.add('show');
+    }
+  }catch(e){ /* offline or blocked: not worth bothering anyone about */ }
+}
+
+function applyUpdate(){
+  // A fresh query string is a different cache entry, so this always fetches the
+  // real file rather than whatever the home screen app is holding on to.
+  location.replace(appBaseUrl() + '?v=' + encodeURIComponent(pendingBuild || Date.now()));
+}
+
+// Tapping the version in the header forces a check, so nobody has to wait for
+// the next launch or delete their home screen icon to get a new version.
+async function manualUpdateCheck(){
+  if(!navigator.onLine){ toast('No connection — cannot check for updates'); return; }
+  toast('Checking for updates…');
+  try{
+    const server = await fetchServerBuild();
+    if(!server){ toast('Could not check right now'); return; }
+    if(server === BUILD){ toast('You are on the latest version (v'+BUILD+')', true); return; }
+    pendingBuild = server;
+    applyUpdate();
+  }catch(e){ toast('Could not check right now'); }
+}
+
 // ── INIT ─────────────────────────────────────────────────
 function initApp(){
+  const tag = document.getElementById('build-tag');
+  if(tag && BUILD) tag.textContent = 'v' + BUILD;
   buildUserSelect();
   loadData();
+  checkForUpdate();
   document.getElementById('view-today').style.display='block';
   document.getElementById('view-brokers').style.display='none';
   document.getElementById('view-cal').style.display='none';
