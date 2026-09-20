@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- Single source of truth for the running version. Kept in the first bytes of
      the file so the update check can read it with a tiny range request. -->
-<meta name="build" content="3.1">
+<meta name="build" content="3.2">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMob v3</title>
@@ -411,9 +411,6 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 </div>
 
 <!-- LOADING BAR -->
-<div class="update-bar" id="update-bar" onclick="applyUpdate()">
-  <span id="update-bar-txt">New version available</span> &middot; tap to update
-</div>
 <div class="loading-bar" id="loading-bar"></div>
 <div class="offline-banner" id="offline-banner">No connection — changes will sync when back online</div>
 
@@ -431,6 +428,10 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     </div>
     <div class="sync-btn" id="sync-btn" onclick="loadData()" title="Sync">↻</div>
   </div>
+</div>
+
+<div class="update-bar" id="update-bar" onclick="applyUpdate()">
+  <span id="update-bar-txt">New version available</span> &middot; tap to update
 </div>
 
 <!-- AUCTION PICKER OVERLAY -->
