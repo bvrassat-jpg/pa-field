@@ -730,6 +730,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
       <div class="fg">
         <div class="fg-l">Type</div>
         <select class="fi" id="ec-type">
+          <option value="">— Not set —</option>
           <option value="RE Agency">RE Agency</option>
           <option value="Buyer's Agent">Buyer's Agent</option>
           <option value="Notaire">Notaire</option>
@@ -1216,7 +1217,7 @@ async function loadData(){
       id:r.id, region_id:r.region_id||null,
       name:((r.first_name||'')+' '+(r.last_name||'')).trim(),
       agency:r.agency?r.agency.name:'', _agency_id:r.agency?r.agency.id:null,
-      type:r.profession||'RE Agency',
+      type:r.profession||'', tags:Array.isArray(r.tags)?r.tags:[],
       area:r.area||'', country:r.country||'', phone:r.phone||'', email:r.email||'',
       assigned:TEAM.includes(r.created_by)?r.created_by:'', stage:1, // old desktop 1-10 field, retired — never displayed
       bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
@@ -1225,6 +1226,7 @@ async function loadData(){
       bd_addendum:r.bd_addendum||'', bd_ref:r.bd_ref||'',
       source:r.source||null
     }));
+    brokers=brokers.filter(b=>!(b.tags.length&&b.tags.every(t=>t==='Buyer')));
     brokers.forEach(b=>bMap[b.id]=b);
     actRows.forEach(a=>{
       if(bMap[a.broker_id])bMap[a.broker_id].activities.push({
@@ -2105,7 +2107,7 @@ async function submitNewBroker(){
       country:document.getElementById('nb-country').value.trim()||'France',
       created_by:assignedVal,
       source:'PAMob',
-      profession:typeVal,
+      profession:typeVal||null,
       bd_stage:1,
       bd_property,bd_value:'',bd_addendum:'',bd_ref,
       notes
@@ -2438,7 +2440,7 @@ function openDetail(brokerId){
       <div class="detail-row"><span class="detail-label">Agency</span><span class="detail-val">${esc(b.agency)||'—'}</span></div>
       ${b.area?`<div class="detail-row"><span class="detail-label">Area</span><span class="detail-val">${esc(b.area)}</span></div>`:''}
       <div class="detail-row"><span class="detail-label">Country</span><span class="detail-val">${esc(b.country)||'—'}</span></div>
-      <div class="detail-row"><span class="detail-label">Type</span><span class="detail-val">${esc(b.type)}</span></div>
+      <div class="detail-row"><span class="detail-label">Tags</span><span class="detail-val">${b.tags&&b.tags.length?b.tags.map(esc).join(', '):esc(b.type||'Not set')}</span></div>
       <div class="detail-row" style="align-items:center">
         <span class="detail-label">Region</span>
         <select id="detail-region" style="font-size:13px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:4px 8px;color:var(--t1);outline:none" onchange="updateBrokerRegion('${b.id}',this.value)">
@@ -2634,7 +2636,7 @@ function openEditContact(){
   document.getElementById('ec-email').value=b.email||'';
   document.getElementById('ec-area').value=b.area||'';
   document.getElementById('ec-country').value=b.country||'France';
-  document.getElementById('ec-type').value=b.type||'RE Agency';
+  {const ts=document.getElementById('ec-type');const v=b.type||'';if(v&&![...ts.options].some(o=>o.value===v)){const o=document.createElement('option');o.value=v;o.textContent=v;ts.appendChild(o);}ts.value=v;}
   // Assigned — locked for CRM contacts
   const asgn=document.getElementById('ec-assigned');
   const asgnWrapper=document.getElementById('ec-assigned-wrapper');
@@ -2696,7 +2698,7 @@ async function submitEditContact(){
       agency_id,
       phone:localPatch.phone, email:localPatch.email, area:localPatch.area,
       country:localPatch.country, created_by:assignedVal,
-      profession:typeVal,
+      profession:typeVal||null,
       region_id:localPatch.region_id
     };
     await dbPatchQueued('brokers',b.id,dbPatchBody);
