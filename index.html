@@ -771,7 +771,13 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 // fetch() against the REST API directly, the SDK was never actually used.
 const SUPA_URL='https://hzbwlqyhklwfxjbcramx.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6YndscXloa2x3ZnhqYmNyYW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NDI5MjMsImV4cCI6MjA5MjUxODkyM30.3x1I5Rkz9nJYcqd6kBpAKth6hXKeBLVYQAz1qDPoTL8';
-const H={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
+// 'public' = live data, 'test' = the test copy. Every request carries this schema.
+const DB_SCHEMA='public';
+const IS_TEST=DB_SCHEMA!=='public';
+const H={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Accept-Profile':DB_SCHEMA,'Content-Profile':DB_SCHEMA};
+// One activities table, shared with the CRM (replaces broker_interactions).
+const ACT_TABLE='activities';
+if(IS_TEST){document.addEventListener('DOMContentLoaded',()=>{const d=document.createElement('div');d.textContent='TEST VERSION · test copy of the data';d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#8B1A1A;color:#fff;font:700 11px/22px sans-serif;letter-spacing:1px;text-align:center';document.body.appendChild(d);document.title='TEST · '+document.title;});}
 
 const TEAM=['Laure','Rodolphe','Laurence','Bertrand','Jane','Tony','Barbara','Jorge'];
 const STAGES={
@@ -810,6 +816,10 @@ const ACT_TYPES=[
   {key:'Invited B2C Open Day',icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>', css:'icon-other', group:'Event'},
   {key:'Other',        icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>', css:'icon-other', group:'Event'},
   {key:'Notice sent',  icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>', css:'icon-mail', group:'_hidden'},
+  {key:'Email', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>', css:'icon-other', group:'Outreach'},
+  {key:'LinkedIn', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>', css:'icon-other', group:'Outreach'},
+  {key:'Met in person', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>', css:'icon-other', group:'Outreach'},
+  {key:'B2B Event', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>', css:'icon-other', group:'Event'}
 ];
 
 // ── STATE ──────────────────────────────────────────────────
@@ -938,6 +948,18 @@ function momentum(b){
 function actIcon(type){const t=ACT_TYPES.find(x=>x.key===type)||ACT_TYPES[8];return t.icon||'·';}
 
 // ── DATA ──────────────────────────────────────────────────
+// Reads every row, 1000 at a time (the API's per-request maximum).
+async function dbGetAll(table,params=''){
+  let p=params||'select=*';
+  if(!/(^|&)order=/.test(p))p+='&order=id';
+  const out=[];
+  for(let off=0;;off+=1000){
+    const rows=await dbGet(table,p+'&limit=1000&offset='+off)||[];
+    out.push(...rows);
+    if(rows.length<1000)break;
+  }
+  return out;
+}
 async function dbGet(table,params=''){
   const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?'+params,{headers:{...H,'Accept':'application/json'}});
   if(!r.ok)throw new Error(await r.text());return r.json();
@@ -963,7 +985,7 @@ async function dbPatchByFilter(table,filterQuery,body){
 // through either app. Whole-database snapshot, not BD-specific — these
 // apps share one Supabase project, so "backup" means the same thing here
 // as it does on the CRM side.
-const BACKUP_TABLES=['regions','auctions','agencies','brokers','broker_auction_activations','auction_activities','broker_interactions','clients','client_milestones'];
+const BACKUP_TABLES=['regions','auctions','agencies','brokers','broker_auction_activations','auction_activities','broker_interactions','activities','clients','client_milestones'];
 // SAFE FOR BRAND-NEW ROWS ONLY. This is a raw insert with
 // resolution=merge-duplicates: if a row with this id already exists, Postgres
 // silently overwrites EVERY column on it with whatever is in `rows`, blanks
@@ -1068,7 +1090,7 @@ function downloadConflictReport(conflicts,ts){
 async function fetchAllForBackup(){
   const data={};
   for(const t of BACKUP_TABLES){
-    try{data[t]=await dbGet(t,'select=*')||[];}catch(e){data[t]=[];}
+    try{data[t]=await dbGetAll(t,'select=*');}catch(e){data[t]=[];}
   }
   return data;
 }
@@ -1163,8 +1185,8 @@ async function loadData(){
     const [regRows,aRows,bRows,actRows]=await Promise.all([
       dbGet('regions','order=name'),
       dbGet('auctions','deleted=is.false&order=id'),
-      dbGet('brokers','select=*,agency:agencies(id,name)&deleted=is.false&order=last_name'),
-      dbGet('broker_interactions','deleted=is.false&order=logged_at.desc'),
+      dbGetAll('brokers','select=*,agency:agencies(id,name)&deleted=is.false&order=last_name,id'),
+      dbGetAll(ACT_TABLE,'deleted=is.false&order=logged_at.desc,id'),
     ]);
 
     // Regions
@@ -1206,7 +1228,7 @@ async function loadData(){
     brokers.forEach(b=>bMap[b.id]=b);
     actRows.forEach(a=>{
       if(bMap[a.broker_id])bMap[a.broker_id].activities.push({
-        id:a.id,type:a.type||'',notes:a.notes||'',planned:!!a.planned,
+        id:a.id,type:a.type==='Visit'?'Property visit':(a.type||''),notes:a.notes||'',planned:!!a.planned&&!a.done,
         acted_at:a.logged_at||'',due_at:a.due_at||null,auction_id:a.auction_id
       });
     });
@@ -3065,7 +3087,7 @@ async function submitLog(){
     const dueAt=composeDueAt(date,document.getElementById('log-time').value);
     try{
       loading(true);
-      await dbPatchQueued('broker_interactions',actId,{type:logType,notes,planned:logPlanned,logged_at:date,due_at:dueAt});
+      await dbPatchQueued(ACT_TABLE,actId,{type:logType,notes,planned:logPlanned,logged_at:date,due_at:dueAt});
       const b=brokers.find(x=>String(x.id)===String(brokerId));
       if(b){const act=b.activities.find(a=>String(a.id)===String(actId));
         if(act){act.type=logType;act.notes=notes;act.planned=logPlanned;act.acted_at=date;act.due_at=dueAt;}}
@@ -3089,10 +3111,10 @@ async function submitLog(){
   const auctionId=dossierSel&&dossierSel.value?dossierSel.value:null; // uuid string, not parsed
 
   const time=document.getElementById('log-time').value;
-  const body={broker_id:brokerId,auction_id:auctionId,type:logType,notes,planned:logPlanned,logged_at:date,due_at:composeDueAt(date,time)};
+  const body={broker_id:brokerId,auction_id:auctionId,type:logType,notes,planned:logPlanned,logged_at:date,due_at:composeDueAt(date,time),logged_by:curUser||null,assigned_to:logPlanned?(curUser||null):null};
   try{
     loading(true);
-    const rows=await dbPostQueued('broker_interactions',body);
+    const rows=await dbPostQueued(ACT_TABLE,body);
     const newAct=rows[0];
     const b=brokers.find(x=>String(x.id)===String(brokerId));
     if(b&&newAct)b.activities.unshift({...newAct,acted_at:newAct.logged_at});
@@ -3105,9 +3127,9 @@ async function submitLog(){
       // The follow-up inherits the time of the entry it came from. No time on
       // the entry means no time on the reminder — an all-day item, exactly as
       // reminders have always been created.
-      const remBody={broker_id:brokerId,auction_id:auctionId,type:'Call',notes:'Follow-up',planned:true,logged_at:remDateStr,due_at:composeDueAt(remDateStr,time)};
+      const remBody={broker_id:brokerId,auction_id:auctionId,type:'Call',notes:'Follow-up',planned:true,logged_at:remDateStr,due_at:composeDueAt(remDateStr,time),logged_by:curUser||null,assigned_to:curUser||null};
       try{
-        const remRows=await dbPostQueued('broker_interactions',remBody);
+        const remRows=await dbPostQueued(ACT_TABLE,remBody);
         if(b&&remRows[0])b.activities.unshift({...remRows[0],acted_at:remRows[0].logged_at});
       }catch(e){/* non-fatal */}
     }
@@ -3326,7 +3348,7 @@ async function markActDone(actId,brokerId){
   const act=b.activities.find(a=>String(a.id)===String(actId));if(!act)return;
   act.planned=false;
   try{
-    await dbPatchQueued('broker_interactions',actId,{planned:false});
+    await dbPatchQueued(ACT_TABLE,actId,{planned:false,done:true});
     toast('Marked done ✓',true);
     updateOverdueDot();updateUnassignedDot();
     renderCal();
@@ -3340,7 +3362,7 @@ async function deleteActivity(actId,brokerId){
   const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
   b.activities=b.activities.filter(a=>String(a.id)!==String(actId));
   try{
-    await dbPatchQueued('broker_interactions',actId,{deleted:true,deleted_at:new Date().toISOString()});
+    await dbPatchQueued(ACT_TABLE,actId,{deleted:true,deleted_at:new Date().toISOString(),deleted_by:curUser||'BD Field'});
     toast('Entry deleted',false);
     updateOverdueDot();updateUnassignedDot();
     if(curTab==='today')renderToday();
@@ -3468,6 +3490,9 @@ async function flushQueue(){
   let failed = [];
   for(const op of toFlush){
     try{
+      // Actions queued offline by the previous version targeted the old table;
+      // ids were kept in the migration, so they apply to the shared table as is.
+      if(op.table==='broker_interactions')op.table=ACT_TABLE;
       if(op.method==='POST'){
         const body = paResolveBody(op.body);
         const rows = await dbPost(op.table, body);
