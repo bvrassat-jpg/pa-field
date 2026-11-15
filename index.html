@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- Single source of truth for the running version. Kept in the first bytes of
      the file so the update check can read it with a tiny range request. -->
-<meta name="build" content="3.4">
+<meta name="build" content="3.5">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMob v3</title>
@@ -418,9 +418,13 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 <!-- AUTH GATE — shown until correct password entered, then stays hidden forever on this device -->
 <div id="auth-gate" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
   <div style="font-size:13px;font-weight:700;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:24px;">PA&middot;Mob</div>
-  <input type="password" id="auth-pw" placeholder="Password" style="width:100%;max-width:280px;padding:14px 16px;border:1px solid var(--bd);border-radius:8px;font-size:16px;font-family:'DM Sans',sans-serif;margin-bottom:12px;outline:none;" onkeydown="if(event.key==='Enter')submitAuth()">
-  <button onclick="submitAuth()" style="width:100%;max-width:280px;padding:14px;border:none;border-radius:8px;background:var(--gold);color:#fff;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Enter</button>
-  <div id="auth-error" style="color:var(--red);font-size:13px;margin-top:12px;min-height:18px;"></div>
+  <form id="auth-form" method="post" action="#" onsubmit="event.preventDefault();submitAuth()" style="width:100%;max-width:280px;display:flex;flex-direction:column;align-items:center">
+    <input type="email" id="auth-email" name="email" placeholder="Email" autocomplete="username" autocapitalize="off" spellcheck="false" style="width:100%;padding:14px 16px;border:1px solid var(--bd);border-radius:8px;font-size:16px;font-family:'DM Sans',sans-serif;margin-bottom:12px;outline:none;box-sizing:border-box">
+    <input type="password" id="auth-pw" name="password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:14px 16px;border:1px solid var(--bd);border-radius:8px;font-size:16px;font-family:'DM Sans',sans-serif;margin-bottom:12px;outline:none;box-sizing:border-box">
+    <button type="submit" id="auth-btn" style="width:100%;padding:14px;border:none;border-radius:8px;background:var(--gold);color:#fff;font-size:15px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Sign in</button>
+  </form>
+  <div id="auth-error" style="color:var(--red);font-size:13px;margin-top:12px;min-height:18px;max-width:280px;text-align:center"></div>
+  <div id="auth-note" style="color:var(--t3);font-size:13px;margin-top:4px;max-width:280px;text-align:center;line-height:1.5"></div>
 </div>
 
 <!-- LOADING BAR -->
@@ -780,7 +784,7 @@ const H={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Be
 const ACT_TABLE='activities';
 if(IS_TEST){document.addEventListener('DOMContentLoaded',()=>{const d=document.createElement('div');d.textContent='TEST VERSION · test copy of the data';d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#8B1A1A;color:#fff;font:700 11px/22px sans-serif;letter-spacing:1px;text-align:center';document.body.appendChild(d);document.title='TEST · '+document.title;});}
 
-const TEAM=['Laure','Rodolphe','Laurence','Bertrand','Jane','Tony','Barbara','Jorge'];
+const TEAM=['Rodolphe','Laurence','Bertrand','Jane','Tony','Barbara','Jorge'];
 const STAGES={
   9:'Addendum signed',
   8:'Addendum sent',
@@ -962,22 +966,22 @@ async function dbGetAll(table,params=''){
   return out;
 }
 async function dbGet(table,params=''){
-  const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?'+params,{headers:{...H,'Accept':'application/json'}});
+  const r=await authFetch(SUPA_URL+'/rest/v1/'+table+'?'+params,{headers:{...H,'Accept':'application/json'}});
   if(!r.ok)throw new Error(await r.text());return r.json();
 }
 async function dbPost(table,body){
-  const r=await fetch(SUPA_URL+'/rest/v1/'+table,{method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(body)});
+  const r=await authFetch(SUPA_URL+'/rest/v1/'+table,{method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(body)});
   if(!r.ok)throw new Error(await r.text());return r.json();
 }
 async function dbPatch(table,id,body){
-  const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?id=eq.'+id,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
+  const r=await authFetch(SUPA_URL+'/rest/v1/'+table+'?id=eq.'+id,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
   if(!r.ok)throw new Error(await r.text());
 }
 // Cascade-style PATCH by an arbitrary filter (e.g. "broker_id=eq.X&deleted=is.false")
 // rather than a single id. Used for cleanup that touches multiple rows at once,
 // mirroring the equivalent helper on the CRM side.
 async function dbPatchByFilter(table,filterQuery,body){
-  const r=await fetch(SUPA_URL+'/rest/v1/'+table+'?'+filterQuery,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
+  const r=await authFetch(SUPA_URL+'/rest/v1/'+table+'?'+filterQuery,{method:'PATCH',headers:{...H,'Prefer':'return=minimal'},body:JSON.stringify(body)});
   if(!r.ok)throw new Error(await r.text());
 }
 
@@ -994,7 +998,7 @@ const BACKUP_TABLES=['regions','auctions','agencies','brokers','broker_auction_a
 // safeRestoreTable() below, which separates new rows (safe to insert here)
 // from existing ones (field-level gap fill, never a blind overwrite).
 async function dbUpsert(table,rows){
-  const r=await fetch(SUPA_URL+'/rest/v1/'+table,{method:'POST',headers:{...H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)});
+  const r=await authFetch(SUPA_URL+'/rest/v1/'+table,{method:'POST',headers:{...H,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows)});
   if(!r.ok)throw new Error(await r.text());
 }
 
@@ -3536,7 +3540,15 @@ async function dbPostQueued(table, body){
     toast('Saved offline — will sync when connected', false);
     return [{...body, id: tempId}];
   }
-  return dbPost(table, paResolveBody(body));
+  try { return await dbPost(table, paResolveBody(body)); }
+  catch(e){
+    if(!e.authLost) throw e;
+    const tempId = 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    syncQueue.push({method:'POST', table, body, ts:Date.now(), tempId});
+    saveQueue();
+    toast('Saved on this phone. Sign in again to sync it', false);
+    return [{...body, id: tempId}];
+  }
 }
 
 async function dbPatchQueued(table, id, body){
@@ -3550,7 +3562,13 @@ async function dbPatchQueued(table, id, body){
     toast('Saved offline — will sync when connected', false);
     return;
   }
-  return dbPatch(table, resolvedId, resolvedBody);
+  try { return await dbPatch(table, resolvedId, resolvedBody); }
+  catch(e){
+    if(!e.authLost) throw e;
+    syncQueue.push({method:'PATCH', table, id: resolvedId, body: resolvedBody, ts:Date.now()});
+    saveQueue();
+    toast('Saved on this phone. Sign in again to sync it', false);
+  }
 }
 
 // ── SELF-UPDATE ──────────────────────────────────────────
@@ -3627,35 +3645,189 @@ function initApp(){
   document.getElementById('view-brokers').style.display='none';
   document.getElementById('view-cal').style.display='none';
 }
-async function submitAuth(){
-  const pw=document.getElementById('auth-pw').value;
-  const errEl=document.getElementById('auth-error');
-  errEl.textContent='';
-  if(!pw){errEl.textContent='Enter a password';return;}
-  let real='prime2026'; // fallback — matches the CRM's existing behavior exactly
-  try{
-    const cfg=await dbGet('app_config','key=eq.app_password&select=value&limit=1');
-    if(cfg&&cfg[0])real=cfg[0].value;
-  }catch(e){/* fall back to default, same as CRM */}
-  if(pw===real){
-    localStorage.setItem('pa_field_auth','1');
-    document.getElementById('auth-gate').style.display='none';
-    initApp();
-  } else {
-    errEl.textContent='Incorrect password';
-    document.getElementById('auth-pw').value='';
-  }
+// ── AUTH (Supabase Auth: one account per person) ─────────────────────
+// Every data request now carries the signed-in person's own token instead of
+// the shared public key. The session is kept on the device and renewed in the
+// background, so people sign in once per device and stay signed in until they
+// press Sign out. Nothing here reads or writes the data tables themselves.
+// Each team member's email, used to stamp their name automatically.
+const AUTH_TEAM = {
+  'brassat@primeauctionsglobal.com':'Bertrand',
+  'rtaverne@primeauctionsglobal.com':'Rodolphe',
+  'lrassat@primeauctionsglobal.com':'Laurence',
+  'tyoung@primeauctionsglobal.com':'Tony',
+  'byoung@primeauctionsglobal.com':'Barbara',
+  'jsmith@primeauctionsglobal.com':'Jane',
+  'jrobelo@primeauctionsglobal.com':'Jorge'
+};
+let authSession = null;
+let authRefreshing = null;
+function authRead(){ try { return JSON.parse(localStorage.getItem('pa_field_session')||'null'); } catch(e){ return null; } }
+function authStore(s){
+  authSession = s;
+  try { if (s) localStorage.setItem('pa_field_session', JSON.stringify(s)); else localStorage.removeItem('pa_field_session'); } catch(e){}
 }
-function logoutField(){
-  localStorage.removeItem('pa_field_auth');
+function authName(){ const s = authSession || authRead(); return s ? (AUTH_TEAM[(s.email||'').toLowerCase()] || '') : ''; }
+function authFromResponse(j, fallbackEmail){
+  return {
+    access_token: j.access_token,
+    refresh_token: j.refresh_token,
+    expires_at: j.expires_at || (Math.floor(Date.now()/1000) + (Number(j.expires_in)||3600)),
+    email: ((j.user && j.user.email) || fallbackEmail || '').toLowerCase()
+  };
+}
+async function authCall(path, method, body, bearer){
+  const h = { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' };
+  if (bearer) h['Authorization'] = 'Bearer ' + bearer;
+  const r = await fetch(SUPA_URL + '/auth/v1/' + path, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const e = new Error(j.error_description || j.msg || j.message || ('Sign-in error ' + r.status));
+    e.status = r.status;
+    throw e;
+  }
+  return j;
+}
+async function authSignIn(email, password){
+  email = (email||'').trim().toLowerCase();
+  const j = await authCall('token?grant_type=password', 'POST', { email, password });
+  authStore(authFromResponse(j, email));
+  return authSession;
+}
+// Sends a one-click sign-in link by email (no password needed). Only works for
+// existing team accounts: it never creates a new user.
+async function authSendLink(email){
+  email = (email||'').trim().toLowerCase();
+  const back = location.origin + location.pathname;
+  await authCall('otp?redirect_to=' + encodeURIComponent(back), 'POST', { email, create_user: false });
+}
+// When someone opens the emailed link, the tokens arrive in the address bar.
+async function authFromLink(){
+  const h = location.hash || '';
+  if (!/access_token=|error_description=/.test(h)) return false;
+  const p = new URLSearchParams(h.slice(1));
+  history.replaceState(null, '', location.pathname + location.search);
+  if (p.get('error_description')) throw new Error(p.get('error_description'));
+  const s = { access_token: p.get('access_token'), refresh_token: p.get('refresh_token'),
+              expires_at: Number(p.get('expires_at')) || (Math.floor(Date.now()/1000) + (Number(p.get('expires_in'))||3600)), email: '' };
+  try { const u = await authCall('user', 'GET', null, s.access_token); s.email = (u.email||'').toLowerCase(); } catch(e){}
+  authStore(s);
+  return true;
+}
+async function authRefresh(){
+  if (authRefreshing) return authRefreshing;
+  authRefreshing = (async () => {
+    const stored = authRead();
+    // Another tab of the app may already have renewed the session.
+    if (stored && (!authSession || stored.expires_at > authSession.expires_at) && stored.expires_at - 60 > Date.now()/1000) { authSession = stored; return stored; }
+    const s = stored || authSession;
+    if (!s || !s.refresh_token) { authStore(null); throw authLostError(); }
+    try {
+      const j = await authCall('token?grant_type=refresh_token', 'POST', { refresh_token: s.refresh_token });
+      authStore(authFromResponse(j, s.email));
+      return authSession;
+    } catch(e) {
+      const again = authRead();
+      if (again && again.refresh_token !== s.refresh_token) { authSession = again; return again; }
+      // Only a refusal from the server ends the session; a network hiccup does not.
+      if (e.status === 400 || e.status === 401 || e.status === 403) { authStore(null); throw authLostError(); }
+      throw e;
+    }
+  })();
+  try { return await authRefreshing; } finally { authRefreshing = null; }
+}
+function authLostError(){ const e = new Error('Your session has ended. Please sign in again. The last change was NOT saved.'); e.authLost = true; return e; }
+async function authBearer(){
+  if (!authSession) authSession = authRead();
+  if (!authSession) throw authLostError();
+  if (authSession.expires_at - 60 < Date.now()/1000) await authRefresh();
+  return authSession.access_token;
+}
+// fetch() for the data API with the person's token; renews once on 401.
+async function authFetch(url, opts){
+  const go = async () => {
+    const t = await authBearer();
+    return fetch(url, { ...opts, headers: { ...(opts.headers||{}), 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + t } });
+  };
+  let r;
+  try { r = await go(); } catch(e) { if (e.authLost) onAuthLost(); throw e; }
+  if (r.status === 401) {
+    try { await authRefresh(); r = await go(); } catch(e) { if (e.authLost) onAuthLost(); throw e; }
+    if (r.status === 401) { authStore(null); onAuthLost(); throw authLostError(); }
+  }
+  return r;
+}
+async function authSetPassword(pw){ await authCall('user', 'PUT', { password: pw }, await authBearer()); }
+async function authSignOut(){
+  const s = authSession || authRead();
+  if (s) { try { await authCall('logout', 'POST', null, s.access_token); } catch(e){} }
+  authStore(null);
+}
+
+
+// Records when each person last used this app (shown in CRM Settings > Team activity).
+async function touchPresence(appName){
+  const s = authSession || authRead(); if (!s || !s.email) return;
+  try {
+    await authFetch(SUPA_URL + '/rest/v1/team_presence?on_conflict=email,app', { method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=minimal', 'Accept-Profile':'public', 'Content-Profile':'public' },
+      body: JSON.stringify({ email: s.email, app: appName, last_seen: new Date().toISOString() }) });
+  } catch(e) { /* presence is informative only, never blocks the app */ }
+}
+function startPresence(appName){
+  touchPresence(appName);
+  setInterval(() => { if (document.visibilityState === 'visible') touchPresence(appName); }, 15*60*1000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') touchPresence(appName); });
+}
+let fieldStarted=false;
+function authMsg(err,note){
+  document.getElementById('auth-error').textContent=err||'';
+  document.getElementById('auth-note').textContent=note||'';
+}
+function showAuthGate(note){
+  document.getElementById('auth-gate').style.display='flex';
+  authMsg('',note);
+  const st=authRead(); if(st&&st.email) document.getElementById('auth-email').value=st.email;
+}
+function onAuthLost(){
+  if(document.getElementById('auth-gate').style.display==='flex') return;
+  showAuthGate('Your session has ended. Sign in again: anything you saved meanwhile is kept on this phone and will sync.');
+}
+async function submitAuth(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pw=document.getElementById('auth-pw').value;
+  if(!email||!pw){authMsg('Enter your email and password');return;}
+  const btn=document.getElementById('auth-btn'); btn.disabled=true;
+  try{ await authSignIn(email,pw); afterAuth(); }
+  catch(e){ authMsg(e.status===400?'Incorrect email or password':('Could not sign in: '+e.message)); }
+  finally{ btn.disabled=false; }
+}
+async function sendAuthLink(){
+  const email=document.getElementById('auth-email').value.trim();
+  if(!email){authMsg('Enter your email first');return;}
+  try{ await authSendLink(email); authMsg('','Check your inbox: a sign-in link has been sent to '+email+'. Open it on this phone.'); }
+  catch(e){ authMsg('Could not send the link: '+e.message); }
+}
+function afterAuth(){
+  const name=authName();
+  if(name){ curUser=name; userIdx=TEAM.indexOf(name); localStorage.setItem('pa_field_user',name); }
+  document.getElementById('auth-gate').style.display='none';
+  document.getElementById('auth-pw').value='';
+  if(fieldStarted){ toast('Signed in again',true); if(syncQueue.length) flushQueue(); return; }
+  fieldStarted=true;
+  startPresence('BD Field');
+  initApp();
+  if(syncQueue.length) flushQueue();
+}
+async function logoutField(){
+  if(syncQueue.length && !confirm(syncQueue.length+' change(s) are not synced yet and stay on this phone. Sign out anyway?')) return;
+  await authSignOut();
   location.reload();
 }
-window.addEventListener('DOMContentLoaded',()=>{
-  if(localStorage.getItem('pa_field_auth')==='1'){
-    document.getElementById('auth-gate').style.display='none';
-    initApp();
-  }
-  // else: gate stays visible (default), waiting for submitAuth()
+window.addEventListener('DOMContentLoaded',async ()=>{
+  try{ if(await authFromLink()){ afterAuth(); return; } }
+  catch(e){ showAuthGate(); authMsg('This sign-in link is no longer valid: '+e.message); return; }
+  if(authRead()) afterAuth(); else showAuthGate();
 });
 </script>
 </body>
