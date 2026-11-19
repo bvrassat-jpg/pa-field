@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- Single source of truth for the running version. Kept in the first bytes of
      the file so the update check can read it with a tiny range request. -->
-<meta name="build" content="3.6">
+<meta name="build" content="3.7">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMob v3</title>
@@ -605,6 +605,18 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 </div>
 
 
+<!-- WHAT'S NEW SHEET (v3.7) -->
+<div class="sheet-overlay" id="whatsnew-sheet" onclick="if(event.target===this)closeWhatsNew()">
+  <div class="sheet" style="padding-bottom:calc(20px + var(--safe-bottom))">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="whatsnew-title">What's new</div>
+    <div class="sheet-body" id="whatsnew-body"></div>
+    <div class="sheet-actions">
+      <button class="btn-save" onclick="closeWhatsNew()">OK, got it</button>
+    </div>
+  </div>
+</div>
+
 <!-- DUPLICATE CONFIRM SHEET -->
 <div class="sheet-overlay" id="dup-sheet">
   <div class="sheet" style="padding-bottom:calc(24px + var(--safe-bottom))">
@@ -860,6 +872,7 @@ const ACT_TYPES=[
 let regions=[], curRegion=null;
 let auctions=[], curAuction=null, brokers=[], activities=[], clients=[];
 let curTab='today', selBroker=null, logPlanned=false, logType='Call', logReminderDays=3;
+let propsTable=true;
 let filterQ='', filterStage=null, filterBdStage=null, filterAssigned=null, filterNoRegion=false;
 const savedUser=localStorage.getItem('pa_field_user')||TEAM[0];
 const savedRegionId=localStorage.getItem('pa_region_id');
@@ -1019,7 +1032,7 @@ async function dbPatchByFilter(table,filterQuery,body){
 // through either app. Whole-database snapshot, not BD-specific — these
 // apps share one Supabase project, so "backup" means the same thing here
 // as it does on the CRM side.
-const BACKUP_TABLES=['regions','auctions','agencies','brokers','broker_auction_activations','auction_activities','broker_interactions','activities','clients','client_milestones'];
+const BACKUP_TABLES=['regions','auctions','agencies','brokers','broker_properties','broker_auction_activations','auction_activities','broker_interactions','activities','clients','client_milestones'];
 // SAFE FOR BRAND-NEW ROWS ONLY. This is a raw insert with
 // resolution=merge-duplicates: if a row with this id already exists, Postgres
 // silently overwrites EVERY column on it with whatever is in `rows`, blanks
@@ -1222,6 +1235,11 @@ async function loadData(){
       dbGetAll('brokers','select=*,agency:agencies(id,name)&deleted=is.false&order=last_name,id'),
       dbGetAll(ACT_TABLE,'deleted=is.false&order=logged_at.desc,id'),
     ]);
+    // Several properties per broker (v3.7). Read separately and tolerantly:
+    // if the table is missing, the app still opens and shows the old single field.
+    let propRows=[];propsTable=true;
+    try{propRows=await dbGetAll('broker_properties','deleted=is.false&order=created_at,id');}
+    catch(pe){propsTable=false;console.warn('broker_properties not readable:',pe);}
 
     // Regions
     regions=regRows.map(r=>({id:r.id,name:r.name}));
@@ -1261,6 +1279,17 @@ async function loadData(){
     }));
     brokers=brokers.filter(b=>!(b.tags.length&&b.tags.every(t=>t==='Buyer')));
     brokers.forEach(b=>bMap[b.id]=b);
+    brokers.forEach(b=>b.properties=[]);
+    propRows.forEach(p=>{
+      if(bMap[p.broker_id])bMap[p.broker_id].properties.push({
+        id:p.id,name:p.name||'',value:p.value||'',addendum:p.addendum||''});
+    });
+    // A broker with no property rows but an old single property (written before
+    // v3.7, or by an old cached copy) shows it as one entry, saved on first edit.
+    brokers.forEach(b=>{
+      if(!b.properties.length&&(b.bd_property||b.bd_value||b.bd_addendum))
+        b.properties.push({id:null,name:b.bd_property,value:b.bd_value,addendum:b.bd_addendum});
+    });
     actRows.forEach(a=>{
       if(bMap[a.broker_id])bMap[a.broker_id].activities.push({
         id:a.id,type:a.type==='Visit'?'Property visit':(a.type||''),notes:a.notes||'',planned:!!a.planned&&!a.done,
@@ -1275,6 +1304,7 @@ async function loadData(){
     renderCurrentTab();
     updateOverdueDot();updateUnassignedDot();
     toast('Synced — '+brokers.filter(b=>b.region_id).length+' contacts',true);
+    setTimeout(()=>showWhatsNew(false),600);
   }catch(e){toast('Sync error: '+e.message);}
   finally{btn.classList.remove('spinning');loading(false);}
 }
@@ -1314,6 +1344,9 @@ function buildRegionSelector(){
     <div style="padding:0 16px 4px;display:flex;gap:8px">
       <button onclick="exportBackup()" style="flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer">⬇ Download backup</button>
       <label style="flex:1;height:42px;background:var(--s2);border:1px solid var(--bd);color:var(--t1);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center">⬆ Restore<input type="file" accept=".json" style="display:none" onchange="restoreBackup(this)"></label>
+    </div>
+    <div style="padding:8px 16px 4px">
+      <button onclick="closeAuctionPicker();showWhatsNew(true)" style="width:100%;height:42px;background:var(--gold-bg);border:1px solid var(--gold-bd);color:var(--gold);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer">✦ What's new in BD Field</button>
     </div>`;
 }
 function toggleAuctionPicker(){
@@ -2160,13 +2193,20 @@ async function submitNewBroker(){
     }
     // ─────────────────────────────────────────────────────────────────────
     const rows=await dbPostQueued('brokers',body);
-    const newB={...rows[0],activities:[],clients:[],
+    const newB={...rows[0],activities:[],clients:[],properties:[],
       name, agency:agencyName, _agency_id:agency_id, type:typeVal,
       assigned:assignedVal, stage:1,
       region_id:body.region_id,
       bd_property,bd_value:'',bd_addendum:'',bd_ref,
       notes};
     brokers.push(newB);
+    if(bd_property){
+      newB.properties.push({id:null,name:bd_property,value:'',addendum:''});
+      if(propsTable){
+        try{await persistProperty(newB,newB.properties[0],false);}
+        catch(pe){toast('Contact saved, property not saved: '+pe.message);}
+      }
+    }
     closeAddBroker();
     toast(name+' added ✓',true);
     renderCurrentTab();
@@ -2377,7 +2417,7 @@ function renderBrokerCards(){
   let filtered;
   if(filterQ){
     const q=filterQ.toLowerCase();
-    filtered=brokers.filter(b=>(b.name+b.agency+(b.area||'')).toLowerCase().includes(q));
+    filtered=brokers.filter(b=>(b.name+b.agency+(b.area||'')+(b.properties||[]).map(p=>' '+p.name).join('')).toLowerCase().includes(q));
   } else {
     // When the Unassigned chip is active, show brokers with NO region.
     // Otherwise, show brokers WITH a region — identical to prior behavior.
@@ -2400,20 +2440,23 @@ function renderBrokerCards(){
   if(filtered.length){
     filtered.forEach(b=>{
       const mom=momentum(b),na=naStatus(b),nxt=nextAct(b);
-      const addBadge=b.bd_addendum&&b.bd_addendum!==''
-        ?'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:4px;background:'+(b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)')+';color:'+(b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)')+'">'+ADDENDUM_STATUS[b.bd_addendum]+'</span>'
+      const st=bestAddendum(b);
+      const addBadge=st&&st!==''
+        ?'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:4px;background:'+(st==='signed'?'var(--green-bg)':st==='blocked'?'var(--red-bg)':'var(--amber-bg)')+';color:'+(st==='signed'?'var(--green)':st==='blocked'?'var(--red)':'var(--amber)')+'">'+ADDENDUM_STATUS[st]+'</span>'
         :'';
       const noRegionBadge=!b.region_id
         ?'<span style="font-size:11px;font-weight:600;padding:4px 9px;border-radius:4px;background:var(--red-bg);color:var(--red)">⚠ No region</span>'
         :'';
-      const propLine=b.bd_property
-        ?'<div style="font-size:13px;color:var(--gold);font-weight:500;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">&#x2302; '+esc(b.bd_property)+(b.bd_value?' &middot; '+esc(b.bd_value):'')+'</div>'
+      const props=b.properties||[];
+      const p0=props[0];
+      const propLine=p0
+        ?'<div style="font-size:13px;color:var(--gold);font-weight:500;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">&#x2302; '+esc(p0.name||'Unnamed property')+(p0.value?' &middot; '+esc(p0.value):'')+(props.length>1?' <span style="color:var(--t3);font-weight:600">+'+(props.length-1)+' more</span>':'')+'</div>'
         :'<div style="font-size:12px;color:var(--t4);margin-top:3px;font-style:italic">No property yet</div>';
       const naLine=na!=='none'
         ?'<span class="next-action '+(na==='overdue'?'ov':na==='today'?'td':'')+'">'+(na==='overdue'?'! Overdue':na==='today'?'Today'+(nxt?fmtT(nxt):''):nxt?fmt(nxt.acted_at)+fmtT(nxt):'')+'</span>'
         :'';
-      const sc=b.bd_addendum==='signed'?'sc-h':b.bd_addendum&&b.bd_addendum!==''?'sc-w':'sc-c';
-      const sl=b.bd_addendum==='signed'?'Sgnd':b.bd_addendum==='sent'?'Sent':b.bd_addendum==='draft'?'Drft':b.bd_addendum==='vendor_review'?'Vndr':b.bd_addendum==='blocked'?'Blkd':'New';
+      const sc=st==='signed'?'sc-h':st&&st!==''?'sc-w':'sc-c';
+      const sl=st==='signed'?'Sgnd':st==='sent'?'Sent':st==='draft'?'Drft':st==='vendor_review'?'Vndr':st==='blocked'?'Blkd':'New';
       html+='<div class="broker-card '+(mom==='hot'?'hot':mom==='warm'?'warm':'')+'" onclick="openDetail(\''+b.id+'\')">'
         +'<div class="broker-score '+sc+'" style="font-size:11px;text-align:center;line-height:1.2">'+sl+'</div>'
         +'<div class="broker-info">'
@@ -2456,9 +2499,9 @@ function openDetail(brokerId){
           ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)">● ${esc(b.assigned)}</span>`
           : `<button onclick="claimContact('${b.id}')" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);cursor:pointer;font-family:'Segoe UI',system-ui,sans-serif">+ Claim</button>`
       }
-      ${b.bd_addendum&&b.bd_addendum!==''?`<span style="font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;background:${b.bd_addendum==='signed'?'var(--green-bg)':b.bd_addendum==='blocked'?'var(--red-bg)':'var(--amber-bg)'};color:${b.bd_addendum==='signed'?'var(--green)':b.bd_addendum==='blocked'?'var(--red)':'var(--amber)'}">${ADDENDUM_STATUS[b.bd_addendum]||''}</span>`:''}
+      ${(()=>{const st=bestAddendum(b);return st?`<span style="font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;background:${st==='signed'?'var(--green-bg)':st==='blocked'?'var(--red-bg)':'var(--amber-bg)'};color:${st==='signed'?'var(--green)':st==='blocked'?'var(--red)':'var(--amber)'}">${ADDENDUM_STATUS[st]||''}</span>`:'';})()}
     </div>
-    ${b.bd_property?`<div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.04);border-radius:6px;font-size:12px;color:var(--t2)">&#x2302; ${esc(b.bd_property)}${b.bd_value?' · <span style="color:var(--gold);font-weight:500">'+esc(b.bd_value)+'</span>':''}</div>`:''}
+    ${(b.properties||[]).length?`<div style="margin-top:8px;padding:8px 10px;background:rgba(0,0,0,.04);border-radius:6px;font-size:12px;color:var(--t2);line-height:1.6">${b.properties.map(p=>`&#x2302; ${esc(p.name||'Unnamed property')}${p.value?' · <span style="color:var(--gold);font-weight:500">'+esc(p.value)+'</span>':''}`).join('<br>')}</div>`:''}
   `;
 
   // Same day ordering as before, with time of day breaking ties within a day.
@@ -2489,26 +2532,12 @@ function openDetail(brokerId){
 
     <!-- BD Sourcing block -->
     <div class="detail-section">
-      <div class="detail-sec-title">Sourcing</div>
+      <div class="detail-sec-title">Properties (${(b.properties||[]).length})</div>
+      <div id="prop-list">${renderPropertyList(b)}</div>
+      ${propsTable?`<button onclick="addPropertyRow('${b.id}')" style="width:100%;margin:2px 0 12px;padding:9px;border-radius:8px;border:1px dashed var(--gold-bd);background:var(--gold-bg);color:var(--gold);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit">+ Add property</button>`:`<div style="font-size:12px;color:var(--red);margin-bottom:10px">Properties could not be loaded. Sync again before editing them.</div>`}
       <div class="fg" style="margin-bottom:10px">
-        <div class="fg-l">Property</div>
-        <input class="fi" id="bd-property" placeholder="e.g. Villa Les Pins, Mougins — 5 bed" value="${esc(b.bd_property||'')}">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-        <div class="fg" style="margin:0">
-          <div class="fg-l">Est. value</div>
-          <input class="fi" id="bd-value" placeholder="e.g. €4.5M" value="${esc(b.bd_value||'')}">
-        </div>
-        <div class="fg" style="margin:0">
-          <div class="fg-l">Referred by</div>
-          <input class="fi" id="bd-ref" placeholder="Name or agency" value="${esc(b.bd_ref||'')}">
-        </div>
-      </div>
-      <div class="fg" style="margin-bottom:10px">
-        <div class="fg-l">Addendum status</div>
-        <select class="fi" id="bd-addendum">
-          ${Object.entries(ADDENDUM_STATUS).map(([k,v])=>`<option value="${k}"${b.bd_addendum===k?' selected':''}>${v}</option>`).join('')}
-        </select>
+        <div class="fg-l">Referred by</div>
+        <input class="fi" id="bd-ref" placeholder="Name or agency" value="${esc(b.bd_ref||'')}">
       </div>
     </div>
 
@@ -2757,20 +2786,159 @@ async function setStage(brokerId,stage){
 
 async function saveBdMeta(brokerId){
   const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
-  b.bd_property=document.getElementById('bd-property').value.trim();
-  b.bd_value=document.getElementById('bd-value').value.trim();
-  b.bd_addendum=document.getElementById('bd-addendum').value;
   b.bd_ref=document.getElementById('bd-ref').value.trim();
   b.notes=document.getElementById('broker-notes').value;
   try{
-    await dbPatchQueued('brokers',brokerId,{
-      bd_property:b.bd_property,
-      bd_value:b.bd_value,
-      bd_addendum:b.bd_addendum,
-      bd_ref:b.bd_ref,
-      notes:b.notes
-    });
+    // Save any property edits still sitting in the form, then the broker itself.
+    if(propsTable){
+      for(let i=0;i<(b.properties||[]).length;i++){
+        if(readPropertyForm(b,i))await persistProperty(b,b.properties[i],false);
+      }
+    }
+    await dbPatchQueued('brokers',brokerId,{bd_ref:b.bd_ref,notes:b.notes});
+    if(propsTable)await syncLegacyProperty(b);
     toast('Saved',true);
+    renderCurrentTab();
+  }catch(e){toast('Error: '+e.message);}
+}
+
+// ── WHAT'S NEW ───────────────────────────────────────────
+// Release notes shown once per version on each phone, after the first sync
+// that follows an update. To announce a new version: add an entry at the top
+// with the same version as the build meta tag. Versions without an entry
+// (cosmetic fixes) show nothing. Reopen any time from the region menu.
+const WHATS_NEW=[
+  {v:'3.7',items:[
+    'A broker can now hold several properties: open a broker and tap <b>+ Add property</b>.',
+    'Each property has its own estimated value and addendum status (these fields moved from the broker into each property).',
+    'The contact card shows the first property, plus "+2 more" when there are others. Search also finds brokers by property name.'
+  ]},
+];
+function showWhatsNew(force){
+  const cur=(document.querySelector('meta[name="build"]')||{}).content||'';
+  let seen='';try{seen=localStorage.getItem('pa_field_whatsnew_seen')||'';}catch(e){}
+  const entry=force?WHATS_NEW[0]:WHATS_NEW.find(w=>w.v===cur);
+  if(!entry||(!force&&seen===entry.v))return;
+  // Never cover something in use: wait until no sheet or contact page is open.
+  if(!force&&(document.querySelector('.sheet-overlay.open')||document.querySelector('.detail-sheet.open'))){
+    setTimeout(()=>showWhatsNew(false),3000);return;
+  }
+  document.getElementById('whatsnew-title').textContent="What's new in BD Field "+entry.v;
+  document.getElementById('whatsnew-body').innerHTML='<ul style="margin:0;padding-left:18px;font-size:15px;line-height:1.55;color:var(--t2)">'+entry.items.map(i=>'<li style="margin-bottom:10px">'+i+'</li>').join('')+'</ul>';
+  document.getElementById('whatsnew-sheet').dataset.v=entry.v;
+  document.getElementById('whatsnew-sheet').classList.add('open');
+}
+function closeWhatsNew(){
+  const sh=document.getElementById('whatsnew-sheet');
+  try{localStorage.setItem('pa_field_whatsnew_seen',sh.dataset.v||'');}catch(e){}
+  sh.classList.remove('open');
+}
+
+// ── PROPERTIES (v3.7) ────────────────────────────────────
+// One broker can hold several properties, each with its own value and addendum
+// status, stored one row per property in broker_properties. The first property
+// is also copied into the broker's old bd_property / bd_value / bd_addendum
+// fields so that older copies of the app, the CRM and old backups still show something.
+// Nothing here ever deletes a row: removing a property marks it deleted.
+const ADDENDUM_RANK={'signed':5,'vendor_review':4,'sent':3,'draft':2,'blocked':1,'':0};
+function bestAddendum(b){
+  let best='';
+  (b.properties||[]).forEach(p=>{if((ADDENDUM_RANK[p.addendum]||0)>(ADDENDUM_RANK[best]||0))best=p.addendum;});
+  return best;
+}
+function renderPropertyList(b){
+  const props=b.properties||[];
+  if(!props.length)return '<div style="font-size:12px;color:var(--t4);padding:2px 0 10px;font-style:italic">No property yet</div>';
+  const dis=propsTable?'':' disabled';
+  return props.map((p,i)=>`
+    <div style="border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:10px;background:var(--s2)">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <input class="fi" id="pp-name-${i}" style="flex:1" placeholder="e.g. Villa Les Pins, Mougins, 5 bed" value="${esc(p.name)}"${dis} onchange="saveProperty('${b.id}',${i})">
+        ${propsTable?`<span onclick="removeProperty('${b.id}',${i})" style="font-size:16px;color:var(--t4);cursor:pointer;padding:4px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--s1,#fff)" title="Remove property">×</span>`:''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <input class="fi" id="pp-value-${i}" placeholder="Est. value, e.g. €4.5M" value="${esc(p.value)}"${dis} onchange="saveProperty('${b.id}',${i})">
+        <select class="fi" id="pp-add-${i}"${dis} onchange="saveProperty('${b.id}',${i})">
+          ${Object.entries(ADDENDUM_STATUS).map(([k,v])=>`<option value="${k}"${p.addendum===k?' selected':''}>${k===''?'Addendum: —':v}</option>`).join('')}
+        </select>
+      </div>
+    </div>`).join('');
+}
+// Copies the form into the in-memory property; returns true if anything changed.
+function readPropertyForm(b,i){
+  const p=b.properties[i];if(!p)return false;
+  const n=document.getElementById('pp-name-'+i),v=document.getElementById('pp-value-'+i),a=document.getElementById('pp-add-'+i);
+  if(!n)return false;
+  const next={name:n.value.trim(),value:v.value.trim(),addendum:a.value};
+  if(p.id==null&&!next.name&&!next.value&&!next.addendum){Object.assign(p,next);return false;}
+  const changed=p.id==null||next.name!==p.name||next.value!==p.value||next.addendum!==p.addendum;
+  Object.assign(p,next);
+  return changed;
+}
+async function persistProperty(b,p,mirror=true){
+  // An older property not saved yet (the pre-3.7 single field) goes in first,
+  // so the order of the list is kept once it is read back.
+  if(p.id==null){
+    for(const q of b.properties){
+      if(q===p)break;
+      if(q.id==null&&!q._pending&&(q.name||q.value||q.addendum))await persistProperty(b,q,false);
+    }
+  }
+  // Saves for the same property run one after another, so a field change and
+  // "Save all" pressed together can never create the same property twice.
+  while(p._pending){try{await p._pending;}catch(e){}}
+  const run=(async()=>{
+    const body={name:p.name,value:p.value,addendum:p.addendum};
+    if(p.id==null){
+      const rows=await dbPostQueued('broker_properties',{broker_id:b.id,...body,created_by:curUser||'BD Field'});
+      p.id=rows&&rows[0]?rows[0].id:null;
+    } else {
+      await dbPatchQueued('broker_properties',p.id,{...body,updated_at:new Date().toISOString()});
+    }
+  })();
+  p._pending=run;
+  try{await run;}finally{if(p._pending===run)p._pending=null;}
+  if(mirror)await syncLegacyProperty(b);
+}
+// Keeps the broker's old single-property fields equal to its first property.
+async function syncLegacyProperty(b){
+  const p=(b.properties||[])[0]||{name:'',value:'',addendum:''};
+  if(b.bd_property===p.name&&b.bd_value===p.value&&b.bd_addendum===p.addendum)return;
+  b.bd_property=p.name;b.bd_value=p.value;b.bd_addendum=p.addendum;
+  await dbPatchQueued('brokers',b.id,{bd_property:p.name,bd_value:p.value,bd_addendum:p.addendum});
+}
+function refreshPropertyUI(b){
+  const list=document.getElementById('prop-list');
+  if(list)list.innerHTML=renderPropertyList(b);
+  const t=list&&list.parentElement.querySelector('.detail-sec-title');
+  if(t)t.textContent='Properties ('+b.properties.length+')';
+}
+async function saveProperty(brokerId,i){
+  if(!propsTable)return;
+  const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
+  if(!readPropertyForm(b,i))return;
+  try{await persistProperty(b,b.properties[i]);toast('Property saved',true);renderCurrentTab();}
+  catch(e){toast('Error: '+e.message);}
+}
+function addPropertyRow(brokerId){
+  const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
+  // Keep what is typed in the other rows before redrawing.
+  b.properties.forEach((p,i)=>{const n=document.getElementById('pp-name-'+i);if(n){p.name=n.value.trim();p.value=document.getElementById('pp-value-'+i).value.trim();p.addendum=document.getElementById('pp-add-'+i).value;}});
+  b.properties.push({id:null,name:'',value:'',addendum:'',_new:true});
+  refreshPropertyUI(b);
+  const n=document.getElementById('pp-name-'+(b.properties.length-1));if(n)n.focus();
+}
+async function removeProperty(brokerId,i){
+  const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
+  const p=b.properties[i];if(!p)return;
+  if((p.id!=null||p.name||p.value)&&!confirm('Remove "'+(p.name||'this property')+'" from '+b.name+'?'))return;
+  try{
+    if(p.id!=null)await dbPatchQueued('broker_properties',p.id,{deleted:true,deleted_at:new Date().toISOString()});
+    b.properties.splice(i,1);
+    await syncLegacyProperty(b);
+    refreshPropertyUI(b);
+    renderCurrentTab();
+    if(p.id!=null)toast('Property removed',false);
   }catch(e){toast('Error: '+e.message);}
 }
 
