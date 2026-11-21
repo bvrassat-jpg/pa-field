@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- Single source of truth for the running version. Kept in the first bytes of
      the file so the update check can read it with a tiny range request. -->
-<meta name="build" content="3.8">
+<meta name="build" content="3.9">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMob v3</title>
@@ -1270,7 +1270,8 @@ async function loadData(){
       agency:r.agency?r.agency.name:'', _agency_id:r.agency?r.agency.id:null,
       type:r.profession||'', tags:Array.isArray(r.tags)?r.tags:[],
       area:r.area||'', country:r.country||'', phone:r.phone||'', email:r.email||'',
-      assigned:TEAM.includes(r.created_by)?r.created_by:'', stage:1, // old desktop 1-10 field, retired — never displayed
+      // v3.9: 'Assigned to' is the contact's owner (brokers.owner), shared with the CRM.
+      assigned:r.owner!==undefined?(r.owner||''):(TEAM.includes(r.created_by)?r.created_by:''), stage:1, // old desktop 1-10 field, retired — never displayed
       bd_stage:r.bd_stage!=null?Number(r.bd_stage):1,
       notes:r.notes||'', activities:[], clients:Array.isArray(r.bd_prospects)?r.bd_prospects:[],
       bd_property:r.bd_property||'', bd_value:r.bd_value||'',
@@ -2069,10 +2070,9 @@ function closeAddBroker(){
 async function claimContact(brokerId) {
   const b = brokers.find(x => String(x.id) === String(brokerId));
   if (!b) return;
-  if (b.source !== 'PAMob') { toast('CRM contacts cannot be claimed'); return; }
   if (b.assigned) { toast('Already assigned to ' + b.assigned); return; }
   try {
-    await dbPatchQueued('brokers', brokerId, { created_by: curUser });
+    await dbPatchQueued('brokers', brokerId, { owner: curUser });
     b.assigned = curUser;
     toast('Contact claimed — assigned to ' + curUser, true);
     openDetail(brokerId); // refresh detail view
@@ -2179,7 +2179,8 @@ async function submitNewBroker(){
       email:document.getElementById('nb-email').value.trim(),
       area:document.getElementById('nb-area').value.trim(),
       country:document.getElementById('nb-country').value.trim()||'France',
-      created_by:assignedVal,
+      created_by:curUser||assignedVal,
+      owner:assignedVal||null,
       source:'PAMob',
       profession:typeVal||null,
       bd_stage:1,
@@ -2472,7 +2473,7 @@ function renderBrokerCards(){
           +'<div class="broker-agency">'+esc(b.agency)+(b.area?' &middot; '+esc(b.area):'')+'</div>'
           +propLine
         +'</div>'
-        +'<div class="broker-right">'          +'<span class="stg-pill '+(SCLS[b.bd_stage]||'s1')+'">'+(STAGES[b.bd_stage]||'--')+'</span>'          +addBadge          +noRegionBadge          +naLine          +(b.source!=='PAMob'            ?'<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--s2);color:var(--t3);border:1px solid var(--bd2);margin-top:4px;display:inline-block">CRM</span>'            :b.assigned              ?'<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd);margin-top:4px;display:inline-block">● '+esc(b.assigned)+'</span>'              :'')        +'</div>'
+        +'<div class="broker-right">'          +'<span class="stg-pill '+(SCLS[b.bd_stage]||'s1')+'">'+(STAGES[b.bd_stage]||'--')+'</span>'          +addBadge          +noRegionBadge          +naLine          +(b.assigned            ?'<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd);margin-top:4px;display:inline-block">● '+esc(b.assigned)+'</span>'            :b.source!=='PAMob'              ?'<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--s2);color:var(--t3);border:1px solid var(--bd2);margin-top:4px;display:inline-block">CRM</span>'              :'')        +'</div>'
         +'</div>';
     });
   } else {
@@ -2501,9 +2502,8 @@ function openDetail(brokerId){
     <div class="hero-row">
       <span class="hero-stage ${SCLS[b.bd_stage]||'s1'}">${STAGES[b.bd_stage]}</span>
       ${b.region_id?`<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold-bd)">◉ ${esc(regions.find(r=>r.id===b.region_id)?.name||'')}</span>`:''}
-      ${b.source!=='PAMob'
-        ? '<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--s2);color:var(--t3);border:1px solid var(--bd2)">CRM</span>'
-        : b.assigned
+      ${b.source!=='PAMob'?'<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--s2);color:var(--t3);border:1px solid var(--bd2)">CRM</span>':''}
+      ${b.assigned
           ? `<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)">● ${esc(b.assigned)}</span>`
           : `<button onclick="claimContact('${b.id}')" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd);cursor:pointer;font-family:'Segoe UI',system-ui,sans-serif">+ Claim</button>`
       }
@@ -2711,17 +2711,13 @@ function openEditContact(){
   const asgn=document.getElementById('ec-assigned');
   const asgnWrapper=document.getElementById('ec-assigned-wrapper');
   const asgnLocked=document.getElementById('ec-assigned-locked');
-  if(b.source!=='PAMob'){
-    // CRM contact — show locked label, hide dropdown
-    asgn.style.display='none';
-    asgnLocked.style.display='block';
-    asgnLocked.textContent='Sourced via CRM — not assignable';
-    if(asgnWrapper) asgnWrapper.querySelector('.fg-l').style.color='var(--t4)';
+  if(false){
+    // v3.9: no longer locked (owner is its own field); kept as a no-op branch
   } else {
     // BD contact — show dropdown normally
     asgn.style.display='';
     asgnLocked.style.display='none';
-    asgn.innerHTML=TEAM.map(m=>`<option value="${m}"${m===b.assigned?' selected':''}>${m}</option>`).join('');
+    asgn.innerHTML='<option value="">— No owner —</option>'+TEAM.map(m=>`<option value="${m}"${m===b.assigned?' selected':''}>${m}</option>`).join('');
     if(asgnWrapper) asgnWrapper.querySelector('.fg-l').style.color='';
   }
   // Region
@@ -2743,8 +2739,8 @@ async function submitEditContact(){
    if(err){toast(err==='Last name is required'?'Enter first and last name':err);return;}}
   const agencyName=document.getElementById('ec-agency').value.trim();
   const typeVal=document.getElementById('ec-type').value;
-  // For CRM contacts, assigned is locked — don't overwrite it
-  const assignedVal = selBroker.source!=='PAMob' ? (selBroker.assigned||'') : document.getElementById('ec-assigned').value;
+  // v3.9: owner is its own field, so it can be set for every contact (CRM ones too)
+  const assignedVal = document.getElementById('ec-assigned').value;
   const regionVal=document.getElementById('ec-region').value;
   const localPatch={
     name, agency:agencyName, type:typeVal,
@@ -2769,7 +2765,7 @@ async function submitEditContact(){
       last_name:nameParts.slice(1).join(' '),
       agency_id,
       phone:localPatch.phone, email:localPatch.email, area:localPatch.area,
-      country:localPatch.country, created_by:assignedVal,
+      country:localPatch.country, owner:assignedVal||null,
       profession:typeVal||null,
       region_id:localPatch.region_id
     };
@@ -2818,6 +2814,10 @@ async function saveBdMeta(brokerId){
 // with the same version as the build meta tag. Versions without an entry
 // (cosmetic fixes) show nothing. Reopen any time from the region menu.
 const WHATS_NEW=[
+  {v:'3.9',items:[
+    '<b>Assigned to</b> is now the contact\'s owner, the same field the CRM shows as Owner. You can set it for every contact, including ones created in the CRM.',
+    'Assigning a contact no longer changes who is recorded as having found it.'
+  ]},
   {v:'3.8',items:[
     'A new contact now needs a <b>first name, a last name, and a phone or an email</b>. The same applies when you edit a contact.',
     'No signal? What you save is <b>kept on this phone</b> and synced automatically when the connection is back. A small "not synced yet" button shows anything still waiting; tap it to retry.',
@@ -2832,15 +2832,19 @@ const WHATS_NEW=[
 function showWhatsNew(force){
   const cur=(document.querySelector('meta[name="build"]')||{}).content||'';
   let seen='';try{seen=localStorage.getItem('pa_field_whatsnew_seen')||'';}catch(e){}
-  const entry=force?WHATS_NEW[0]:WHATS_NEW.find(w=>w.v===cur);
-  if(!entry||(!force&&seen===entry.v))return;
+  // v3.9: show every version this phone has not seen yet (someone jumping 3.7 -> 3.9 also gets 3.8's notes).
+  const num=v=>{const p=String(v||'0').split('.').map(Number);return (p[0]||0)*1000+(p[1]||0);};
+  const unseen=force?[WHATS_NEW[0]]:WHATS_NEW.filter(w=>num(w.v)<=num(cur)&&(!seen||num(w.v)>num(seen)));
+  if(!unseen.length)return;
+  const entry={v:unseen[0].v,items:unseen.length===1?unseen[0].items:unseen.flatMap(w=>['<b style="color:var(--t1)">'+w.v+'</b>',...w.items])};
+  if(!force&&seen===cur)return;
   // Never cover something in use: wait until no sheet or contact page is open.
   if(!force&&(document.querySelector('.sheet-overlay.open')||document.querySelector('.detail-sheet.open'))){
     setTimeout(()=>showWhatsNew(false),3000);return;
   }
   document.getElementById('whatsnew-title').textContent="What's new in BD Field "+entry.v;
   document.getElementById('whatsnew-body').innerHTML='<ul style="margin:0;padding-left:18px;font-size:15px;line-height:1.55;color:var(--t2)">'+entry.items.map(i=>'<li style="margin-bottom:10px">'+i+'</li>').join('')+'</ul>';
-  document.getElementById('whatsnew-sheet').dataset.v=entry.v;
+  document.getElementById('whatsnew-sheet').dataset.v=force?entry.v:cur;
   document.getElementById('whatsnew-sheet').classList.add('open');
 }
 function closeWhatsNew(){
@@ -3709,7 +3713,7 @@ function paResolveBody(body){
 
 function saveQueue(){localStorage.setItem('pa_sync_queue',JSON.stringify(syncQueue));renderSyncPill();}
 // A fetch that never reached the server (no signal, flaky network) rejects with a TypeError.
-function isNetworkError(e){ return e && (e.name==='TypeError' || /Failed to fetch|NetworkError|Load failed|network/i.test(e.message||'')); }
+function isNetworkError(e){ return !!e && (e.name==='TypeError' || /^(Failed to fetch|NetworkError when attempting to fetch resource\.?|Load failed|The network connection was lost\.?)$/.test(e.message||'')); }
 // v3.8: visible count of changes still on this phone; tap to retry.
 function renderSyncPill(){
   let el=document.getElementById('sync-pill');
