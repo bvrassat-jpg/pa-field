@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- Single source of truth for the running version. Kept in the first bytes of
      the file so the update check can read it with a tiny range request. -->
-<meta name="build" content="3.7">
+<meta name="build" content="3.8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMob v3</title>
@@ -681,11 +681,11 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
           <input class="fi" id="nb-agency" placeholder="Agency or property name">
         </div>
         <div class="fg" style="margin:0 0 10px">
-          <div class="fg-l">Phone</div>
+          <div class="fg-l">Phone (or email) *</div>
           <input class="fi" id="nb-phone" type="tel" placeholder="+33 6...">
         </div>
         <div class="fg" style="margin:0 0 10px">
-          <div class="fg-l">Email</div>
+          <div class="fg-l">Email (or phone) *</div>
           <input class="fi" id="nb-email" type="email" placeholder="...@...">
         </div>
         <div class="fg" style="margin:0 0 10px">
@@ -748,8 +748,8 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <div class="sheet-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="fg" style="margin:0 0 10px">
-          <div class="fg-l">Name *</div>
-          <input class="fi" id="ec-name" placeholder="Full name">
+          <div class="fg-l">First and last name *</div>
+          <input class="fi" id="ec-name" placeholder="First and last name">
         </div>
         <div class="fg" style="margin:0 0 10px">
           <div class="fg-l">Agency</div>
@@ -2146,11 +2146,19 @@ function escHtml(s) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// v3.8 rule: every contact needs a first name, a last name, and a phone or an email.
+function contactRuleError(first,last,phone,email){
+  if(!first) return 'First name is required';
+  if(!last) return 'Last name is required';
+  if(!phone && !email) return 'Add a phone number or an email';
+  return '';
+}
 async function submitNewBroker(){
   const first_name=document.getElementById('nb-firstname').value.trim();
   const last_name=document.getElementById('nb-lastname').value.trim();
   const name=(first_name+' '+last_name).trim();
-  if(!first_name){toast('First name is required');return;}
+  {const err=contactRuleError(first_name,last_name,document.getElementById('nb-phone').value.trim(),document.getElementById('nb-email').value.trim());
+   if(err){toast(err);return;}}
   const regionId=document.getElementById('nb-region')?.value;
   if(!regionId){toast('Please select a region');return;}
   const bd_property=document.getElementById('nb-property').value.trim();
@@ -2729,8 +2737,10 @@ function closeEditContact(){
 
 async function submitEditContact(){
   const b=selBroker;if(!b)return;
-  const name=document.getElementById('ec-name').value.trim();
-  if(!name){toast('Name is required');return;}
+  const name=document.getElementById('ec-name').value.trim().replace(/\s+/g,' ');
+  {const parts=name.split(' ');
+   const err=contactRuleError(parts[0]||'',parts.slice(1).join(' '),document.getElementById('ec-phone').value.trim(),document.getElementById('ec-email').value.trim());
+   if(err){toast(err==='Last name is required'?'Enter first and last name':err);return;}}
   const agencyName=document.getElementById('ec-agency').value.trim();
   const typeVal=document.getElementById('ec-type').value;
   // For CRM contacts, assigned is locked — don't overwrite it
@@ -2808,6 +2818,11 @@ async function saveBdMeta(brokerId){
 // with the same version as the build meta tag. Versions without an entry
 // (cosmetic fixes) show nothing. Reopen any time from the region menu.
 const WHATS_NEW=[
+  {v:'3.8',items:[
+    'A new contact now needs a <b>first name, a last name, and a phone or an email</b>. The same applies when you edit a contact.',
+    'No signal? What you save is <b>kept on this phone</b> and synced automatically when the connection is back. A small "not synced yet" button shows anything still waiting; tap it to retry.',
+    'An activity filed under an auction now puts the contact on that auction\'s campaign board in the CRM, so the team sees it there.'
+  ]},
   {v:'3.7',items:[
     'A broker can now hold several properties: open a broker and tap <b>+ Add property</b>.',
     'Each property has its own estimated value and addendum status (these fields moved from the broker into each property).',
@@ -3317,6 +3332,9 @@ async function submitLog(){
   const body={broker_id:brokerId,auction_id:auctionId,type:logType,notes,planned:logPlanned,logged_at:date,due_at:composeDueAt(date,time),logged_by:curUser||null,assigned_to:logPlanned?(curUser||null):null};
   try{
     loading(true);
+    // v3.8: an activity filed under an auction puts the contact on that auction's
+    // campaign board in the CRM (activating it if needed), so it shows there too.
+    if(auctionId){ const actId=await ensureActivation(brokerId,auctionId,logPlanned); if(actId) body.activation_id=actId; }
     const rows=await dbPostQueued(ACT_TABLE,body);
     const newAct=rows[0];
     const b=brokers.find(x=>String(x.id)===String(brokerId));
@@ -3330,7 +3348,7 @@ async function submitLog(){
       // The follow-up inherits the time of the entry it came from. No time on
       // the entry means no time on the reminder — an all-day item, exactly as
       // reminders have always been created.
-      const remBody={broker_id:brokerId,auction_id:auctionId,type:'Call',notes:'Follow-up',planned:true,logged_at:remDateStr,due_at:composeDueAt(remDateStr,time),logged_by:curUser||null,assigned_to:curUser||null};
+      const remBody={broker_id:brokerId,auction_id:auctionId,activation_id:body.activation_id||null,type:'Call',notes:'Follow-up',planned:true,logged_at:remDateStr,due_at:composeDueAt(remDateStr,time),logged_by:curUser||null,assigned_to:curUser||null};
       try{
         const remRows=await dbPostQueued(ACT_TABLE,remBody);
         if(b&&remRows[0])b.activities.unshift({...remRows[0],acted_at:remRows[0].logged_at});
@@ -3649,6 +3667,23 @@ async function deleteRegion(id){
   finally{loading(false);}
 }
 
+// ── CAMPAIGN LINK (v3.8) ───────────────────────────────────
+// Returns the contact's activation on the auction, reviving a removed one or
+// creating it ("Contacted", or "Not contacted" for a planned action). Online only:
+// offline entries keep their auction and are linked by the CRM later.
+async function ensureActivation(brokerId, auctionId, planned){
+  if(!auctionId || !navigator.onLine || String(brokerId).startsWith('local_')) return null;
+  try{
+    const rows=await dbGet('broker_auction_activations','broker_id=eq.'+encodeURIComponent(brokerId)+'&auction_id=eq.'+encodeURIComponent(auctionId)+'&select=id,deleted&limit=1');
+    if(rows && rows.length){
+      if(rows[0].deleted) await dbPatch('broker_auction_activations',rows[0].id,{deleted:false,deleted_at:null,deleted_by:null,updated_at:new Date().toISOString()});
+      return rows[0].id;
+    }
+    const ins=await dbPost('broker_auction_activations',{broker_id:brokerId,auction_id:auctionId,activated_by:curUser||null,assigned_to:curUser||null,pipeline_stage:planned?'Not contacted':'Contacted',activated_at:new Date().toISOString()});
+    return ins && ins[0] ? ins[0].id : null;
+  }catch(e){ console.warn('Campaign link not made:',e); return null; }
+}
+
 // ── OFFLINE QUEUE ──────────────────────────────────────────
 let isOnline = navigator.onLine;
 let syncQueue = JSON.parse(localStorage.getItem('pa_sync_queue')||'[]');
@@ -3672,7 +3707,28 @@ function paResolveBody(body){
   return out;
 }
 
-function saveQueue(){localStorage.setItem('pa_sync_queue',JSON.stringify(syncQueue));}
+function saveQueue(){localStorage.setItem('pa_sync_queue',JSON.stringify(syncQueue));renderSyncPill();}
+// A fetch that never reached the server (no signal, flaky network) rejects with a TypeError.
+function isNetworkError(e){ return e && (e.name==='TypeError' || /Failed to fetch|NetworkError|Load failed|network/i.test(e.message||'')); }
+// v3.8: visible count of changes still on this phone; tap to retry.
+function renderSyncPill(){
+  let el=document.getElementById('sync-pill');
+  if(!el){
+    if(!document.body) return;
+    el=document.createElement('button');el.id='sync-pill';el.type='button';
+    el.style.cssText='position:fixed;left:12px;bottom:84px;z-index:900;border:1px solid var(--gold,#c9a84c);background:#0f1b33;color:#fff;border-radius:20px;padding:8px 14px;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.25);display:none';
+    el.onclick=()=>{isOnline=navigator.onLine;flushQueue(true);};
+    document.body.appendChild(el);
+  }
+  const n=syncQueue.length;
+  el.textContent='⟳ '+n+' not synced yet: tap to retry';
+  el.style.display=n?'block':'none';
+}
+document.addEventListener('DOMContentLoaded',renderSyncPill);
+// Retry on its own: when the app comes back to the screen, and every minute.
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && syncQueue.length){ isOnline=navigator.onLine; flushQueue(); } });
+setInterval(()=>{ if(syncQueue.length && navigator.onLine){ isOnline=true; flushQueue(); } },60000);
+let flushing=false;
 
 function updateOnlineStatus(){
   isOnline = navigator.onLine;
@@ -3684,12 +3740,17 @@ function updateOnlineStatus(){
 window.addEventListener('online',  updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
-async function flushQueue(){
-  if(!isOnline || syncQueue.length===0) return;
+async function flushQueue(manual){
+  if(!isOnline || syncQueue.length===0 || flushing) return;
+  if(typeof fieldStarted!=='undefined' && !fieldStarted) return;
+  flushing=true;
+  try{ await flushQueueInner(manual); } finally { flushing=false; renderSyncPill(); }
+}
+async function flushQueueInner(manual){
   const toFlush = [...syncQueue];
   syncQueue = [];
   saveQueue();
-  toast('Syncing '+toFlush.length+' queued action'+(toFlush.length>1?'s':'')+'...', false);
+  if(manual) toast('Syncing '+toFlush.length+' queued action'+(toFlush.length>1?'s':'')+'...', false);
   let failed = [];
   for(const op of toFlush){
     try{
@@ -3709,17 +3770,20 @@ async function flushQueue(){
         }
       } else if(op.method==='PATCH'){
         const realId = paResolveId(op.id);
+        if(String(realId).startsWith('local_')){ failed.push(op); continue; } // its create has not synced yet
         const body = paResolveBody(op.body);
         await dbPatch(op.table, realId, body);
       }
     } catch(e){
+      op.tries=(op.tries||0)+1; op.lastError=String(e.message||e).slice(0,200);
       failed.push(op);
     }
   }
   if(failed.length){
     syncQueue = [...syncQueue, ...failed];
     saveQueue();
-    toast(failed.length+' action(s) failed to sync', false);
+    if(manual || failed.length<toFlush.length) toast(failed.length+' change(s) still not synced'+(failed[0].lastError&&!isNetworkError({message:failed[0].lastError})?': '+failed[0].lastError:''), false);
+    if(failed.length<toFlush.length) loadData();
   } else {
     toast('All changes synced', true);
     loadData();
@@ -3739,11 +3803,14 @@ async function dbPostQueued(table, body){
   }
   try { return await dbPost(table, paResolveBody(body)); }
   catch(e){
-    if(!e.authLost) throw e;
+    // v3.8: a dropped connection (fetch TypeError) used to show "Error" and lose
+    // the entry. It is now kept on the phone and synced automatically.
+    const netLost = isNetworkError(e);
+    if(!e.authLost && !netLost) throw e;
     const tempId = 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
     syncQueue.push({method:'POST', table, body, ts:Date.now(), tempId});
     saveQueue();
-    toast('Saved on this phone. Sign in again to sync it', false);
+    toast(netLost?'No connection: saved on this phone, will sync automatically':'Saved on this phone. Sign in again to sync it', false);
     return [{...body, id: tempId}];
   }
 }
@@ -3761,10 +3828,11 @@ async function dbPatchQueued(table, id, body){
   }
   try { return await dbPatch(table, resolvedId, resolvedBody); }
   catch(e){
-    if(!e.authLost) throw e;
+    const netLost = isNetworkError(e);
+    if(!e.authLost && !netLost) throw e;
     syncQueue.push({method:'PATCH', table, id: resolvedId, body: resolvedBody, ts:Date.now()});
     saveQueue();
-    toast('Saved on this phone. Sign in again to sync it', false);
+    toast(netLost?'No connection: saved on this phone, will sync automatically':'Saved on this phone. Sign in again to sync it', false);
   }
 }
 
