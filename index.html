@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- Single source of truth for the running version. Kept in the first bytes of
      the file so the update check can read it with a tiny range request. -->
-<meta name="build" content="4.1">
+<meta name="build" content="4.2">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMob v3</title>
@@ -1286,11 +1286,14 @@ async function loadData(){
     // Auctions — kept for optional dossier tagging on activities
     const prev=curAuction?.id;
     auctions=aRows.map(r=>({id:r.id,name:r.name||'',location:r.location||'',date:r.date||'',
-      status:r.status||'upcoming',team:(r.team||'').split(',').map(x=>x.trim()).filter(Boolean)}));
+      // v4.2: the CRM writes "Preparation" / "Active" / "Closed"; compare in lower case.
+      // auction_date is the real column (date never existed, so auction day never showed).
+      status:String(r.status||'').toLowerCase(),date:r.auction_date||r.date||'',
+      team:(r.team_lead||r.team||'').split(',').map(x=>x.trim()).filter(Boolean)}));
     if(prev){
-      curAuction=auctions.find(a=>a.id===prev)||auctions.find(a=>a.status==='active')||auctions[0]||null;
+      curAuction=auctions.find(a=>a.id===prev&&a.status!=='closed')||activeAuction();
     } else {
-      curAuction=auctions.find(a=>a.status==='active')||auctions[0]||null;
+      curAuction=activeAuction();
     }
 
     // Brokers — all contacts, no filter at load time
@@ -1420,6 +1423,12 @@ async function createRegion(name){
     buildRegionSelector();
   }catch(e){toast('Error: '+e.message);}
   finally{loading(false);}
+}
+// v4.2: the one Active auction, or none. Never falls back to "the first auction"
+// (that was Villa Sainte-Maxime, a closed one, and every new action got filed under it).
+function activeAuction(){
+  const act=auctions.filter(a=>a.status==='active');
+  return act.length===1?act[0]:null;
 }
 // kept for backwards compat — not used in new UI
 function selectAuction(id){
@@ -2306,7 +2315,9 @@ function renderToday(){
     v.innerHTML='<div class="empty-state" style="padding-top:80px"><div class="empty-icon">◇</div><div class="empty-msg">Loading contacts…</div></div>';
     return;
   }
-  const pool=curRegion?brokers.filter(b=>Number(b.region_id)===Number(curRegion.id)):brokers.filter(b=>b.region_id);
+  // v4.2: with no region selected, contacts without a region still count when
+  // they have an open planned action (they used to be invisible here).
+  const pool=curRegion?brokers.filter(b=>Number(b.region_id)===Number(curRegion.id)):brokers.filter(b=>b.region_id||(b.activities||[]).some(a=>a.planned));
   const overdue=pool.filter(b=>naStatus(b)==='overdue').length;
   const dueToday=pool.filter(b=>naStatus(b)==='today').length;
   // No planned action: actively-worked contacts (Contacted..Mandate confirmed)
@@ -2982,6 +2993,13 @@ async function saveBdMeta(brokerId){
 // with the same version as the build meta tag. Versions without an entry
 // (cosmetic fixes) show nothing. Reopen any time from the region menu.
 const WHATS_NEW=[
+  {v:'4.2',items:[
+    'New actions are <b>no longer filed under an auction by default</b>. Pick one only when the action is campaign work: it then also shows in the CRM. Closed auctions are no longer offered.',
+    'A <b>planned</b> action no longer adds an extra follow-up reminder 3 days later by default.',
+    'Logging a done entry with a future date asks whether it should be a planned action.',
+    'Putting a contact back on a campaign they were removed from now asks first.',
+    'Today also shows planned actions on contacts with no region, and the Calendar shows the auction day again.'
+  ]},
   {v:'4.1',items:[
     'A planned action assigned to you now always shows in <b>your Calendar and your Today actions</b>, even when the contact belongs to a colleague. Before, it was hidden.'
   ]},
@@ -3185,6 +3203,9 @@ function selectType(key,el){
 function togglePlanned(){
   logPlanned=!logPlanned;
   document.getElementById('planned-track').classList.toggle('on',logPlanned);
+  // v4.2: a planned action is already the follow-up, so no extra reminder by
+  // default (it used to add a second "Follow-up" call 3 days later).
+  selectReminderDefault(logPlanned?0:3);
 }
 function clearLogTime(){
   const el=document.getElementById('log-time');
@@ -3243,8 +3264,11 @@ function openLogSheet(brokerId=null){
   // Build dossier tag selector (optional)
   const dossierSel=document.getElementById('log-dossier');
   if(dossierSel){
-    dossierSel.innerHTML='<option value="">No dossier (optional)</option>'
-      +auctions.map(a=>`<option value="${a.id}"${curAuction&&curAuction.id===a.id?' selected':''}>${esc(a.name)}</option>`).join('');
+    // v4.2: BD actions stay out of the CRM unless deliberately filed under an
+    // auction, so nothing is preselected, and closed auctions are not offered.
+    dossierSel.innerHTML='<option value="">No auction (BD only)</option>'
+      +auctions.filter(a=>a.status!=='closed').map(a=>`<option value="${a.id}">${esc(a.name)} (shows in the CRM)</option>`).join('');
+    dossierSel.value='';
   }
 
   // Show/hide contact picker
@@ -3516,7 +3540,12 @@ async function submitLog(){
   const brokerId=document.getElementById('log-broker').value;
   const date=document.getElementById('log-date').value;
   const notes=document.getElementById('log-notes').value;
-  if(!brokerId||!date){toast('Select contact et une date');return;}
+  if(!brokerId||!date){toast('Select a contact and a date');return;}
+  // v4.2: an entry logged as done but dated in the future is almost always a
+  // planned action entered without the "Planned" switch.
+  if(!logPlanned&&date>today()){
+    if(confirm('This date is in the future. Save it as a planned action?')){logPlanned=true;document.getElementById('planned-track').classList.add('on');}
+  }
 
   const dossierSel=document.getElementById('log-dossier');
   const auctionId=dossierSel&&dossierSel.value?dossierSel.value:null; // uuid string, not parsed
@@ -3755,6 +3784,7 @@ function openLogSheetForDate(ds){
     // Pre-check planned toggle
     logPlanned=true;
     document.getElementById('planned-track').classList.add('on');
+    selectReminderDefault(0); // v4.2: no extra reminder on a planned action
     // The date just changed under the reminder preview, which is derived from it.
     refreshReminderPreview();
   },50);
@@ -3872,7 +3902,15 @@ async function ensureActivation(brokerId, auctionId, planned){
   try{
     const rows=await dbGet('broker_auction_activations','broker_id=eq.'+encodeURIComponent(brokerId)+'&auction_id=eq.'+encodeURIComponent(auctionId)+'&select=id,deleted&limit=1');
     if(rows && rows.length){
-      if(rows[0].deleted) await dbPatch('broker_auction_activations',rows[0].id,{deleted:false,deleted_at:null,deleted_by:null,updated_at:new Date().toISOString()});
+      if(rows[0].deleted){
+        // v4.2: someone removed this contact from that campaign. Never put it
+        // back silently: ask. If not, the entry keeps the auction but the
+        // contact stays off the campaign board.
+        const b=brokers.find(x=>String(x.id)===String(brokerId));
+        const au=auctions.find(x=>String(x.id)===String(auctionId));
+        if(!confirm((b?b.name:'This contact')+' was removed from the '+(au?au.name:'')+' campaign. Put them back on its board?'))return null;
+        await dbPatch('broker_auction_activations',rows[0].id,{deleted:false,deleted_at:null,deleted_by:null,updated_at:new Date().toISOString()});
+      }
       return rows[0].id;
     }
     const ins=await dbPost('broker_auction_activations',{broker_id:brokerId,auction_id:auctionId,activated_by:curUser||null,assigned_to:curUser||null,pipeline_stage:planned?'Not contacted':'Contacted',activated_at:new Date().toISOString()});
