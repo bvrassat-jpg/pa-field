@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- Single source of truth for the running version. Kept in the first bytes of
      the file so the update check can read it with a tiny range request. -->
-<meta name="build" content="4.2">
+<meta name="build" content="4.3">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMob v3</title>
@@ -521,7 +521,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
   </button>
   <button class="tab" id="tab-pipe" onclick="switchTab('pipe')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg>
-    Pipeline
+    BD Pipeline
   </button>
 
   <button class="tab" id="tab-cal" onclick="switchTab('cal')">
@@ -853,7 +853,7 @@ const STAGES={
   4:'Pitch done',
   3:'Interested',
   2:'Contacted',
-  1:'Identified',
+  1:'Spotted',
   0:'Not relevant'
 };
 const SCLS={9:'s9',8:'s8',7:'s7',6:'s6',5:'s5',4:'s4',3:'s3',2:'s2',1:'s1',0:'s0'};
@@ -2477,7 +2477,7 @@ function renderPipeline(){
     +'<div class="kpi-card kpi-red"><div class="kpi-n">'+staleN+'</div><div class="kpi-l">Quiet '+PIPE_STALE_DAYS+'d+</div></div>'
     +'</div>';
   const maxN=Math.max(1,...[1,2,3,4,5,6,7,8,9].map(s=>active.filter(d=>d.stage===s).length));
-  html+='<div class="sec-hd">Pipeline by stage</div>';
+  html+='<div class="sec-hd">BD Pipeline by stage</div>';
   [1,2,3,4,5,6,7,8,9].forEach(s=>{
     const ds=active.filter(d=>d.stage===s);
     const val=ds.reduce((a,d)=>a+(d.val||0),0);
@@ -2993,6 +2993,11 @@ async function saveBdMeta(brokerId){
 // with the same version as the build meta tag. Versions without an entry
 // (cosmetic fixes) show nothing. Reopen any time from the region menu.
 const WHATS_NEW=[
+  {v:'4.3',items:[
+    'The Pipeline tab is now called <b>BD Pipeline</b>, and its first stage is <b>Spotted</b> (instead of Identified), so it is never confused with the CRM\'s Campaign Pipeline or client stages.',
+    'A contact added to a campaign from BD Field is assigned to its owner by default.',
+    'The Calendar shows the auction day of every active auction.'
+  ]},
   {v:'4.2',items:[
     'New actions are <b>no longer filed under an auction by default</b>. Pick one only when the action is campaign work: it then also shows in the CRM. Closed auctions are no longer offered.',
     'A <b>planned</b> action no longer adds an extra follow-up reminder 3 days later by default.',
@@ -3076,7 +3081,7 @@ function renderPropertyList(b){
           ${Object.entries(ADDENDUM_STATUS).map(([k,v])=>`<option value="${k}"${p.addendum===k?' selected':''}>${k===''?'Addendum: —':v}</option>`).join('')}
         </select>
       </div>
-      <select class="fi" id="pp-stage-${i}" style="margin-top:8px"${propStageCol?dis:' disabled'} onchange="saveProperty('${b.id}',${i})" title="${propStageCol?'Pipeline stage of this property':'Property stages are not switched on in the database yet'}">
+      <select class="fi" id="pp-stage-${i}" style="margin-top:8px"${propStageCol?dis:' disabled'} onchange="saveProperty('${b.id}',${i})" title="${propStageCol?'BD stage of this property':'Property stages are not switched on in the database yet'}">
         ${[1,2,3,4,5,6,7,8,9,0].map(s=>`<option value="${s}"${Number(p.stage)===s?' selected':''}>Stage: ${STAGES[s]}</option>`).join('')}
       </select>
     </div>`).join('');
@@ -3640,9 +3645,10 @@ function buildCalEvents(){
         color:urgency==='ov'?'var(--red)':urgency==='td'?'var(--amber)':urgency==='soon'?'var(--blue)':'var(--bd2)'});
     });
   });
-  if(curAuction&&curAuction.date){
-    add(curAuction.date,{kind:'auction',title:'◆ Auction day',sub:curAuction.name,color:'var(--gold)',time:''});
-  }
+  // v4.3: every Active auction's day, so two campaigns running in parallel both show.
+  auctions.filter(a=>a.status==='active'&&a.date).forEach(au=>{
+    add(au.date,{kind:'auction',title:'◆ Auction day',sub:au.name,color:'var(--gold)',time:''});
+  });
   return evMap;
 }
 
@@ -3913,7 +3919,9 @@ async function ensureActivation(brokerId, auctionId, planned){
       }
       return rows[0].id;
     }
-    const ins=await dbPost('broker_auction_activations',{broker_id:brokerId,auction_id:auctionId,activated_by:curUser||null,assigned_to:curUser||null,pipeline_stage:planned?'Not contacted':'Contacted',activated_at:new Date().toISOString()});
+    // v4.3: the campaign card's "Assigned to" starts as the contact's owner, as in the CRM.
+    const ownerOf=(brokers.find(x=>String(x.id)===String(brokerId))||{}).assigned||null;
+    const ins=await dbPost('broker_auction_activations',{broker_id:brokerId,auction_id:auctionId,activated_by:curUser||null,assigned_to:ownerOf||curUser||null,pipeline_stage:planned?'Not contacted':'Contacted',activated_at:new Date().toISOString()});
     return ins && ins[0] ? ins[0].id : null;
   }catch(e){ console.warn('Campaign link not made:',e); return null; }
 }
