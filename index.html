@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- Single source of truth for the running version. Kept in the first bytes of
      the file so the update check can read it with a tiny range request. -->
-<meta name="build" content="3.9">
+<meta name="build" content="4.0">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMob v3</title>
@@ -104,6 +104,19 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:16px;color:var(--t1);
 .main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
 
 /* ── SECTION HEADERS ── */
+.pipe-row{display:grid;grid-template-columns:118px 1fr 74px;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;}
+.pipe-row:active,.pipe-row.on{background:var(--gold-bg);}
+.pipe-lbl{font-size:12px;font-weight:600;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pipe-track{height:22px;background:var(--s2);border-radius:5px;overflow:hidden;position:relative;}
+.pipe-bar{height:100%;border-radius:5px;min-width:3px;}
+.pipe-n{position:absolute;left:8px;top:0;line-height:22px;font-size:12px;font-weight:700;color:var(--t1);}
+.pipe-val{font-size:12px;font-weight:600;color:var(--gold);text-align:right;white-space:nowrap;}
+.dos-card{background:var(--white);border:1px solid var(--bd);border-radius:10px;margin:0 16px 8px;padding:12px 14px;display:flex;gap:10px;cursor:pointer;}
+.dos-card.stale{border-left:3px solid var(--red);}
+.dos-card:active{background:var(--s2);}
+.dos-name{font-size:15px;font-weight:600;color:var(--t1);}
+.dos-sub{font-size:12px;color:var(--t3);margin-top:3px;}
+.dos-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;margin-left:auto;}
 .sec-hd{padding:16px 16px 8px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);font-weight:600;}
 .empty-state{text-align:center;padding:60px 24px;color:var(--t4);}
 .empty-icon{font-family:'Segoe UI',system-ui,sans-serif;font-size:40px;color:var(--gold-bd);margin-bottom:10px;}
@@ -490,6 +503,7 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 <div class="main" id="main-scroll">
   <div id="view-today"></div>
   <div id="view-brokers" style="display:none"></div>
+  <div id="view-pipe" style="display:none"></div>
   <div id="view-cal" style="display:none"></div>
 </div>
 
@@ -504,6 +518,10 @@ select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
     Contacts
     <div class="tab-dot" id="dot-brokers"></div>
+  </button>
+  <button class="tab" id="tab-pipe" onclick="switchTab('pipe')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg>
+    Pipeline
   </button>
 
   <button class="tab" id="tab-cal" onclick="switchTab('cal')">
@@ -873,6 +891,9 @@ let regions=[], curRegion=null;
 let auctions=[], curAuction=null, brokers=[], activities=[], clients=[];
 let curTab='today', selBroker=null, logPlanned=false, logType='Call', logReminderDays=3;
 let propsTable=true;
+// v4.0: each property has its own pipeline stage (broker_properties.stage).
+// False until the column is confirmed to exist, so nothing is ever written to a missing column.
+let propStageCol=false;
 let filterQ='', filterStage=null, filterBdStage=null, filterAssigned=null, filterNoRegion=false;
 const savedUser=localStorage.getItem('pa_field_user')||TEAM[0];
 const savedRegionId=localStorage.getItem('pa_region_id');
@@ -1240,6 +1261,11 @@ async function loadData(){
     let propRows=[];propsTable=true;
     try{propRows=await dbGetAll('broker_properties','deleted=is.false&order=created_at,id');}
     catch(pe){propsTable=false;console.warn('broker_properties not readable:',pe);}
+    propStageCol=false;
+    if(propsTable){
+      try{await dbGet('broker_properties','select=stage&limit=1');propStageCol=true;}
+      catch(se){console.warn('broker_properties.stage not available yet:',se);}
+    }
 
     // Regions
     regions=regRows.map(r=>({id:r.id,name:r.name}));
@@ -1283,13 +1309,15 @@ async function loadData(){
     brokers.forEach(b=>b.properties=[]);
     propRows.forEach(p=>{
       if(bMap[p.broker_id])bMap[p.broker_id].properties.push({
-        id:p.id,name:p.name||'',value:p.value||'',addendum:p.addendum||''});
+        id:p.id,name:p.name||'',value:p.value||'',addendum:p.addendum||'',
+        // No stage stored yet: the property inherits its contact's stage.
+        stage:p.stage!=null?Number(p.stage):bMap[p.broker_id].bd_stage});
     });
     // A broker with no property rows but an old single property (written before
     // v3.7, or by an old cached copy) shows it as one entry, saved on first edit.
     brokers.forEach(b=>{
       if(!b.properties.length&&(b.bd_property||b.bd_value||b.bd_addendum))
-        b.properties.push({id:null,name:b.bd_property,value:b.bd_value,addendum:b.bd_addendum});
+        b.properties.push({id:null,name:b.bd_property,value:b.bd_value,addendum:b.bd_addendum,stage:b.bd_stage});
     });
     actRows.forEach(a=>{
       if(bMap[a.broker_id])bMap[a.broker_id].activities.push({
@@ -2210,7 +2238,7 @@ async function submitNewBroker(){
       notes};
     brokers.push(newB);
     if(bd_property){
-      newB.properties.push({id:null,name:bd_property,value:'',addendum:''});
+      newB.properties.push({id:null,name:bd_property,value:'',addendum:'',stage:newB.bd_stage||1});
       if(propsTable){
         try{await persistProperty(newB,newB.properties[0],false);}
         catch(pe){toast('Contact saved, property not saved: '+pe.message);}
@@ -2231,7 +2259,7 @@ function switchTab(t){
   curTab=t;
   // Clear broker static header so it rebuilds with fresh state on next visit
   if(t!=='brokers'){const v=document.getElementById('view-brokers');if(v)v.innerHTML='';}
-  ['today','brokers','cal'].forEach(id=>{
+  ['today','brokers','pipe','cal'].forEach(id=>{
     document.getElementById('view-'+id).style.display=id===t?'block':'none';
     document.getElementById('tab-'+id).classList.toggle('on',id===t);
   });
@@ -2243,6 +2271,7 @@ function switchTab(t){
 function renderCurrentTab(){
   if(curTab==='today')renderToday();
   else if(curTab==='brokers')renderBrokers();
+  else if(curTab==='pipe')renderPipeline();
   else if(curTab==='cal')renderCal();
 }
 
@@ -2345,6 +2374,134 @@ function renderToday(){
     +actionsHtml
     +'<div class="sec-hd">Recent activity</div>'
     +recentHtml;
+}
+
+// ── PIPELINE (v4.0) ───────────────────────────────────────
+// Read-only view: one dossier per property, grouped by the property's own stage.
+// Nothing in this view writes to the database.
+let pipeOwner=null,pipeStage=null;
+const PIPE_STALE_DAYS=14;
+// Reads a value typed by hand ("€4.5M", "4,5 M", "4 500 000", "850k", "9M CHF").
+// A bare number under 1000 is read as millions. Returns null if unreadable.
+function parseEstValue(s){
+  if(!s)return null;
+  const t=String(s).toLowerCase().replace(/[\u00a0\u202f\s'’]/g,'');
+  const m=t.match(/(\d+(?:[.,]\d+)*)(bn|md|mds|mio|mn|m|k)?/);
+  if(!m)return null;
+  let n=m[1],suf=m[2]||'';
+  if(/^\d{1,3}([.,]\d{3})+$/.test(n))n=n.replace(/[.,]/g,'');else n=n.replace(',','.');
+  let v=parseFloat(n);if(!isFinite(v))return null;
+  if(suf==='bn'||suf==='md'||suf==='mds')v*=1e9;
+  else if(suf==='k')v*=1e3;
+  else if(suf)v*=1e6;
+  else if(v<1000)v*=1e6;
+  return v;
+}
+function fmtEstValue(v){
+  if(!v)return'';
+  if(v>=1e9)return(v/1e9).toFixed(v>=1e10?0:1).replace(/\.0$/,'')+'bn';
+  if(v>=1e6)return(v/1e6).toFixed(v>=1e8?0:1).replace(/\.0$/,'')+'M';
+  return Math.round(v/1e3)+'k';
+}
+function lastDoneAct(b){
+  let best=null;
+  (b.activities||[]).forEach(a=>{if(!a.planned&&a.acted_at&&(!best||new Date(a.acted_at)>new Date(best.acted_at)))best=a;});
+  return best;
+}
+function pipeDossiers(){
+  const pool=curRegion?brokers.filter(b=>Number(b.region_id)===Number(curRegion.id)):brokers.filter(b=>b.region_id);
+  const out=[];
+  pool.forEach(b=>{
+    if(pipeOwner&&b.assigned!==pipeOwner)return;
+    const last=lastDoneAct(b);
+    const days=last?Math.floor((Date.now()-new Date(last.acted_at).getTime())/86400000):null;
+    const ns=naStatus(b);
+    const hasFuture=ns==='today'||ns==='soon'||ns==='upcoming';
+    const stale=!hasFuture&&(days===null||days>PIPE_STALE_DAYS);
+    (b.properties||[]).forEach(p=>{
+      if(!p.name&&!p.value&&p.id==null)return;
+      const st=p.stage!=null?Number(p.stage):b.bd_stage;
+      out.push({b,p,stage:st,val:parseEstValue(p.value),days,stale,next:hasFuture?nextAct(b):null});
+    });
+  });
+  return {pool,out};
+}
+function setPipeOwner(o){pipeOwner=o;renderPipeline();}
+function setPipeStage(s){pipeStage=pipeStage===s?null:s;renderPipeline();}
+function renderPipeline(){
+  const v=document.getElementById('view-pipe');
+  if(!brokers.filter(b=>b.region_id).length){
+    v.innerHTML='<div class="empty-state" style="padding-top:80px"><div class="empty-icon">◇</div><div class="empty-msg">Loading dossiers…</div></div>';
+    return;
+  }
+  const {pool,out}=pipeDossiers();
+  const active=out.filter(d=>d.stage>=1&&d.stage<=9);
+  const notRel=out.filter(d=>d.stage===0).length;
+  const totalVal=active.reduce((s,d)=>s+(d.val||0),0);
+  const unparsed=active.filter(d=>d.p.value&&d.val===null).length;
+  const staleN=active.filter(d=>d.stale&&d.stage<9).length;
+  const owners=TEAM.filter(t=>pool.some(b=>b.assigned===t&&(b.properties||[]).length));
+  const chip=(label,on,js)=>'<span class="fchip'+(on?' on':'')+'" onclick="'+js+'">'+label+'</span>';
+  let html='';
+  if(curRegion)html+='<div style="padding:10px 16px 0;font-size:11px;color:var(--gold);font-weight:600;letter-spacing:1px;text-transform:uppercase">◉ '+esc(curRegion.name)+'</div>';
+  if(!propStageCol)html+='<div style="margin:10px 16px 0;padding:10px 12px;border-radius:8px;background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber);font-size:12px;line-height:1.5">Property stages are not switched on in the database yet, so each property shows its contact\'s stage.</div>';
+  html+='<div class="filter-row">'
+    +chip('All',!pipeOwner,'setPipeOwner(null)')
+    +(curUser?chip('Mine',pipeOwner===curUser,"setPipeOwner('"+esc(curUser)+"')"):'')
+    +owners.filter(o=>o!==curUser).map(o=>chip(esc(o),pipeOwner===o,"setPipeOwner('"+esc(o)+"')")).join('')
+    +'</div>';
+  html+='<div class="kpi-row">'
+    +'<div class="kpi-card"><div class="kpi-n">'+active.length+'</div><div class="kpi-l">Dossiers</div></div>'
+    +'<div class="kpi-card"><div class="kpi-n" style="color:var(--gold);font-size:30px;line-height:40px">'+(totalVal?fmtEstValue(totalVal):'—')+'</div><div class="kpi-l">Est. value</div></div>'
+    +'<div class="kpi-card kpi-red"><div class="kpi-n">'+staleN+'</div><div class="kpi-l">Quiet '+PIPE_STALE_DAYS+'d+</div></div>'
+    +'</div>';
+  const maxN=Math.max(1,...[1,2,3,4,5,6,7,8,9].map(s=>active.filter(d=>d.stage===s).length));
+  html+='<div class="sec-hd">Pipeline by stage</div>';
+  [1,2,3,4,5,6,7,8,9].forEach(s=>{
+    const ds=active.filter(d=>d.stage===s);
+    const val=ds.reduce((a,d)=>a+(d.val||0),0);
+    const col=s>=6?'var(--green-bd)':s>=4?'var(--blue-bd)':s>=3?'var(--amber-bd)':'var(--bd2)';
+    html+='<div class="pipe-row'+(pipeStage===s?' on':'')+'" onclick="setPipeStage('+s+')">'
+      +'<div class="pipe-lbl">'+STAGES[s]+'</div>'
+      +'<div class="pipe-track"><div class="pipe-bar" style="width:'+(ds.length?Math.max(4,Math.round(ds.length/maxN*100)):0)+'%;background:'+col+'"></div><span class="pipe-n">'+ds.length+'</span></div>'
+      +'<div class="pipe-val">'+(val?fmtEstValue(val):'')+'</div>'
+      +'</div>';
+  });
+  html+='<div style="padding:4px 16px 0;font-size:11px;color:var(--t4);line-height:1.5">Values are added as typed, all currencies together'+(unparsed?' · '+unparsed+' value'+(unparsed>1?'s':'')+' could not be read':'')+(notRel?' · '+notRel+' marked not relevant':'')+'</div>';
+  const list=active.filter(d=>pipeStage===null||d.stage===pipeStage)
+    .sort((a,b)=>b.stage-a.stage||(b.val||0)-(a.val||0));
+  html+='<div class="sec-hd">'+(pipeStage===null?'All dossiers, most advanced first':STAGES[pipeStage]+' ('+list.length+') · tap the stage again to clear')+'</div>';
+  if(!list.length)html+='<div style="padding:8px 16px 16px;color:var(--t4);font-size:14px">No dossier here</div>';
+  list.forEach(d=>{
+    const st=d.p.addendum;
+    const quiet=d.days===null?'No activity yet':(d.days===0?'Today':d.days+' d ago');
+    html+='<div class="dos-card'+(d.stale&&d.stage<9?' stale':'')+'" onclick="openDetail(\''+d.b.id+'\')">'
+      +'<div style="min-width:0;flex:1">'
+        +'<div class="dos-name">&#x2302; '+esc(d.p.name||'Unnamed property')+'</div>'
+        +'<div class="dos-sub">'+esc(d.b.name)+(d.b.agency?' · '+esc(d.b.agency):'')+'</div>'
+        +'<div class="dos-sub" style="color:'+(d.stale&&d.stage<9?'var(--red)':'var(--t4)')+'">Last activity: '+quiet+(d.next?' · next '+fmt(d.next.acted_at):'')+'</div>'
+      +'</div>'
+      +'<div class="dos-right">'
+        +'<span class="stg-pill '+(SCLS[d.stage]||'s1')+'">'+STAGES[d.stage]+'</span>'
+        +(d.p.value?'<span style="font-size:12px;font-weight:600;color:var(--gold)">'+esc(d.p.value)+'</span>':'')
+        +(st?'<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:'+(st==='signed'?'var(--green-bg)':st==='blocked'?'var(--red-bg)':'var(--amber-bg)')+';color:'+(st==='signed'?'var(--green)':st==='blocked'?'var(--red)':'var(--amber)')+'">'+(ADDENDUM_STATUS[st]||'')+'</span>':'')
+        +(d.b.assigned?'<span style="font-size:10px;color:var(--t3)">● '+esc(d.b.assigned)+'</span>':'')
+      +'</div>'
+      +'</div>';
+  });
+  // Contacts already past the pitch with no property recorded: invisible in the
+  // pipeline otherwise, so listed here to be completed.
+  if(pipeStage===null){
+    const missing=pool.filter(b=>(!pipeOwner||b.assigned===pipeOwner)&&b.bd_stage>=4&&b.bd_stage<=9&&!(b.properties||[]).some(p=>p.name||p.value||p.id!=null));
+    if(missing.length){
+      html+='<div class="sec-hd">Past the pitch, no property recorded ('+missing.length+')</div>';
+      missing.forEach(b=>{
+        html+='<div class="dos-card" onclick="openDetail(\''+b.id+'\')"><div style="min-width:0;flex:1"><div class="dos-name">'+esc(b.name)+'</div><div class="dos-sub">'+esc(b.agency||'')+' · add the property to count it</div></div><div class="dos-right"><span class="stg-pill '+(SCLS[b.bd_stage]||'s1')+'">'+STAGES[b.bd_stage]+'</span></div></div>';
+      });
+    }
+  }
+  html+='<div style="height:90px"></div>';
+  v.innerHTML=html;
 }
 
 // One-click clear for the contacts search box.
@@ -2782,8 +2939,9 @@ async function setStage(brokerId,stage){
   // Update stage grid UI immediately
   document.querySelectorAll('#stage-grid .stage-btn').forEach(el=>{el.classList.toggle('on',parseInt(el.dataset.stage)===stage);});
   // Update hero pill
-  document.querySelector('.hero-stage').className='hero-stage '+(SCLS[stage]||'s1');
-  document.querySelector('.hero-stage').textContent=STAGES[stage];
+  // v4.0: may now run after a property save, when the contact page could already be closed.
+  const hs=document.querySelector('.hero-stage');
+  if(hs){hs.className='hero-stage '+(SCLS[stage]||'s1');hs.textContent=STAGES[stage];}
   try{
     await dbPatchQueued('brokers',brokerId,{bd_stage:stage});
     toast('Stage updated → '+STAGES[stage],true);
@@ -2814,6 +2972,12 @@ async function saveBdMeta(brokerId){
 // with the same version as the build meta tag. Versions without an entry
 // (cosmetic fixes) show nothing. Reopen any time from the region menu.
 const WHATS_NEW=[
+  {v:'4.0',items:[
+    'New <b>Pipeline</b> tab: how many dossiers sit at each stage, their estimated value, and which ones have gone quiet. Tap a stage to list its dossiers, tap a dossier to open the contact.',
+    'Each <b>property now has its own stage</b> (Identified to Addendum signed), set under the property in the contact page. A broker with two properties can have one at Pitch done and one at Addendum sent.',
+    'Moving a property forward also moves its contact forward if the contact was behind. A contact is never moved back automatically.',
+    'A dossier is flagged in red when nothing has been logged on the contact for 14 days and nothing is planned.'
+  ]},
   {v:'3.9',items:[
     '<b>Assigned to</b> is now the contact\'s owner, the same field the CRM shows as Owner. You can set it for every contact, including ones created in the CRM.',
     'Assigning a contact no longer changes who is recorded as having found it.'
@@ -2881,16 +3045,19 @@ function renderPropertyList(b){
           ${Object.entries(ADDENDUM_STATUS).map(([k,v])=>`<option value="${k}"${p.addendum===k?' selected':''}>${k===''?'Addendum: —':v}</option>`).join('')}
         </select>
       </div>
+      <select class="fi" id="pp-stage-${i}" style="margin-top:8px"${propStageCol?dis:' disabled'} onchange="saveProperty('${b.id}',${i})" title="${propStageCol?'Pipeline stage of this property':'Property stages are not switched on in the database yet'}">
+        ${[1,2,3,4,5,6,7,8,9,0].map(s=>`<option value="${s}"${Number(p.stage)===s?' selected':''}>Stage: ${STAGES[s]}</option>`).join('')}
+      </select>
     </div>`).join('');
 }
 // Copies the form into the in-memory property; returns true if anything changed.
 function readPropertyForm(b,i){
   const p=b.properties[i];if(!p)return false;
-  const n=document.getElementById('pp-name-'+i),v=document.getElementById('pp-value-'+i),a=document.getElementById('pp-add-'+i);
+  const n=document.getElementById('pp-name-'+i),v=document.getElementById('pp-value-'+i),a=document.getElementById('pp-add-'+i),st=document.getElementById('pp-stage-'+i);
   if(!n)return false;
-  const next={name:n.value.trim(),value:v.value.trim(),addendum:a.value};
+  const next={name:n.value.trim(),value:v.value.trim(),addendum:a.value,stage:st?Number(st.value):p.stage};
   if(p.id==null&&!next.name&&!next.value&&!next.addendum){Object.assign(p,next);return false;}
-  const changed=p.id==null||next.name!==p.name||next.value!==p.value||next.addendum!==p.addendum;
+  const changed=p.id==null||next.name!==p.name||next.value!==p.value||next.addendum!==p.addendum||next.stage!==p.stage;
   Object.assign(p,next);
   return changed;
 }
@@ -2908,6 +3075,7 @@ async function persistProperty(b,p,mirror=true){
   while(p._pending){try{await p._pending;}catch(e){}}
   const run=(async()=>{
     const body={name:p.name,value:p.value,addendum:p.addendum};
+    if(propStageCol&&p.stage!=null)body.stage=p.stage;
     if(p.id==null){
       const rows=await dbPostQueued('broker_properties',{broker_id:b.id,...body,created_by:curUser||'BD Field'});
       p.id=rows&&rows[0]?rows[0].id:null;
@@ -2936,14 +3104,22 @@ async function saveProperty(brokerId,i){
   if(!propsTable)return;
   const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
   if(!readPropertyForm(b,i))return;
-  try{await persistProperty(b,b.properties[i]);toast('Property saved',true);renderCurrentTab();}
+  try{
+    await persistProperty(b,b.properties[i]);toast('Property saved',true);
+    // A property can move the contact forward, never back: if this property is
+    // now further along than the contact's own stage, the contact's stage (the
+    // one the CRM and the Contacts filters read) is raised to match, with a toast.
+    const ps=Number(b.properties[i].stage);
+    if(propStageCol&&ps>0&&ps>(b.bd_stage||0))await setStage(b.id,ps);
+    renderCurrentTab();
+  }
   catch(e){toast('Error: '+e.message);}
 }
 function addPropertyRow(brokerId){
   const b=brokers.find(x=>String(x.id)===String(brokerId));if(!b)return;
   // Keep what is typed in the other rows before redrawing.
-  b.properties.forEach((p,i)=>{const n=document.getElementById('pp-name-'+i);if(n){p.name=n.value.trim();p.value=document.getElementById('pp-value-'+i).value.trim();p.addendum=document.getElementById('pp-add-'+i).value;}});
-  b.properties.push({id:null,name:'',value:'',addendum:'',_new:true});
+  b.properties.forEach((p,i)=>{const n=document.getElementById('pp-name-'+i);if(n){p.name=n.value.trim();p.value=document.getElementById('pp-value-'+i).value.trim();p.addendum=document.getElementById('pp-add-'+i).value;const st=document.getElementById('pp-stage-'+i);if(st)p.stage=Number(st.value);}});
+  b.properties.push({id:null,name:'',value:'',addendum:'',stage:b.bd_stage||1,_new:true});
   refreshPropertyUI(b);
   const n=document.getElementById('pp-name-'+(b.properties.length-1));if(n)n.focus();
 }
