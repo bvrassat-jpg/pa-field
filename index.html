@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- Single source of truth for the running version. Kept in the first bytes of
      the file so the update check can read it with a tiny range request. -->
-<meta name="build" content="4.0">
+<meta name="build" content="4.1">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMob v3</title>
@@ -971,6 +971,14 @@ function copyToClip(text,label){
     toast((label||'Text')+' copied',true);
   });
 }
+// v4.1: who a planned action is for. assigned_to first, then whoever logged it;
+// an action with neither belongs to the contact's owner (or to everyone if unowned).
+function isMe(n){return !!n&&!!curUser&&String(n).toLowerCase()===String(curUser).toLowerCase();}
+function actIsMine(a,b){
+  const who=a.assigned_to||a.logged_by;
+  if(who)return isMe(who);
+  return !b.assigned||isMe(b.assigned);
+}
 function naStatus(b){
   const planned=(b.activities||[]).filter(a=>a.planned);
   if(!planned.length)return'none';
@@ -1322,7 +1330,8 @@ async function loadData(){
     actRows.forEach(a=>{
       if(bMap[a.broker_id])bMap[a.broker_id].activities.push({
         id:a.id,type:a.type==='Visit'?'Property visit':(a.type||''),notes:a.notes||'',planned:!!a.planned&&!a.done,
-        acted_at:a.logged_at||'',due_at:a.due_at||null,auction_id:a.auction_id
+        acted_at:a.logged_at||'',due_at:a.due_at||null,auction_id:a.auction_id,
+        assigned_to:a.assigned_to||'',logged_by:a.logged_by||''
       });
     });
     // Note: broker.clients (BD's lightweight prospect mentions) is populated
@@ -2305,7 +2314,8 @@ function renderToday(){
   // because there's no date to compare against, so they'd otherwise be invisible.
   const noPlannedAction=pool.filter(b=>b.bd_stage>=2&&b.bd_stage<=6&&naStatus(b)==='none').length;
 
-  const myBrokers=pool.filter(b=>!b.assigned||b.assigned===curUser||b.assigned===curUser.toLowerCase());
+  // v4.1: also my actions on contacts owned by someone else.
+  const myBrokers=pool.filter(b=>!b.assigned||isMe(b.assigned)||(b.activities||[]).some(a=>a.planned&&actIsMine(a,b)));
   const withActions=myBrokers.filter(b=>['overdue','today','soon'].includes(naStatus(b)));
   withActions.sort((a,b)=>{
     const ord={overdue:0,today:1,soon:2};
@@ -2972,6 +2982,9 @@ async function saveBdMeta(brokerId){
 // with the same version as the build meta tag. Versions without an entry
 // (cosmetic fixes) show nothing. Reopen any time from the region menu.
 const WHATS_NEW=[
+  {v:'4.1',items:[
+    'A planned action assigned to you now always shows in <b>your Calendar and your Today actions</b>, even when the contact belongs to a colleague. Before, it was hidden.'
+  ]},
   {v:'4.0',items:[
     'New <b>Pipeline</b> tab: how many dossiers sit at each stage, their estimated value, and which ones have gone quiet. Tap a stage to list its dossiers, tap a dossier to open the contact.',
     'Each <b>property now has its own stage</b> (Identified to Addendum signed), set under the property in the contact page. A broker with two properties can have one at Pitch done and one at Addendum sent.',
@@ -3567,10 +3580,13 @@ function setCalScope(s){
 // that would make a planned action on an unclaimed contact invisible here
 // while it is still listed under My actions on Today, and an action nobody
 // can see is worse than a slightly fuller calendar.
+// v4.1: "Mine" is decided per ACTION, by who the action is for (assigned_to,
+// then whoever logged it), not by who owns the contact. Before, an action
+// assigned to me on a colleague's contact was hidden from me. An action with
+// nobody on it still falls back to the contact's owner (or shows if unowned).
 function calBrokerPool(){
   let pool=brokers;
   if(curRegion)pool=pool.filter(b=>Number(b.region_id)===Number(curRegion.id));
-  if(calScope==='mine')pool=pool.filter(b=>!b.assigned||b.assigned===curUser||b.assigned===String(curUser).toLowerCase());
   return pool;
 }
 // ONE event index, used by both the month grid and the day list. These were
@@ -3583,7 +3599,7 @@ function buildCalEvents(){
   const add=(ds,ev)=>{(evMap[ds]=evMap[ds]||[]).push(ev);};
   const now=new Date();now.setHours(0,0,0,0);
   calBrokerPool().forEach(b=>{
-    (b.activities||[]).filter(a=>a.planned).forEach(a=>{
+    (b.activities||[]).filter(a=>a.planned&&(calScope!=='mine'||actIsMine(a,b))).forEach(a=>{
       if(!a.acted_at)return;
       const ds=a.acted_at.slice(0,10);
       const d=new Date(a.acted_at);d.setHours(0,0,0,0);
